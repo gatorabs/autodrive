@@ -1,8 +1,8 @@
-
+# main.py
 import multiprocessing as mp
 import cv2 as cv
 import time
-
+import serial
 
 from controllers.pid_controller import PIDController
 from controllers.lane_detector import LaneDetector
@@ -32,8 +32,7 @@ def lane_detection_process(lane_queue, shared_controls):
     MIN_OUTPUT = -32
     MAX_OUTPUT = 32
 
-    VIDEO_SOURCE = 1
-
+    VIDEO_SOURCE = "test_videos/teste1.mp4"
     create_control_window()
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
@@ -85,7 +84,6 @@ def lane_detection_process(lane_queue, shared_controls):
             if cv.waitKey(1) == ord('q'):
                 break
 
-            # Envia dados para o processo de envio via fila
             lane_data = {"speed": speed, "direction": direction}
             if not lane_queue.full():
                 lane_queue.put(lane_data)
@@ -97,13 +95,11 @@ def lane_detection_process(lane_queue, shared_controls):
 
 
 def object_detection_process(object_queue, shared_controls):
-
     serial_data = [0, 0, 0]
     object_detector = ObjectDetector(serial_data, shared_controls)
     object_detector.start()
 
     try:
-
         send_interval = 0.05
         last_put_time = time.time()
         while True:
@@ -114,7 +110,7 @@ def object_detection_process(object_queue, shared_controls):
                     object_queue.put(object_data)
                 last_put_time = current_time
             else:
-                time.sleep(0.001)  # Pequena pausa para evitar busy-wait
+                time.sleep(0.001)
     except Exception as e:
         print("Object Detection Error:", e)
     finally:
@@ -122,10 +118,9 @@ def object_detection_process(object_queue, shared_controls):
         cv.destroyAllWindows()
 
 
-def data_sender_process(lane_queue, object_queue):
-
-    SEND_DATA = False
-    COM_PORT = 'COM13'
+def data_sender_process(lane_queue, object_queue, shared_controls):
+    SEND_DATA = True
+    COM_PORT = 'COM5'
     serial_comm = SerialCommunicator(COM_PORT, send_data=SEND_DATA)
 
     lane_data = {"speed": 255, "direction": 180}
@@ -140,13 +135,16 @@ def data_sender_process(lane_queue, object_queue):
             if not object_queue.empty():
                 obj_data = object_queue.get()
 
+
+            emergency = shared_controls.get("EMERGENCY_STOP", 0)
             current_time = time.time()
             if (current_time - last_send_time) >= send_interval:
                 data_to_send = [
                     lane_data.get("speed", 255),
                     lane_data.get("direction", 180),
                     obj_data.get("person", 0),
-                    obj_data.get("semaforo", 0)
+                    obj_data.get("semaforo", 0),
+                    emergency
                 ]
                 serial_comm.send(data_to_send)
                 last_send_time = current_time
@@ -154,6 +152,32 @@ def data_sender_process(lane_queue, object_queue):
         print("Data Sender Error:", e)
     finally:
         serial_comm.close()
+
+
+
+def security_process(shared_controls):
+    OPEN_FOR_RECEIVE = True
+    SECURITY_COM_PORT = 'COM3'
+    BAUD_RATE = 115200
+
+    sec_serial = SerialCommunicator(SECURITY_COM_PORT, baud_rate=BAUD_RATE, open_for_receive=OPEN_FOR_RECEIVE)
+    try:
+        while True:
+            data = sec_serial.receive()
+            if data is not None:
+
+                if b's' in data or b'S' in data:
+                    shared_controls["EMERGENCY_STOP"] = 1
+                else:
+                    shared_controls["EMERGENCY_STOP"] = 0
+            else:
+                shared_controls["EMERGENCY_STOP"] = 0
+            time.sleep(0.01)
+    except Exception as e:
+        print("Security Process Error:", e)
+    finally:
+        sec_serial.close()
+
 
 
 if __name__ == '__main__':
@@ -164,31 +188,35 @@ if __name__ == '__main__':
        "SHOW_EDGES": True,
        "SHOW_ROI": True,
        "SHOW_PERSON_DETECTION": True,
-       "SHOW_FPS": True
+       "SHOW_FPS": True,
+       "EMERGENCY_STOP": False
     })
 
     lane_queue = mp.Queue(maxsize=10)
     object_queue = mp.Queue(maxsize=10)
 
-
     lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls))
     object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls))
-    sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue))
+    sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
     tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
+    security_proc = mp.Process(target=security_process, args=(shared_controls,))
 
     lane_process.start()
     object_process.start()
     sender_process.start()
     tk_process.start()
+    security_proc.start()
 
     try:
         lane_process.join()
         object_process.join()
         sender_process.join()
         tk_process.join()
+        security_proc.join()
     except KeyboardInterrupt:
         print("Interrompido pelo usuário. Encerrando processos...")
         lane_process.terminate()
         object_process.terminate()
         sender_process.terminate()
         tk_process.terminate()
+        security_proc.terminate()
