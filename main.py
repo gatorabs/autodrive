@@ -1,9 +1,9 @@
-# main.py
+
 import multiprocessing as mp
 import cv2 as cv
 import time
 
-# Importações dos módulos do projeto
+
 from controllers.pid_controller import PIDController
 from controllers.lane_detector import LaneDetector
 from controllers.serial_comm import SerialCommunicator
@@ -12,12 +12,9 @@ from processing.warp_perspective_processor import bird_eye
 from processing.object_detection_processor import ObjectDetector
 from utils.display import draw_overlays, create_main_window
 from utils.real_time_trackbars import create_control_window, get_trackbar_values
-from utils.buttons import start_tkinter_thread
-
-
+from utils.buttons import create_tkinter_controls
 
 def lane_detection_process(lane_queue, shared_controls):
-
     FRAME_WIDTH = int(1920 / 4)
     FRAME_HEIGHT = int(1080 / 4)
     FRAME_CENTER = FRAME_WIDTH // 2
@@ -38,7 +35,6 @@ def lane_detection_process(lane_queue, shared_controls):
     VIDEO_SOURCE = 1
 
     create_control_window()
-    start_tkinter_thread(shared_controls)
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
     lane_detector = LaneDetector(ROI_START, ROI_END)
@@ -48,10 +44,9 @@ def lane_detection_process(lane_queue, shared_controls):
     try:
         while True:
             frame, fps = video_proc.get_frame()
-
             canny_1, canny_2, speed, side = get_trackbar_values()
 
-
+            # Processamento para detecção de faixas
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
             blur = cv.GaussianBlur(gray, (5, 5), 0)
             edges = cv.Canny(blur, canny_1, canny_2)
@@ -62,7 +57,7 @@ def lane_detection_process(lane_queue, shared_controls):
             interval = max(1, round((ROI_END - ROI_START) / NUM_LINES))
             avg_left, avg_right = lane_detector.calculate_center_distance(warped_roi, NUM_LINES, interval)
 
-
+            # Cálculo do ângulo (direção) usando PID
             direction = 0
             if side == 1:
                 if avg_right != float('inf'):
@@ -71,22 +66,26 @@ def lane_detection_process(lane_queue, shared_controls):
                 if avg_left != float('inf'):
                     direction = round(pid.calculate(avg_left))
 
-            # Exibição – sobrepõe informações e junta janelas
-            frame_display = draw_overlays(frame, (ROI_START, ROI_END),
-                                          (ROI_X_START, ROI_X_END),
-                                          (avg_left, avg_right),
-                                          fps,
-                                          shared_controls.get("SHOW_FPS", True),
-                                          FRAME_CENTER)
-            main_display = create_main_window(frame_display, edges, warped_roi,
-                                              show_video=shared_controls.get("SHOW_VIDEO", True),
-                                              show_edges=shared_controls.get("SHOW_EDGES", True),
-                                              show_roi=shared_controls.get("SHOW_ROI", True))
+            frame_display = draw_overlays(
+                frame,
+                (ROI_START, ROI_END),
+                (ROI_X_START, ROI_X_END),
+                (avg_left, avg_right),
+                fps,
+                shared_controls.get("SHOW_FPS", True),
+                FRAME_CENTER
+            )
+            main_display = create_main_window(
+                frame_display, edges, warped_roi,
+                show_video=shared_controls.get("SHOW_VIDEO", True),
+                show_edges=shared_controls.get("SHOW_EDGES", True),
+                show_roi=shared_controls.get("SHOW_ROI", True)
+            )
             cv.imshow("Lane Detection", main_display)
             if cv.waitKey(1) == ord('q'):
                 break
 
-            # Envia dados para o processo de envio (fila)
+            # Envia dados para o processo de envio via fila
             lane_data = {"speed": speed, "direction": direction}
             if not lane_queue.full():
                 lane_queue.put(lane_data)
@@ -101,23 +100,25 @@ def object_detection_process(object_queue, shared_controls):
 
     serial_data = [0, 0, 0]
     object_detector = ObjectDetector(serial_data, shared_controls)
-
-    # Inicia o processo de detecção de objetos
     object_detector.start()
 
     try:
+
+        send_interval = 0.05
+        last_put_time = time.time()
         while True:
-            # Atualiza os dados de detecção na fila de objetos
-            object_data = {"person": serial_data[2], "semaforo": 0}  # Aqui, semáforo é mockado
-            if not object_queue.full():
-                object_queue.put(object_data)
-
-
-
+            current_time = time.time()
+            if (current_time - last_put_time) >= send_interval:
+                object_data = {"person": serial_data[2], "semaforo": 0}  # 'semaforo' mockado
+                if not object_queue.full():
+                    object_queue.put(object_data)
+                last_put_time = current_time
+            else:
+                time.sleep(0.001)  # Pequena pausa para evitar busy-wait
     except Exception as e:
         print("Object Detection Error:", e)
     finally:
-        object_detector.stop()  # Parando a detecção
+        object_detector.stop()
         cv.destroyAllWindows()
 
 
@@ -129,18 +130,15 @@ def data_sender_process(lane_queue, object_queue):
 
     lane_data = {"speed": 255, "direction": 180}
     obj_data = {"person": 0, "semaforo": 0}
-
     send_interval = 0.01
     last_send_time = time.time()
 
     try:
         while True:
-
             if not lane_queue.empty():
                 lane_data = lane_queue.get()
             if not object_queue.empty():
                 obj_data = object_queue.get()
-
 
             current_time = time.time()
             if (current_time - last_send_time) >= send_interval:
@@ -152,7 +150,6 @@ def data_sender_process(lane_queue, object_queue):
                 ]
                 serial_comm.send(data_to_send)
                 last_send_time = current_time
-
     except Exception as e:
         print("Data Sender Error:", e)
     finally:
@@ -173,20 +170,25 @@ if __name__ == '__main__':
     lane_queue = mp.Queue(maxsize=10)
     object_queue = mp.Queue(maxsize=10)
 
+
     lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls))
     object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls))
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue))
+    tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
 
     lane_process.start()
     object_process.start()
     sender_process.start()
+    tk_process.start()
 
     try:
         lane_process.join()
         object_process.join()
         sender_process.join()
+        tk_process.join()
     except KeyboardInterrupt:
         print("Interrompido pelo usuário. Encerrando processos...")
         lane_process.terminate()
         object_process.terminate()
         sender_process.terminate()
+        tk_process.terminate()

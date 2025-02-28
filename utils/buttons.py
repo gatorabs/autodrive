@@ -1,7 +1,5 @@
 import tkinter as tk
-from threading import Thread
 
-# Em vez de definir um dicionário local, essa função pode receber o dict compartilhado
 def create_tkinter_controls(controls):
     root = tk.Tk()
     root.title("Controles Adicionais")
@@ -38,7 +36,3 @@ def create_tkinter_controls(controls):
     btn_person_detection.pack(side=tk.LEFT, padx=5)
 
     root.mainloop()
-
-def start_tkinter_thread(controls):
-    t = Thread(target=create_tkinter_controls, args=(controls,), daemon=True)
-    t.start()
