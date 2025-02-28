@@ -2,17 +2,17 @@
 import cv2
 import threading
 from ultralytics import YOLO
-from utils.buttons import controls
 
 TARGET_CLASSES = {0, 9}
 
 class ObjectDetector(threading.Thread):
-    def __init__(self, serial_data, camera_source=0):
+    def __init__(self, serial_data, controls, camera_source=0):
         super(ObjectDetector, self).__init__()
         self.serial_data = serial_data
         self.cap = cv2.VideoCapture(camera_source)
         self.model = YOLO('yolov8n.pt')
         self.running = True
+        self.controls = controls
         self.lock = threading.Lock()
         self.window_open = False
 
@@ -42,7 +42,7 @@ class ObjectDetector(threading.Thread):
                 self.serial_data[2] = 1 if person_detected else 0
 
 
-            if controls["SHOW_PERSON_DETECTION"]:
+            if self.controls["SHOW_PERSON_DETECTION"]:
                 # Se o controle está ativo e a janela ainda não foi criada, crie-a
                 if not self.window_open:
                     cv2.namedWindow("Object Detection")
