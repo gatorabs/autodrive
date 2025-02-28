@@ -104,7 +104,7 @@ def object_detection_process(object_queue, shared_controls):
 
     try:
 
-        send_interval = 0.06
+        send_interval = 0.05
         last_put_time = time.time()
         while True:
             current_time = time.time()
@@ -130,7 +130,7 @@ def data_sender_process(lane_queue, object_queue):
 
     lane_data = {"speed": 255, "direction": 180}
     obj_data = {"person": 0, "semaforo": 0}
-    send_interval = 0.05
+    send_interval = 0.01
     last_send_time = time.time()
 
     try:
@@ -139,9 +139,6 @@ def data_sender_process(lane_queue, object_queue):
                 lane_data = lane_queue.get()
             if not object_queue.empty():
                 obj_data = object_queue.get()
-
-            if shared_controls.get("SAFETY_OVERRIDE", False):
-                lane_data["speed"] = 0
 
             current_time = time.time()
             if (current_time - last_send_time) >= send_interval:
@@ -158,43 +155,6 @@ def data_sender_process(lane_queue, object_queue):
     finally:
         serial_comm.close()
 
-def data_receiver_process(sensor_queue, shared_controls, com_port="COM5", baud_rate=115200):
-    """
-    Processo que lê da porta serial um caractere ('c' ou 'd').
-    'c' indica que a velocidade deve ser forçada para 0 (safety override);
-    'd' indica que a velocidade deve voltar ao valor normal dos trackbars.
-    O estado é atualizado no dicionário compartilhado (shared_controls).
-    """
-    import serial, time
-    try:
-        ser = serial.Serial(com_port, baud_rate, timeout=1)
-        print(f"Serial Receiver: Porta {com_port} aberta com baud_rate {baud_rate}")
-    except Exception as e:
-        print(f"Erro ao abrir a porta serial {com_port}: {e}")
-        return
-
-    check_interval = 0.01
-    last_check_time = time.time()
-
-    try:
-        while True:
-            current_time = time.time()
-            if (current_time - last_check_time) >= check_interval:
-                last_check_time = current_time
-                if ser.in_waiting > 0:
-                    ch = ser.read(1).decode(errors='replace').strip()
-                    if ch == 'c':
-                        print("Recebido 'c' -> Override ativado: velocidade = 0")
-                        shared_controls["SAFETY_OVERRIDE"] = True
-                    elif ch == 'd':
-                        print("Recebido 'd' -> Override desativado: velocidade normal")
-                        shared_controls["SAFETY_OVERRIDE"] = False
-
-    except Exception as e:
-        print("Serial Receiver Error:", e)
-    finally:
-        ser.close()
-        print(f"Serial Receiver: Porta {com_port} fechada.")
 
 if __name__ == '__main__':
     mp.set_start_method('spawn')
@@ -204,8 +164,7 @@ if __name__ == '__main__':
        "SHOW_EDGES": True,
        "SHOW_ROI": True,
        "SHOW_PERSON_DETECTION": True,
-       "SHOW_FPS": True,
-       "SAFETY_OVERRIDE": False
+       "SHOW_FPS": True
     })
 
     lane_queue = mp.Queue(maxsize=10)
