@@ -32,7 +32,7 @@ def lane_detection_process(lane_queue, shared_controls):
     MIN_OUTPUT = -32
     MAX_OUTPUT = 32
 
-    VIDEO_SOURCE = "test_videos/teste1.mp4"
+    VIDEO_SOURCE = 1
     create_control_window()
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
@@ -138,15 +138,18 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
             if not object_queue.empty():
                 obj_data = object_queue.get()
 
-            emergency = shared_controls.get("EMERGENCY_STOP", 0)
+
+            if obj_data.get("person", 0) == 1 or shared_controls.get("EMERGENCY_STOP", 0) == 1:
+                lane_data["speed"] = 0
+
             current_time = time.time()
             if (current_time - last_send_time) >= send_interval:
                 data_to_send = [
-                    lane_data.get("speed", 255),
                     lane_data.get("direction", 180),
+                    lane_data.get("speed", 255),
                     obj_data.get("person", 0),
                     obj_data.get("semaforo", 0),
-                    emergency  # quinto dado: 1 se emergência, 0 caso contrário
+                    shared_controls.get("EMERGENCY_STOP", 0)
                 ]
                 serial_comm.send(data_to_send)
                 last_send_time = time.time()
@@ -157,6 +160,7 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
         print("Data Sender Error:", e)
     finally:
         serial_comm.close()
+
 
 
 def security_process(shared_controls):
