@@ -147,9 +147,7 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
                 data_to_send = [
                     lane_data.get("direction", 180),
                     lane_data.get("speed", 255),
-                    obj_data.get("person", 0),
-                    obj_data.get("semaforo", 0),
-                    shared_controls.get("EMERGENCY_STOP", 0)
+                    obj_data.get("semaforo", 0)
                 ]
                 serial_comm.send(data_to_send)
                 last_send_time = time.time()
