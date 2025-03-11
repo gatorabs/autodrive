@@ -94,30 +94,33 @@ def lane_detection_process(lane_queue, shared_controls):
         cv.destroyWindow("Lane Detection")
 
 
-def object_detection_process(object_queue, shared_controls, serial_data):
+def object_detection_process(object_queue, shared_controls):
     set_process_priority("high")
-    object_detector = ObjectDetector(serial_data, shared_controls)
+    object_serial_data = shared_controls["object_serial_data"]
+    object_detector = ObjectDetector(object_serial_data, shared_controls)
     object_detector.start()
 
     try:
         send_interval = 0.05  # intervalo em segundos
         last_put_time = time.time()
-        
         while True:
             current_time = time.time()
             if (current_time - last_put_time) >= send_interval:
-                object_data = {"person": serial_data[2], "semaforo": 0}  # 'semaforo' mockado
+                object_data = {"person": object_serial_data[2], "semaforo": 0}  # 'semaforo' mockado
                 if not object_queue.full():
                     object_queue.put(object_data)
                 last_put_time = time.time()
             else:
-                sleep_time = max(0, send_interval - (current_time - last_put_time))
-                time.sleep(sleep_time)
+                remaining = send_interval - (current_time - last_put_time)
+                timer_event = mp.Event()
+                timer_event.wait(remaining)
+                timer_event.clear()
     except Exception as e:
         print("Object Detection Error:", e)
     finally:
         object_detector.stop()
         cv.destroyAllWindows()
+
 
 def data_sender_process(lane_queue, object_queue, shared_controls):
     set_process_priority("above_normal")
@@ -136,7 +139,6 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
                 lane_data = lane_queue.get()
             if not object_queue.empty():
                 obj_data = object_queue.get()
-
 
             if obj_data.get("person", 0) == 1 or shared_controls.get("EMERGENCY_STOP", 0) == 1:
                 lane_data["speed"] = 0
@@ -157,7 +159,6 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
         print("Data Sender Error:", e)
     finally:
         serial_comm.close()
-
 
 
 def security_process(shared_controls):
@@ -188,25 +189,22 @@ def security_process(shared_controls):
 if __name__ == '__main__':
     mp.set_start_method('spawn')
     manager = mp.Manager()
-    serial_data = manager.list([0, 0, 0])
+
     shared_controls = manager.dict({
        "SHOW_VIDEO": True,
        "SHOW_EDGES": True,
        "SHOW_ROI": True,
        "SHOW_PERSON_DETECTION": True,
        "SHOW_FPS": True,
-       "EMERGENCY_STOP": 0
+       "EMERGENCY_STOP": 0,
+       "object_serial_data": manager.list([0, 0, 0])
     })
-
-
-    # tasklist | findstr python
-    # ver os processes rodando pelo prompt (uso de memória)
 
     lane_queue = mp.Queue(maxsize=10)
     object_queue = mp.Queue(maxsize=10)
 
     lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls))
-    object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls, serial_data))
+    object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls))
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
     tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
     security_proc = mp.Process(target=security_process, args=(shared_controls,))
