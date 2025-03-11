@@ -32,7 +32,7 @@ def lane_detection_process(lane_queue, shared_controls):
     MIN_OUTPUT = -32
     MAX_OUTPUT = 32
 
-    VIDEO_SOURCE = 1
+    VIDEO_SOURCE = "test_videos/teste1.mp4"
     create_control_window()
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
@@ -94,15 +94,15 @@ def lane_detection_process(lane_queue, shared_controls):
         cv.destroyWindow("Lane Detection")
 
 
-def object_detection_process(object_queue, shared_controls):
+def object_detection_process(object_queue, shared_controls, serial_data):
     set_process_priority("high")
-    serial_data = [0, 0, 0]
     object_detector = ObjectDetector(serial_data, shared_controls)
     object_detector.start()
 
     try:
         send_interval = 0.05  # intervalo em segundos
         last_put_time = time.time()
+        
         while True:
             current_time = time.time()
             if (current_time - last_put_time) >= send_interval:
@@ -118,7 +118,6 @@ def object_detection_process(object_queue, shared_controls):
     finally:
         object_detector.stop()
         cv.destroyAllWindows()
-
 
 def data_sender_process(lane_queue, object_queue, shared_controls):
     set_process_priority("above_normal")
@@ -189,6 +188,7 @@ def security_process(shared_controls):
 if __name__ == '__main__':
     mp.set_start_method('spawn')
     manager = mp.Manager()
+    serial_data = manager.list([0, 0, 0])
     shared_controls = manager.dict({
        "SHOW_VIDEO": True,
        "SHOW_EDGES": True,
@@ -198,11 +198,15 @@ if __name__ == '__main__':
        "EMERGENCY_STOP": 0
     })
 
+
+    # tasklist | findstr python
+    # ver os processes rodando pelo prompt (uso de memória)
+
     lane_queue = mp.Queue(maxsize=10)
     object_queue = mp.Queue(maxsize=10)
 
     lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls))
-    object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls))
+    object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls, serial_data))
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
     tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
     security_proc = mp.Process(target=security_process, args=(shared_controls,))

@@ -1,6 +1,9 @@
 import os
 import psutil
 
+# Get-Process python | Select-Object ProcessName, Id, PriorityClass
+# PowerShell - Listar as prioridades dos Processos
+
 def set_process_priority(level):
     try:
         p = psutil.Process(os.getpid())
