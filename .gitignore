@@ -3,5 +3,4 @@
 profiles_settings.xml
 __pycache__/
 *.pyc
-processing/
 yolov8n.pt
