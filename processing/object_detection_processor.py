@@ -7,7 +7,7 @@ TARGET_CLASSES = {0, 9}
 class ObjectDetector(mp.Process):
     def __init__(self, shared_serial_data, controls, camera_source=0):
         super(ObjectDetector, self).__init__()
-        self.shared_serial_data = shared_serial_data  # Este é o manager.list compartilhado
+        self.shared_serial_data = shared_serial_data
         self.controls = controls
         self.camera_source = camera_source
         self.model = YOLO('yolov8n.pt')
@@ -24,19 +24,27 @@ class ObjectDetector(mp.Process):
             results = self.model(frame, classes=list(TARGET_CLASSES))
             person_detected = False
 
+            target_box_height = self.controls.get("TARGET_BOX_HEIGHT")
+            tolerance = self.controls.get("TOLERANCE")
+            min_box_height = target_box_height - tolerance
+            max_box_height = target_box_height
+
             for result in results:
                 for box in result.boxes:
                     cls = int(box.cls[0])
                     if cls in TARGET_CLASSES:
                         if cls == 0:
+                            x1, y1, x2, y2 = map(int, box.xyxy[0])
+                            box_height = y2 - y1
+                            # Filtra caixas fora do intervalo desejado
+                            if box_height < min_box_height or box_height > max_box_height:
+                                continue
                             person_detected = True
-                        x1, y1, x2, y2 = map(int, box.xyxy[0])
                         label = self.model.names[cls]
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                         cv2.putText(frame, label, (x1, y1 - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-            # Atualiza o valor compartilhado: índice 2 para detecção de pessoa
             self.shared_serial_data[2] = 1 if person_detected else 0
 
             if self.controls.get("SHOW_PERSON_DETECTION", True):

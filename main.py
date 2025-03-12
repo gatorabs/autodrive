@@ -10,6 +10,7 @@ from processing.priorities_processor import set_process_priority
 from processing.warp_perspective_processor import bird_eye
 from processing.object_detection_processor import ObjectDetector
 from utils.display import draw_overlays, create_main_window
+from utils.object_detector_trackbar import object_detector_trackbar_process
 from utils.real_time_trackbars import create_control_window, get_trackbar_values
 from utils.buttons import create_tkinter_controls
 
@@ -171,7 +172,6 @@ def security_process(shared_controls):
         while True:
             data = sec_serial.receive()
             if data is not None:
-                # Se receber 's' ou 'S', ativa a flag; caso contrário, desativa
                 if b's' in data or b'S' in data:
                     shared_controls["EMERGENCY_STOP"] = 1
                     print("Emergency Stop triggered!")
@@ -189,7 +189,6 @@ def security_process(shared_controls):
 if __name__ == '__main__':
     mp.set_start_method('spawn')
     manager = mp.Manager()
-
     shared_controls = manager.dict({
        "SHOW_VIDEO": True,
        "SHOW_EDGES": True,
@@ -208,12 +207,14 @@ if __name__ == '__main__':
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
     tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
     security_proc = mp.Process(target=security_process, args=(shared_controls,))
+    trackbar_proc = mp.Process(target=object_detector_trackbar_process, args=(shared_controls,))
 
     lane_process.start()
     object_process.start()
     sender_process.start()
     tk_process.start()
     security_proc.start()
+    trackbar_proc.start()
 
     try:
         lane_process.join()
@@ -221,6 +222,7 @@ if __name__ == '__main__':
         sender_process.join()
         tk_process.join()
         security_proc.join()
+        trackbar_proc.join()
     except KeyboardInterrupt:
         print("Interrompido pelo usuário. Encerrando processos...")
         lane_process.terminate()
@@ -228,3 +230,4 @@ if __name__ == '__main__':
         sender_process.terminate()
         tk_process.terminate()
         security_proc.terminate()
+        trackbar_proc.terminate()
