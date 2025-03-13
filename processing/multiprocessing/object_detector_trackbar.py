@@ -5,8 +5,8 @@ def object_detector_trackbar_process(shared_controls):
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
 
     # Valores iniciais e limites
-    initial_target = shared_controls.get("TARGET_BOX_HEIGHT", 250)
-    initial_tol = shared_controls.get("TOLERANCE", 30)
+    initial_target = shared_controls.get("TARGET_BOX_HEIGHT")
+    initial_tol = shared_controls.get("TOLERANCE")
 
     cv2.createTrackbar("Target Height", window_name, initial_target, 500, lambda x: None)
     cv2.createTrackbar("Tolerance", window_name, initial_tol, 100, lambda x: None)
