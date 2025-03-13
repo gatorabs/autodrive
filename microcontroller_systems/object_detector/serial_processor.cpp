@@ -7,7 +7,6 @@
 int receivedData[MAX_VALUES] = {0};
 int velocidade = 0;
 int angulacao = 0;
-int pessoa = 0;
 int semaforo = 0;
 
 void setupSerialProcessor() {
@@ -27,17 +26,16 @@ void processData(char *data) {
     }
 
 
-    if (count >= 4) {
-        velocidade = receivedData[0];
-        angulacao = receivedData[1];
-        pessoa = receivedData[2];
-        semaforo = receivedData[3];
+    if (count >= 3) {
+        angulacao = receivedData[0];
+        velocidade = receivedData[1];
+        semaforo = receivedData[2];
     }
 
 
     setServoAngle(angulacao);
-
-    if (pessoa == 1) {
+  
+    if (velocidade == 0) {
         digitalWrite(LED_PIN, HIGH);
         brakeMotors();
     } else {

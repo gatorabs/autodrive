@@ -12,6 +12,8 @@ if __name__ == '__main__':
        "SHOW_PERSON_DETECTION": True,
        "SHOW_FPS": True,
        "EMERGENCY_STOP": 0,
+       "SECURITY_COM": 'COM5',
+       "SENDER_COM": 'COM3',
        "object_serial_data": manager.list([0, 0, 0]),
        "TARGET_BOX_HEIGHT": 200,
        "TOLERANCE": 50
@@ -23,8 +25,8 @@ if __name__ == '__main__':
     lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls))
     object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls))
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
-    tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
     security_proc = mp.Process(target=security_process, args=(shared_controls,))
+    tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
     #trackbar_proc = mp.Process(target=object_detector_trackbar_process, args=(shared_controls,))
 
     lane_process.start()

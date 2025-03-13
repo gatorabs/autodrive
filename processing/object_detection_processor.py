@@ -35,10 +35,10 @@ class ObjectDetector(mp.Process):
                     if cls in TARGET_CLASSES:
                         if cls == 0:
                             x1, y1, x2, y2 = map(int, box.xyxy[0])
-                            box_height = y2 - y1
+                            #box_height = y2 - y1
                             # Filtra caixas fora do intervalo desejado
-                            if box_height < min_box_height or box_height > max_box_height:
-                                continue
+                            #if box_height < min_box_height or box_height > max_box_height:
+                                #continue
                             person_detected = True
                         label = self.model.names[cls]
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)

@@ -7,9 +7,9 @@ from processing.priorities_processor import set_process_priority
 def security_process(shared_controls):
     set_process_priority("high")
     OPEN_FOR_RECEIVE = True
-    SECURITY_COM_PORT = 'COM3'
     BAUD_RATE = 115200
-    sec_serial = SerialCommunicator(SECURITY_COM_PORT, baud_rate=BAUD_RATE, open_for_receive=OPEN_FOR_RECEIVE)
+    security_com_port = shared_controls.get("SECURITY_COM")
+    sec_serial = SerialCommunicator(security_com_port, baud_rate=BAUD_RATE, open_for_receive=OPEN_FOR_RECEIVE)
     try:
         while True:
             data = sec_serial.receive()

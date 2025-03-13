@@ -7,8 +7,8 @@ from processing.priorities_processor import set_process_priority
 def data_sender_process(lane_queue, object_queue, shared_controls):
     set_process_priority("above_normal")
     SEND_DATA = True
-    COM_PORT = 'COM5'
-    serial_comm = SerialCommunicator(COM_PORT, send_data=SEND_DATA)
+    com_port = shared_controls.get("SENDER_COM")
+    serial_comm = SerialCommunicator(com_port, send_data=SEND_DATA)
 
     lane_data = {"speed": 255, "direction": 180}
     obj_data = {"person": 0, "semaforo": 0}
