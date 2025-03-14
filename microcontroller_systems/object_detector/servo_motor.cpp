@@ -8,6 +8,6 @@ void setupServo() {
 
 void setServoAngle(int angle) {
 
-  angle = map(angle, -32, 32, 0, 180);
+  angle = map(angle, -32, 32, 90, 180);
   myServo.write(angle);
 }
