@@ -2,9 +2,9 @@
 #define SERVO_CONTROL_H
 
 #include <Arduino.h>
-#include <Servo.h>
+#include <ESP32Servo.h>
 
-#define SERVO_PIN 9
+#define SERVO_PIN 35
 
 void setupServo();
 void setServoAngle(int angle);

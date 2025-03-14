@@ -11,7 +11,7 @@ if __name__ == '__main__':
        "SHOW_FPS": True,
        "EMERGENCY_STOP": 0,
        "SECURITY_COM": 'COM5',
-       "SENDER_COM": 'COM3',
+       "SENDER_COM": 'COM4',
        "object_serial_data": manager.list([0, 0, 0]),
        "TARGET_BOX_HEIGHT": 200,
        "TOLERANCE": 50
