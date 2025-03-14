@@ -1,6 +1,7 @@
 import cv2
 from ultralytics import YOLO
 import multiprocessing as mp
+import torch
 
 TARGET_CLASSES = {0, 9}
 
@@ -10,7 +11,17 @@ class ObjectDetector(mp.Process):
         self.shared_serial_data = shared_serial_data
         self.controls = controls
         self.camera_source = camera_source
+
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"ObjectDetector: Usando dispositivo {self.device}")
+
         self.model = YOLO('yolov8n.pt')
+
+        try:
+            self.model.model.to(self.device)
+        except Exception as e:
+            print("Não foi possível mover o modelo para o dispositivo desejado:", e)
+
         self.running = mp.Value('b', True)
 
     def run(self):
@@ -35,15 +46,14 @@ class ObjectDetector(mp.Process):
                     if cls in TARGET_CLASSES:
                         if cls == 0:
                             x1, y1, x2, y2 = map(int, box.xyxy[0])
-                            #box_height = y2 - y1
-                            # Filtra caixas fora do intervalo desejado
-                            #if box_height < min_box_height or box_height > max_box_height:
-                                #continue
+                            # box_height = y2 - y1
+                            # if box_height < min_box_height or box_height > max_box_height:
+                            #     continue
                             person_detected = True
                         label = self.model.names[cls]
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                         cv2.putText(frame, label, (x1, y1 - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             self.shared_serial_data[2] = 1 if person_detected else 0
 
