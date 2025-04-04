@@ -1,6 +1,7 @@
 #include "serial_processor.h"
 #include "motor_control.h"
 #include "servo_control.h"
+#include "odometry_wheel.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -13,6 +14,7 @@ void setupSerialProcessor() {
     Serial.begin(115200);
     pinMode(LED_PIN, OUTPUT);
     setupMotors();
+    setup_encoder();
 }
 
 void processData(char *data) {

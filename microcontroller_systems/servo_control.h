@@ -2,7 +2,8 @@
 #define SERVO_CONTROL_H
 
 #include <Arduino.h>
-#include <ESP32Servo.h>
+//#include <ESP32Servo.h>
+#include <Servo.h>
 
 #define SERVO_PIN 18
 
