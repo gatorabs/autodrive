@@ -20,8 +20,8 @@ if __name__ == '__main__':
     lane_queue = mp.Queue(maxsize=10)
     object_queue = mp.Queue(maxsize=10)
 
-    lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls))
-    object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls))
+    lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls)) # 3 PARAMETER REFERS TO CAMERA INDEX
+    object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls,0)) # 3 PARAMETER REFERS TO CAMERA INDEX
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
     security_proc = mp.Process(target=security_process, args=(shared_controls,))
     tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))

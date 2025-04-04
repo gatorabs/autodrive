@@ -1,7 +1,7 @@
 from core import *
 
 
-def lane_detection_process(lane_queue, shared_controls):
+def lane_detection_process(lane_queue, shared_controls, video_source="test_videos/teste1.mp4"):
     set_process_priority("above_normal")
     FRAME_WIDTH = int(1920 / 4)
     FRAME_HEIGHT = int(1080 / 4)
@@ -20,12 +20,11 @@ def lane_detection_process(lane_queue, shared_controls):
     MIN_OUTPUT = -32
     MAX_OUTPUT = 32
 
-    VIDEO_SOURCE = "test_videos/teste1.mp4"
     create_control_window()
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
     lane_detector = LaneDetector(ROI_START, ROI_END)
-    video_proc = VideoProcessor(VIDEO_SOURCE, FRAME_WIDTH, FRAME_HEIGHT)
+    video_proc = VideoProcessor(video_source, FRAME_WIDTH, FRAME_HEIGHT)
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (4, 4))
 
     try:
