@@ -1,5 +1,4 @@
 import time
-import logging
 from queue import Empty
 
 from controllers.serial_comm import SerialCommunicator
@@ -48,13 +47,13 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
                 try:
                     serial_comm.send(data_to_send)
                 except Exception as e:
-                    logging.warning(f"[DataSender] Falha ao enviar dados: {e}")
+                    print(f"[DataSender] Falha ao enviar dados: {e}")
                 last_send_time = current_time
             else:
                 time.sleep(max(0, send_interval - elapsed))
 
     except Exception as e:
-        logging.error(f"[DataSender] Erro inesperado: {e}")
+        print(f"[DataSender] Erro inesperado: {e}")
     finally:
         serial_comm.close()
-        logging.info("[DataSender] Comunicação serial encerrada.")
+        print("[DataSender] Comunicação serial encerrada.")
