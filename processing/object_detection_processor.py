@@ -20,16 +20,24 @@ class ObjectDetector:
             print("Não foi possível mover o modelo para o dispositivo desejado:", e)
 
         self.cap = cv2.VideoCapture(self.camera_source)
+        if not self.cap.isOpened():
+            print("Falha ao abrir o vídeo ou câmera.")
+            exit()
 
         # Inicializa valores padrão
         self.shared_serial_data[1] = 0  # semáforo
         self.shared_serial_data[2] = 0  # pessoa
 
         self.window_created = False
+
     def process_frame(self):
         ret, frame = self.cap.read()
         if not ret:
-            return
+            # Se o vídeo chegar ao final, volta para o início
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            ret, frame = self.cap.read()
+            if not ret:
+                return
 
         frame = cv2.resize(frame, (320, 240))
         results = self.model(frame, classes=list(TARGET_CLASSES), verbose=False)
