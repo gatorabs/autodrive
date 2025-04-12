@@ -6,10 +6,11 @@ from processing.priorities_processor import set_process_priority
 
 def data_sender_process(lane_queue, object_queue, shared_controls):
     set_process_priority("high")
-    SEND_DATA = True
 
     com_port = shared_controls.get("SENDER_COM")
-    serial_comm = SerialCommunicator(com_port, send_data=SEND_DATA)
+    send_data = shared_controls.get("SEND_DATA")
+
+    serial_comm = SerialCommunicator(com_port, send_data=send_data)
 
     lane_data = {"speed": 255, "direction": 180}
     obj_data = {"person": 0, "semaforo": 0}

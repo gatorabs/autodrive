@@ -10,6 +10,7 @@ if __name__ == '__main__':
         "SHOW_ROI": True,
         "SHOW_PERSON_DETECTION": True,
         "SHOW_FPS": True,
+        "SEND_DATA": True,
         "RUNNING": True,  # <- controle de execução global
         "EMERGENCY_STOP": 0,
         "SECURITY_COM": 'COM5',
