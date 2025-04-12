@@ -23,7 +23,6 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
     create_control_window()
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
-    lane_detector = LaneDetector(ROI_START, ROI_END)
     video_proc = VideoProcessor(video_source, FRAME_WIDTH, FRAME_HEIGHT)
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (4, 4))
 
@@ -41,7 +40,7 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
             roi = edges[ROI_START:ROI_END, ROI_X_START:ROI_X_END]
             warped_roi = bird_eye(roi)
             interval = max(1, round((ROI_END - ROI_START) / NUM_LINES))
-            avg_left, avg_right = lane_detector.calculate_center_distance(warped_roi, NUM_LINES, interval)
+            avg_left, avg_right = calculate_center_distance(warped_roi, NUM_LINES, interval)
 
             # Cálculo do ângulo (direção) usando PID
             direction = 0

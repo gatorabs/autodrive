@@ -3,7 +3,7 @@ import cv2 as cv
 import time
 
 from controllers.pid_controller import PIDController
-from controllers.lane_detector import LaneDetector
+from controllers.lane_detector import calculate_center_distance
 from controllers.serial_comm import SerialCommunicator
 from processing.video_processor import VideoProcessor
 from processing.priorities_processor import set_process_priority
