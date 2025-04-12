@@ -40,14 +40,14 @@ void processData(char *data) {
     if (velocidade > 0) {
         // Avançar: definição de pinos para frente e velocidade positiva
         motor_control(HIGH, LOW, HIGH, LOW, velocidade, velocidade);
-        digitalWrite(LED_PIN, HIGH);
+        digitalWrite(LED_PIN, LOW);
     } else if (velocidade < 0) {
         // Recuar: inverte a direção e utiliza valor absoluto para o PWM
         motor_control(LOW, HIGH, LOW, HIGH, abs(velocidade), abs(velocidade));
     } else {
         // Parar os motores
         motor_control(LOW, LOW, LOW, LOW, 0, 0);
-        digitalWrite(LED_PIN, LOW);
+        digitalWrite(LED_PIN, HIGH);
     }
 }
 

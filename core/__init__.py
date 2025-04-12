@@ -1,7 +1,7 @@
 import multiprocessing as mp
 import cv2 as cv
 import time
-
+import serial
 from controllers.pid_controller import PIDController
 from controllers.lane_detector import calculate_center_distance
 from controllers.serial_comm import SerialCommunicator

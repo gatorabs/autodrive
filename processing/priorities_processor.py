@@ -1,7 +1,7 @@
 import os
 import psutil
 
-# Get-Process python | Select-Object ProcessName, Id, PriorityClass
+# Get-Process python | Select-Object ProcessName, Id, PriorityClass, @{Name="Memory (MB)"; Expression={[math]::round($_.WorkingSet / 1MB, 2)}}
 # PowerShell - Listar as prioridades dos Processos
 
 def set_process_priority(level):

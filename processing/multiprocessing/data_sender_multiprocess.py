@@ -1,12 +1,14 @@
 import time
+import logging
+from queue import Empty
 
 from controllers.serial_comm import SerialCommunicator
 from processing.priorities_processor import set_process_priority
 
-
 def data_sender_process(lane_queue, object_queue, shared_controls):
-    set_process_priority("above_normal")
+    set_process_priority("high")
     SEND_DATA = True
+
     com_port = shared_controls.get("SENDER_COM")
     serial_comm = SerialCommunicator(com_port, send_data=SEND_DATA)
 
@@ -16,28 +18,43 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
     last_send_time = time.time()
 
     try:
-        while True:
-            if not lane_queue.empty():
-                lane_data = lane_queue.get()
-            if not object_queue.empty():
-                obj_data = object_queue.get()
+        while shared_controls.get("RUNNING", True):
+            # Atualiza dados de faixa se houver
+            try:
+                new_lane_data = lane_queue.get_nowait()
+                lane_data.update(new_lane_data)
+            except Empty:
+                pass
 
+            # Atualiza dados de objetos se houver
+            try:
+                new_obj_data = object_queue.get_nowait()
+                obj_data.update(new_obj_data)
+            except Empty:
+                pass
+
+            # Condição de parada de emergência
             if obj_data.get("person", 0) == 1 or shared_controls.get("EMERGENCY_STOP", 0) == 1:
                 lane_data["speed"] = 0
 
             current_time = time.time()
-            if (current_time - last_send_time) >= send_interval:
+            elapsed = current_time - last_send_time
+            if elapsed >= send_interval:
                 data_to_send = [
                     lane_data.get("direction", 180),
                     lane_data.get("speed", 255),
                     obj_data.get("semaforo", 0)
                 ]
-                serial_comm.send(data_to_send)
-                last_send_time = time.time()
+                try:
+                    serial_comm.send(data_to_send)
+                except Exception as e:
+                    logging.warning(f"[DataSender] Falha ao enviar dados: {e}")
+                last_send_time = current_time
             else:
-                sleep_time = max(0, send_interval - (current_time - last_send_time))
-                time.sleep(sleep_time)
+                time.sleep(max(0, send_interval - elapsed))
+
     except Exception as e:
-        print("Data Sender Error:", e)
+        logging.error(f"[DataSender] Erro inesperado: {e}")
     finally:
         serial_comm.close()
+        logging.info("[DataSender] Comunicação serial encerrada.")
