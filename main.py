@@ -1,6 +1,5 @@
 from core import *
 import multiprocessing as mp
-import time
 
 if __name__ == '__main__':
     mp.set_start_method('spawn')
@@ -11,13 +10,13 @@ if __name__ == '__main__':
         "SHOW_ROI": True,
         "SHOW_PERSON_DETECTION": True,
         "SHOW_FPS": True,
+        "RUNNING": True,  # <- controle de execução global
         "EMERGENCY_STOP": 0,
         "SECURITY_COM": 'COM5',
         "SENDER_COM": 'COM3',
         "object_serial_data": manager.list([0, 0, 0]),
         "TARGET_BOX_HEIGHT": 200,
         "TOLERANCE": 50,
-        "RUNNING": True  # <- controle de execução global
     })
 
     lane_queue = mp.Queue(maxsize=10)
@@ -41,9 +40,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("Interrompido pelo usuário. Encerrando processos com segurança...")
         shared_controls["RUNNING"] = False  # <- todos os processos verificam isso e saem naturalmente
-
-        # Aguarda um tempo para processos finalizarem de forma graciosa
-        time.sleep(1)
 
         for p in processes:
             if p.is_alive():

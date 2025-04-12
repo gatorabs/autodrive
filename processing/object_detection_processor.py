@@ -25,16 +25,19 @@ class ObjectDetector:
         self.shared_serial_data[1] = 0  # semáforo
         self.shared_serial_data[2] = 0  # pessoa
 
+        self.window_created = False
     def process_frame(self):
         ret, frame = self.cap.read()
         if not ret:
             return
 
         frame = cv2.resize(frame, (320, 240))
-        results = self.model(frame, classes=list(TARGET_CLASSES))
+        results = self.model(frame, classes=list(TARGET_CLASSES), verbose=False)
 
         person_detected = False
         traffic_light_state = 0  # padrão: verde
+
+        show_window = self.controls.get("SHOW_PERSON_DETECTION", True)
 
         target_box_height = self.controls.get("TARGET_BOX_HEIGHT", 250)
         tolerance = self.controls.get("TOLERANCE", 30)
@@ -61,12 +64,19 @@ class ObjectDetector:
         self.shared_serial_data[2] = 1 if person_detected else 0
         self.shared_serial_data[1] = traffic_light_state
 
-        if self.controls.get("SHOW_PERSON_DETECTION", True):
-            cv2.namedWindow("Object Detection", cv2.WINDOW_NORMAL)
+        if show_window:
+            if not self.window_created:
+                cv2.namedWindow("Object Detection", cv2.WINDOW_NORMAL)
+                self.window_created = True
             cv2.imshow("Object Detection", frame)
             cv2.waitKey(1)
         else:
-            cv2.destroyWindow("Object Detection")
+            if self.window_created:
+                try:
+                    cv2.destroyWindow("Object Detection")
+                except cv2.error as e:
+                    print("Erro ao destruir janela:", e)
+                self.window_created = False
 
     def cleanup(self):
         self.cap.release()
