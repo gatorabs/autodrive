@@ -50,8 +50,6 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
                 except Exception as e:
                     print(f"[DataSender] Falha ao enviar dados: {e}")
                 last_send_time = current_time
-            else:
-                time.sleep(max(0, send_interval - elapsed))
 
     except Exception as e:
         print(f"[DataSender] Erro inesperado: {e}")

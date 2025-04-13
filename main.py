@@ -27,7 +27,6 @@ if __name__ == '__main__':
     tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
 
     # security_proc = mp.Process(target=security_process, args=(shared_controls,))
-    # trackbar_proc = mp.Process(target=object_detector_trackbar_process, args=(shared_controls,))
 
     processes = [lane_process, object_process, sender_process, tk_process]
     for p in processes:
