@@ -16,8 +16,6 @@ if __name__ == '__main__':
         "SECURITY_COM": 'COM5',
         "SENDER_COM": 'COM3',
         "object_serial_data": manager.list([0, 0, 0]),
-        "TARGET_BOX_HEIGHT": 200,
-        "TOLERANCE": 50,
     })
 
     lane_queue = mp.Queue(maxsize=10)

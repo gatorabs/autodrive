@@ -29,7 +29,7 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
     try:
         while True:
             frame, fps = video_proc.get_frame()
-            canny_1, canny_2, speed, side = get_trackbar_values()
+            canny_1, canny_2, speed, side, kp, ki, kd = get_trackbar_values()
 
             # Processamento para detecção de faixas
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
