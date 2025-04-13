@@ -31,6 +31,10 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
             frame, fps = video_proc.get_frame()
             canny_1, canny_2, speed, side, kp, ki, kd = get_trackbar_values()
 
+            #pid.kp = kp <- Para teste de valores
+            #pid.ki = ki
+            #pid.kd = kd
+
             # Processamento para detecção de faixas
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
             blur = cv.GaussianBlur(gray, (5, 5), 0)

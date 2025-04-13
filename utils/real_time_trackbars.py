@@ -25,3 +25,15 @@ def get_trackbar_values():
     kd = cv.getTrackbarPos('KD', 'Controls') / 1000.0
 
     return canny_1, canny_2, speed, side, kp, ki, kd
+
+def create_roi_control_window():
+    cv.namedWindow('ROI')
+    cv.createTrackbar('Person', 'ROI', 0, 240, lambda x: None)
+    cv.createTrackbar('Traffic', 'ROI', 0, 240, lambda x: None)
+
+def get_trackbar_roi_values():
+    person = cv.getTrackbarPos('Person', 'ROI')
+    traffic = cv.getTrackbarPos('Traffic', 'ROI')
+
+    return person, traffic
+

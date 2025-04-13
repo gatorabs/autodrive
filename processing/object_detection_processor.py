@@ -2,6 +2,8 @@ import cv2
 from ultralytics import YOLO
 import torch
 
+from utils.real_time_trackbars import create_roi_control_window, get_trackbar_roi_values
+
 TARGET_CLASSES = {0, 9}
 
 class ObjectDetector:
@@ -30,6 +32,8 @@ class ObjectDetector:
 
         self.window_created = False
 
+        create_roi_control_window()
+
     def process_frame(self):
         ret, frame = self.cap.read()
         if not ret:
@@ -47,24 +51,24 @@ class ObjectDetector:
 
         show_window = self.controls.get("SHOW_PERSON_DETECTION", True)
 
-        target_box_height = self.controls.get("TARGET_BOX_HEIGHT", 250)
-        tolerance = self.controls.get("TOLERANCE", 30)
-        min_box_height = target_box_height - tolerance
-        max_box_height = target_box_height
+
+        min_person_height, min_traffic_height = get_trackbar_roi_values()
 
         for result in results:
             for box in result.boxes:
                 cls = int(box.cls[0])
-                if cls == 0:
-                    # Pessoa
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                box_height = y2 - y1
+
+                if cls == 0 and box_height >= min_person_height:
+                    # Pessoa próxima
                     person_detected = True
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.putText(frame, "Person", (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
                 elif cls == 9:
-                    # Semáforo
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    # Semáforo (sem filtro de tamanho)
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
                     cv2.putText(frame, f"TL: {traffic_light_state}", (x1, y1 - 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
