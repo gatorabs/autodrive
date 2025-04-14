@@ -6,6 +6,7 @@ from utils.real_time_trackbars import create_roi_control_window, get_trackbar_ro
 
 TARGET_CLASSES = {0, 9}
 
+
 class ObjectDetector:
     def __init__(self, shared_serial_data, controls, camera_source=0):
         self.shared_serial_data = shared_serial_data
@@ -27,17 +28,60 @@ class ObjectDetector:
             exit()
 
         # Inicializa valores padrão
-        self.shared_serial_data[1] = 0  # semáforo
+        # 0: vermelho; 1: amarelo; 2: verde
+        self.shared_serial_data[1] = 0
         self.shared_serial_data[2] = 0  # pessoa
 
         self.window_created = False
 
         create_roi_control_window()
 
+    def process_traffic_light_roi(self, roi):
+        """
+        Processa o ROI do semáforo, dividindo-o em três quadrantes horizontais
+        e determinando a cor ativa através da média dos valores dos canais.
+
+        Retorna:
+          active_color: Nome da cor ativa ("Red", "Yellow", "Green")
+          color_bgr: Cor em BGR a ser utilizada nos desenhos
+          traffic_light_state: Estado do semáforo (0: vermelho, 1: amarelo, 2: verde)
+        """
+        active_color = "Unknown"
+        color_bgr = (255, 255, 255)  # padrão: branco
+        traffic_light_state = 2  # valor default: verde
+
+        if roi.size != 0:
+            h, w, _ = roi.shape
+            # Define as três regiões horizontais
+            red_roi = roi[0: h // 3, :]
+            yellow_roi = roi[h // 3: 2 * h // 3, :]
+            green_roi = roi[2 * h // 3: h, :]
+
+            # Cálculo simples das intensidades:
+            red_mean = red_roi[:, :, 2].mean()  # canal vermelho
+            green_mean = green_roi[:, :, 1].mean()  # canal verde
+            yellow_mean = ((yellow_roi[:, :, 2] + yellow_roi[:, :, 1]) / 2).mean()  # média para amarelo
+
+            # Determina a cor ativa com base na intensidade de cada região
+            if red_mean > yellow_mean and red_mean > green_mean:
+                active_color = "Red"
+                color_bgr = (0, 0, 255)
+                traffic_light_state = 0
+            elif yellow_mean > red_mean and yellow_mean > green_mean:
+                active_color = "Yellow"
+                color_bgr = (0, 255, 255)
+                traffic_light_state = 1
+            else:
+                active_color = "Green"
+                color_bgr = (0, 255, 0)
+                traffic_light_state = 2
+
+        return active_color, color_bgr, traffic_light_state
+
     def process_frame(self):
         ret, frame = self.cap.read()
         if not ret:
-            # Se o vídeo chegar ao final, volta para o início
+            # Se o vídeo chegar ao fim, volta ao início
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             ret, frame = self.cap.read()
             if not ret:
@@ -47,11 +91,10 @@ class ObjectDetector:
         results = self.model(frame, classes=list(TARGET_CLASSES), verbose=False)
 
         person_detected = False
-        traffic_light_state = 0  # padrão: verde
+        # Estado default para o semáforo
+        traffic_light_state = 2
 
         show_window = self.controls.get("SHOW_PERSON_DETECTION", True)
-
-
         min_person_height, min_traffic_height = get_trackbar_roi_values()
 
         for result in results:
@@ -61,17 +104,20 @@ class ObjectDetector:
                 box_height = y2 - y1
 
                 if cls == 0 and box_height >= min_person_height:
-                    # Pessoa próxima
+                    # Pessoa detectada
                     person_detected = True
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.putText(frame, "Person", (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 elif cls == 9:
-                    # Semáforo (sem filtro de tamanho)
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                    cv2.putText(frame, f"TL: {traffic_light_state}", (x1, y1 - 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    # Processa ROI do semáforo utilizando a função separada
+                    roi = frame[y1:y2, x1:x2]
+                    active_color, color_bgr, traffic_light_state = self.process_traffic_light_roi(roi)
+
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color_bgr, 2)
+                    cv2.putText(frame, f"TL: {active_color}", (x1, y1 - 20),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
 
         self.shared_serial_data[2] = 1 if person_detected else 0
         self.shared_serial_data[1] = traffic_light_state
