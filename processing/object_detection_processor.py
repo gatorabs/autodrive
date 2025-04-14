@@ -37,15 +37,6 @@ class ObjectDetector:
         create_roi_control_window()
 
     def process_traffic_light_roi(self, roi):
-        """
-        Processa o ROI do semáforo, dividindo-o em três quadrantes horizontais
-        e determinando a cor ativa através da média dos valores dos canais.
-
-        Retorna:
-          active_color: Nome da cor ativa ("Red", "Yellow", "Green")
-          color_bgr: Cor em BGR a ser utilizada nos desenhos
-          traffic_light_state: Estado do semáforo (0: vermelho, 1: amarelo, 2: verde)
-        """
         active_color = "Unknown"
         color_bgr = (255, 255, 255)  # padrão: branco
         traffic_light_state = 2  # valor default: verde
@@ -104,17 +95,20 @@ class ObjectDetector:
                 box_height = y2 - y1
 
                 if cls == 0 and box_height >= min_person_height:
-                    # Pessoa detectada
                     person_detected = True
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.putText(frame, "Person", (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-                elif cls == 9:
-                    # Processa ROI do semáforo utilizando a função separada
+                elif cls == 9 and box_height >= min_traffic_height:
                     roi = frame[y1:y2, x1:x2]
                     active_color, color_bgr, traffic_light_state = self.process_traffic_light_roi(roi)
 
+                    y_div1 = y1 + box_height // 3
+                    y_div2 = y1 + 2 * (box_height // 3)
+
+                    cv2.line(frame, (x1, y_div1), (x2, y_div1), (255, 255, 255), 1)
+                    cv2.line(frame, (x1, y_div2), (x2, y_div2), (255, 255, 255), 1)
                     cv2.rectangle(frame, (x1, y1), (x2, y2), color_bgr, 2)
                     cv2.putText(frame, f"TL: {active_color}", (x1, y1 - 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
