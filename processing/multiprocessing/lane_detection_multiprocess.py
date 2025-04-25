@@ -19,7 +19,7 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
 
     create_control_window()
 
-    init_roi_trackbars("ROI_C", FRAME_WIDTH,FRAME_HEIGHT)
+    create_roi_trackbars("ROI_C", FRAME_WIDTH,FRAME_HEIGHT)
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
     video_proc = VideoProcessor(video_source, FRAME_WIDTH, FRAME_HEIGHT)
@@ -28,10 +28,10 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
     try:
         while True:
             frame, fps = video_proc.get_frame()
-            canny_1, canny_2, speed, side, kp, ki, kd = get_trackbar_values()
+            canny_1, canny_2, speed, side, kp, ki, kd = get_control_trackbar_values()
 
             ROI_START, ROI_END, ROI_X_START, ROI_X_END = \
-                get_roi_from_trackbars("ROI_C", FRAME_WIDTH, FRAME_HEIGHT)
+                get_roi_trackbars("ROI_C", FRAME_WIDTH, FRAME_HEIGHT)
 
             #pid.kp = kp <- Para teste de valores
             #pid.ki = ki

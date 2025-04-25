@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 import torch
 
-from utils.real_time_trackbars import create_roi_control_window, get_trackbar_roi_values
+from utils.real_time_trackbars import create_object_roi_control_window, get_object_roi_trackbar_values
 
 TARGET_CLASSES = {0, 9}
 
@@ -34,7 +34,7 @@ class ObjectDetector:
 
         self.window_created = False
 
-        create_roi_control_window()
+        create_object_roi_control_window()
 
     def process_traffic_light_roi(self, roi):
         active_color = "Unknown"
@@ -86,7 +86,7 @@ class ObjectDetector:
         traffic_light_state = 2
 
         show_window = self.controls.get("SHOW_PERSON_DETECTION", True)
-        min_person_height, min_traffic_height = get_trackbar_roi_values()
+        min_person_height, min_traffic_height = get_object_roi_trackbar_values()
 
         for result in results:
             for box in result.boxes:

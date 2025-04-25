@@ -14,7 +14,7 @@ def create_control_window():
     cv.createTrackbar('KD', 'Controls', int(0.01 * 1000), 500, lambda x: None)
 
 
-def get_trackbar_values():
+def get_control_trackbar_values():
     canny_1 = cv.getTrackbarPos('F_Canny', 'Controls')
     canny_2 = cv.getTrackbarPos('S_Canny', 'Controls')
     speed = cv.getTrackbarPos('Speed', 'Controls')
@@ -26,18 +26,18 @@ def get_trackbar_values():
 
     return canny_1, canny_2, speed, side, kp, ki, kd
 
-def create_roi_control_window():
+def create_object_roi_control_window():
     cv.namedWindow('ROI')
     cv.createTrackbar('Person', 'ROI', 0, 240, lambda x: None)
     cv.createTrackbar('Traffic', 'ROI', 0, 240, lambda x: None)
 
-def get_trackbar_roi_values():
+def get_object_roi_trackbar_values():
     person = cv.getTrackbarPos('Person', 'ROI')
     traffic = cv.getTrackbarPos('Traffic', 'ROI')
 
     return person, traffic
 
-def init_roi_trackbars(window_name, frame_width, frame_height,
+def create_roi_trackbars(window_name, frame_width, frame_height,
                        init_start=200, init_end=220,
                        init_x_start=80, init_x_end=400):
     """
@@ -59,13 +59,8 @@ def init_roi_trackbars(window_name, frame_width, frame_height,
     cv.createTrackbar("ROI_X_END", window_name, init_x_end, frame_width, lambda v: None)
 
 
-def get_roi_from_trackbars(window_name, frame_width, frame_height):
-    """
-    Lê e valida os valores atuais das trackbars de ROI.
+def get_roi_trackbars(window_name, frame_width, frame_height):
 
-    Returns:
-        tuple: (y_start, y_end, x_start, x_end)
-    """
     y_start = cv.getTrackbarPos("ROI_START", window_name)
     y_end = cv.getTrackbarPos("ROI_END", window_name)
     x_start = cv.getTrackbarPos("ROI_X_START", window_name)
