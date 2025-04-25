@@ -6,8 +6,9 @@
 #include <string.h>
 
 int receivedData[MAX_VALUES] = {0};
-int velocidade = 0;
+
 int angulacao = 0;
+int velocidade = 0;
 int semaforo = 0;
 
 void setupSerialProcessor() {
@@ -32,24 +33,8 @@ void processData(char *data) {
         velocidade = receivedData[1];
         semaforo = receivedData[2];
     }
-
-    setServoAngle(angulacao);
-  
-    // Controle dos motores com base na velocidade recebida:
-    // Se velocidade > 0 -> avança; se velocidade < 0 -> recua; se 0 -> para.
-    if (velocidade > 0) {
-        // Avançar: definição de pinos para frente e velocidade positiva
-        motor_control(HIGH, LOW, HIGH, LOW, velocidade, velocidade);
-        digitalWrite(LED_PIN, LOW);
-    } else if (velocidade < 0) {
-        // Recuar: inverte a direção e utiliza valor absoluto para o PWM
-        motor_control(LOW, HIGH, LOW, HIGH, abs(velocidade), abs(velocidade));
-    } else {
-        // Parar os motores
-        motor_control(LOW, LOW, LOW, LOW, 0, 0);
-        digitalWrite(LED_PIN, HIGH);
-    }
 }
+
 
 void updateSerialInput() {
     static char inputBuffer[BUFFER_SIZE];

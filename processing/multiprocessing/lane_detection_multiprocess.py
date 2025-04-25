@@ -26,7 +26,7 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (4, 4))
 
     try:
-        while True:
+        while shared_controls.get("RUNNING", True):
             frame, fps = video_proc.get_frame()
             canny_1, canny_2, speed, side, kp, ki, kd = get_control_trackbar_values()
 
