@@ -1,7 +1,7 @@
 import cv2
 from ultralytics import YOLO
 import torch
-
+import numpy as np
 from utils.real_time_trackbars import create_object_roi_control_window, get_object_roi_trackbar_values
 
 TARGET_CLASSES = {0, 9}
@@ -37,33 +37,46 @@ class ObjectDetector:
         create_object_roi_control_window()
 
     def process_traffic_light_roi(self, roi):
+
         active_color = "Unknown"
-        color_bgr = (255, 255, 255)  # padrão: branco
-        traffic_light_state = 2  # valor default: verde
+        color_bgr = (255, 255, 255)  # branco padrão
+        traffic_light_state = 2  # padrão: verde
 
         if roi.size != 0:
-            h, w, _ = roi.shape
-            # Define as três regiões horizontais
-            red_roi = roi[0: h // 3, :]
-            yellow_roi = roi[h // 3: 2 * h // 3, :]
-            green_roi = roi[2 * h // 3: h, :]
+            # 1) converte para gray e dá um leve blur para reduzir ruído
+            gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+            gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-            # Cálculo simples das intensidades:
-            red_mean = red_roi[:, :, 2].mean()  # canal vermelho
-            green_mean = green_roi[:, :, 1].mean()  # canal verde
-            yellow_mean = ((yellow_roi[:, :, 2] + yellow_roi[:, :, 1]) / 2).mean()  # média para amarelo
+            # 2) dimensões
+            h = gray.shape[0]
+            h_third = h // 3
 
-            # Determina a cor ativa com base na intensidade de cada região
-            if red_mean > yellow_mean and red_mean > green_mean:
-                active_color = "Red"
+            # 3) extrai as 3 regiões
+            red_roi = gray[0:h_third, :]
+            yellow_roi = gray[h_third:2 * h_third, :]
+            green_roi = gray[2 * h_third:h, :]
+
+            # 4) calcula a média de intensidade em cada região
+            mean_red = np.mean(red_roi)
+            mean_yellow = np.mean(yellow_roi)
+            mean_green = np.mean(green_roi)
+
+            # 5) escolhe a cor com maior intensidade média
+            means = {
+                "Red": mean_red,
+                "Yellow": mean_yellow,
+                "Green": mean_green
+            }
+            active_color = max(means, key=means.get)
+
+            # 6) mapeia o resultado para BGR e estado
+            if active_color == "Red":
                 color_bgr = (0, 0, 255)
                 traffic_light_state = 0
-            elif yellow_mean > red_mean and yellow_mean > green_mean:
-                active_color = "Yellow"
+            elif active_color == "Yellow":
                 color_bgr = (0, 255, 255)
                 traffic_light_state = 1
-            else:
-                active_color = "Green"
+            elif active_color == "Green":
                 color_bgr = (0, 255, 0)
                 traffic_light_state = 2
 
