@@ -37,3 +37,44 @@ def get_trackbar_roi_values():
 
     return person, traffic
 
+def init_roi_trackbars(window_name, frame_width, frame_height,
+                       init_start=200, init_end=220,
+                       init_x_start=80, init_x_end=400):
+    """
+    Cria trackbars para ajustar dinamicamente a ROI.
+
+    Args:
+        window_name (str): nome da janela de controles.
+        frame_width (int): largura do frame.
+        frame_height (int): altura do frame.
+        init_start (int): posição inicial superior da ROI.
+        init_end (int): posição inicial inferior da ROI.
+        init_x_start (int): posição inicial esquerda da ROI.
+        init_x_end (int): posição inicial direita da ROI.
+    """
+    cv.namedWindow(window_name, cv.WINDOW_NORMAL)
+    cv.createTrackbar("ROI_START", window_name, init_start, frame_height, lambda v: None)
+    cv.createTrackbar("ROI_END", window_name, init_end, frame_height, lambda v: None)
+    cv.createTrackbar("ROI_X_START", window_name, init_x_start, frame_width, lambda v: None)
+    cv.createTrackbar("ROI_X_END", window_name, init_x_end, frame_width, lambda v: None)
+
+
+def get_roi_from_trackbars(window_name, frame_width, frame_height):
+    """
+    Lê e valida os valores atuais das trackbars de ROI.
+
+    Returns:
+        tuple: (y_start, y_end, x_start, x_end)
+    """
+    y_start = cv.getTrackbarPos("ROI_START", window_name)
+    y_end = cv.getTrackbarPos("ROI_END", window_name)
+    x_start = cv.getTrackbarPos("ROI_X_START", window_name)
+    x_end = cv.getTrackbarPos("ROI_X_END", window_name)
+
+    # Clamp e validação
+    y_start = min(max(0, y_start), frame_height - 1)
+    y_end = min(max(y_start + 1, y_end), frame_height)
+    x_start = min(max(0, x_start), frame_width - 1)
+    x_end = min(max(x_start + 1, x_end), frame_width)
+
+    return y_start, y_end, x_start, x_end

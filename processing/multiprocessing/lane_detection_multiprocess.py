@@ -6,10 +6,7 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
     FRAME_WIDTH = int(1920 / 4)
     FRAME_HEIGHT = int(1080 / 4)
     FRAME_CENTER = FRAME_WIDTH // 2
-    ROI_START = 200
-    ROI_END = 220
-    ROI_X_START = 100
-    ROI_X_END = 380
+
     NUM_LINES = 10
     TARGET_CENTER_DISTANCE = 80
 
@@ -22,6 +19,8 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
 
     create_control_window()
 
+    init_roi_trackbars("ROI_C", FRAME_WIDTH,FRAME_HEIGHT)
+
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
     video_proc = VideoProcessor(video_source, FRAME_WIDTH, FRAME_HEIGHT)
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (4, 4))
@@ -30,6 +29,9 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
         while True:
             frame, fps = video_proc.get_frame()
             canny_1, canny_2, speed, side, kp, ki, kd = get_trackbar_values()
+
+            ROI_START, ROI_END, ROI_X_START, ROI_X_END = \
+                get_roi_from_trackbars("ROI_C", FRAME_WIDTH, FRAME_HEIGHT)
 
             #pid.kp = kp <- Para teste de valores
             #pid.ki = ki
@@ -44,7 +46,7 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
             roi = edges[ROI_START:ROI_END, ROI_X_START:ROI_X_END]
             warped_roi = bird_eye(roi)
             interval = max(1, round((ROI_END - ROI_START) / NUM_LINES))
-            avg_left, avg_right = calculate_center_distance(warped_roi, NUM_LINES, interval)
+            avg_left, avg_right = calculate_center_distance(warped_roi, interval)
 
             # Cálculo do ângulo (direção) usando PID
             direction = 0
@@ -81,4 +83,4 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
         print("Lane Detection Error:", e)
     finally:
         video_proc.release()
-        cv.destroyWindow("Lane Detection")
+        cv2.destroyAllWindows()

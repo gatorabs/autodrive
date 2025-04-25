@@ -12,8 +12,8 @@ from processing.object_detection_processor import ObjectDetector
 from utils.display import draw_overlays, create_main_window
 from utils.real_time_trackbars import create_control_window, get_trackbar_values
 from utils.buttons import create_tkinter_controls
-
-
+from utils.real_time_trackbars import init_roi_trackbars
+from utils.real_time_trackbars import get_roi_from_trackbars
 from processing.multiprocessing.data_sender_multiprocess import data_sender_process
 from processing.multiprocessing.lane_detection_multiprocess import lane_detection_process
 from processing.multiprocessing.object_detector_multiprocess import object_detection_process

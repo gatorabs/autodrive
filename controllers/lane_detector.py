@@ -1,10 +1,9 @@
 import numpy as np
 
 
-def calculate_center_distance(img, num_lines, interval):
+def calculate_center_distance(img, interval):
     height, width = img.shape
     center_x = width // 2
-
     left_distances = []
     right_distances = []
 
