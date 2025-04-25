@@ -31,7 +31,7 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
             canny_1, canny_2, speed, side, kp, ki, kd = get_control_trackbar_values()
 
             ROI_START, ROI_END, ROI_X_START, ROI_X_END = \
-                get_roi_trackbars("ROI_C", FRAME_WIDTH, FRAME_HEIGHT)
+                get_roi_trackbars(FRAME_WIDTH, FRAME_HEIGHT)
 
             #pid.kp = kp <- Para teste de valores
             #pid.ki = ki

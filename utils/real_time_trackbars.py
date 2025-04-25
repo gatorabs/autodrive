@@ -40,31 +40,20 @@ def get_object_roi_trackbar_values():
 def create_roi_trackbars(window_name, frame_width, frame_height,
                        init_start=200, init_end=220,
                        init_x_start=80, init_x_end=400):
-    """
-    Cria trackbars para ajustar dinamicamente a ROI.
 
-    Args:
-        window_name (str): nome da janela de controles.
-        frame_width (int): largura do frame.
-        frame_height (int): altura do frame.
-        init_start (int): posição inicial superior da ROI.
-        init_end (int): posição inicial inferior da ROI.
-        init_x_start (int): posição inicial esquerda da ROI.
-        init_x_end (int): posição inicial direita da ROI.
-    """
-    cv.namedWindow(window_name, cv.WINDOW_NORMAL)
+    cv.namedWindow("ROI_C", cv.WINDOW_NORMAL)
     cv.createTrackbar("ROI_START", window_name, init_start, frame_height, lambda v: None)
     cv.createTrackbar("ROI_END", window_name, init_end, frame_height, lambda v: None)
     cv.createTrackbar("ROI_X_START", window_name, init_x_start, frame_width, lambda v: None)
     cv.createTrackbar("ROI_X_END", window_name, init_x_end, frame_width, lambda v: None)
 
 
-def get_roi_trackbars(window_name, frame_width, frame_height):
+def get_roi_trackbars(frame_width, frame_height):
 
-    y_start = cv.getTrackbarPos("ROI_START", window_name)
-    y_end = cv.getTrackbarPos("ROI_END", window_name)
-    x_start = cv.getTrackbarPos("ROI_X_START", window_name)
-    x_end = cv.getTrackbarPos("ROI_X_END", window_name)
+    y_start = cv.getTrackbarPos("ROI_START", "ROI_C")
+    y_end = cv.getTrackbarPos("ROI_END", "ROI_C")
+    x_start = cv.getTrackbarPos("ROI_X_START", "ROI_C")
+    x_end = cv.getTrackbarPos("ROI_X_END", "ROI_C")
 
     # Clamp e validação
     y_start = min(max(0, y_start), frame_height - 1)
