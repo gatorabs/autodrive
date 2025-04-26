@@ -10,10 +10,24 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
     NUM_LINES = 10
     TARGET_CENTER_DISTANCE = 80
 
+    '''
+    Ki (ganho integral)
+    
+    Reduz o offset em regime permanente, mas se for muito alto causa windup, acumulando erro demais.
+    Solução: diminuir o valor de ki (ou então implementar/fortalecer o anti-windup, limitando ainda mais self.integral).
+
+    Kp (ganho proporcional)
+    Dá resposta imediata ao erro atual. Aumentar Kp faz a correção ser mais rápida, mas também pode gerar oscilações.
+
+    Kd (ganho derivativo)
+    “Frena” a resposta baseada na taxa de variação do erro, ajudando a amortecer oscilações e reduzir sobre-impulsos.
+    
+    '''
+    
     # Parâmetros do PID
     KP = 0.3
-    KI = 0.005
-    KD = 0.01
+    KI = 0.003
+    KD = 0.015
     MIN_OUTPUT = -32
     MAX_OUTPUT = 32
 
