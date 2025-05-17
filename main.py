@@ -1,9 +1,11 @@
 from core import *
 import multiprocessing as mp
 
+
 if __name__ == '__main__':
     mp.set_start_method('spawn')
     manager = mp.Manager()
+
     shared_controls = manager.dict({
         "SHOW_VIDEO": True,
         "SHOW_EDGES": True,
@@ -11,24 +13,26 @@ if __name__ == '__main__':
         "SHOW_PERSON_DETECTION": True,
         "SHOW_FPS": True,
         "SEND_DATA": True,
-        "RUNNING": True,  # <- controle de execução global
+        "RUNNING": True,
         "EMERGENCY_STOP": 0,
         "SECURITY_COM": 'COM5',
         "SENDER_COM": 'COM3',
         "object_serial_data": manager.list([0, 0, 0]),
     })
 
+    shared_frames = manager.dict()  # <- novo!
+
     lane_queue = mp.Queue(maxsize=10)
     object_queue = mp.Queue(maxsize=10)
 
-    lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls))
+    lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls, shared_frames))
     object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls, 0))
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
     tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
+    flask_process = mp.Process(target=start_flask_server, args=(shared_frames,))  # <- novo
 
-    # security_proc = mp.Process(target=security_process, args=(shared_controls,))
+    processes = [lane_process, object_process, sender_process, tk_process, flask_process]
 
-    processes = [lane_process, object_process, sender_process, tk_process]
     for p in processes:
         p.start()
 
@@ -36,10 +40,8 @@ if __name__ == '__main__':
         for p in processes:
             p.join()
     except KeyboardInterrupt:
-        print("Interrompido pelo usuário. Encerrando processos com segurança...")
-        shared_controls["RUNNING"] = False  # <- todos os processos verificam isso e saem naturalmente
-
+        print("Interrompido pelo usuário.")
+        shared_controls["RUNNING"] = False
         for p in processes:
             if p.is_alive():
-                print(f"Forçando encerramento de: {p.name}")
                 p.terminate()

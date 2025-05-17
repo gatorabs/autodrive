@@ -1,14 +1,15 @@
 from core import *
+from processing.warp_perspective_processor import create_track
 
 
-def lane_detection_process(lane_queue, shared_controls, video_source="test_videos/teste1.mp4"):
+def lane_detection_process(lane_queue, shared_controls, shared_frames, video_source="test_videos/teste1.mp4"):
     set_process_priority("above_normal")
     FRAME_WIDTH = int(1920 / 4)
     FRAME_HEIGHT = int(1080 / 4)
     FRAME_CENTER = FRAME_WIDTH // 2
 
     NUM_LINES = 10
-    TARGET_CENTER_DISTANCE = 80
+    TARGET_CENTER_DISTANCE = 125
 
     '''
     Ki (ganho integral)
@@ -32,7 +33,7 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
     MAX_OUTPUT = 32
 
     create_control_window()
-
+    create_track()
     create_roi_trackbars("ROI_C", FRAME_WIDTH,FRAME_HEIGHT)
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
@@ -86,6 +87,33 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
                 show_edges=shared_controls.get("SHOW_EDGES", True),
                 show_roi=shared_controls.get("SHOW_ROI", True)
             )
+
+            def mouse_callback(event, x, y, flags, param):
+                if event == cv.EVENT_LBUTTONDOWN:
+                    print(f"Coordenadas: x={x}, y={y}")
+
+            cv.namedWindow("Inspecionar")
+            cv.setMouseCallback("Inspecionar", mouse_callback)
+            cv.imshow("Inspecionar", roi)
+
+            cv.namedWindow("Tesste")
+
+            cv.imshow("Tesste", warped_roi)
+
+
+
+
+            try:
+                _, jpeg_display = cv.imencode('.jpg', frame_display)
+                _, jpeg_edges = cv.imencode('.jpg', edges)
+                _, jpeg_warped = cv.imencode('.jpg', warped_roi)
+
+                shared_frames["display"] = jpeg_display.tobytes()
+                shared_frames["edges"] = jpeg_edges.tobytes()
+                shared_frames["warped"] = jpeg_warped.tobytes()
+            except Exception as e:
+                print("Erro ao codificar frames:", e)
+
             cv.imshow("Lane Detection", main_display)
             if cv.waitKey(1) == ord('q'):
                 break
@@ -97,4 +125,4 @@ def lane_detection_process(lane_queue, shared_controls, video_source="test_video
         print("Lane Detection Error:", e)
     finally:
         video_proc.release()
-        cv2.destroyAllWindows()
+        cv.destroyAllWindows()
