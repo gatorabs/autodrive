@@ -1,5 +1,4 @@
 from core import *
-from processing.warp_perspective_processor import create_track
 
 
 def lane_detection_process(lane_queue, shared_controls, shared_frames, video_source="test_videos/teste1.mp4"):
@@ -33,7 +32,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     MAX_OUTPUT = 32
 
     create_control_window()
-    create_track()
+    create_warp_points_trackbars()
     create_roi_trackbars("ROI_C", FRAME_WIDTH,FRAME_HEIGHT)
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
