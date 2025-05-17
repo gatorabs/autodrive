@@ -13,14 +13,15 @@ if __name__ == '__main__':
         "SHOW_PERSON_DETECTION": True,
         "SHOW_FPS": True,
         "SEND_DATA": True,
-        "RUNNING": True,
-        "EMERGENCY_STOP": 0,
         "SECURITY_COM": 'COM5',
         "SENDER_COM": 'COM3',
+        "RUNNING": True,
+        "WEBVIEW": True,
+        "EMERGENCY_STOP": 0,
         "object_serial_data": manager.list([0, 0, 0]),
     })
 
-    shared_frames = manager.dict()  # <- novo!
+    shared_frames = manager.dict()
 
     lane_queue = mp.Queue(maxsize=10)
     object_queue = mp.Queue(maxsize=10)
@@ -29,9 +30,13 @@ if __name__ == '__main__':
     object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls, 0))
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
     tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
-    flask_process = mp.Process(target=start_flask_server, args=(shared_frames,))  # <- novo
 
-    processes = [lane_process, object_process, sender_process, tk_process, flask_process]
+    processes = [lane_process, object_process, sender_process, tk_process]
+
+    if shared_controls["WEBVIEW"]:
+        flask_process = mp.Process(target=start_flask_server, args=(shared_frames,))
+        processes.append(flask_process)
+        print("WEBVIEW:", shared_controls["SHOW_VIDEO"])
 
     for p in processes:
         p.start()

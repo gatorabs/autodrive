@@ -87,39 +87,40 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                 show_roi=shared_controls.get("SHOW_ROI", True)
             )
 
-            def mouse_callback(event, x, y, flags, param):
-                if event == cv.EVENT_LBUTTONDOWN:
-                    print(f"Coordenadas: x={x}, y={y}")
+            # Função para Descobrir Pixel atual:
 
-            cv.namedWindow("Inspecionar")
-            cv.setMouseCallback("Inspecionar", mouse_callback)
-            cv.imshow("Inspecionar", roi)
+            #def mouse_callback(event, x, y, flags, param):
+            #    if event == cv.EVENT_LBUTTONDOWN:
+            #        print(f"Coordenadas: x={x}, y={y}")
 
-            cv.namedWindow("Tesste")
+            #cv.namedWindow("Inspecionar")
+            #cv.setMouseCallback("Inspecionar", mouse_callback)
+            #cv.imshow("Inspecionar", roi)
 
-            cv.imshow("Tesste", warped_roi)
+            cv.imshow("Warped ROI", warped_roi)
 
+            if shared_controls["WEBVIEW"]:
+                try:
+                    _, jpeg_display = cv.imencode('.jpg', frame_display)
+                    _, jpeg_edges = cv.imencode('.jpg', edges)
+                    _, jpeg_warped = cv.imencode('.jpg', warped_roi)
 
+                    shared_frames["display"] = jpeg_display.tobytes()
+                    shared_frames["edges"] = jpeg_edges.tobytes()
+                    shared_frames["warped"] = jpeg_warped.tobytes()
 
-
-            try:
-                _, jpeg_display = cv.imencode('.jpg', frame_display)
-                _, jpeg_edges = cv.imencode('.jpg', edges)
-                _, jpeg_warped = cv.imencode('.jpg', warped_roi)
-
-                shared_frames["display"] = jpeg_display.tobytes()
-                shared_frames["edges"] = jpeg_edges.tobytes()
-                shared_frames["warped"] = jpeg_warped.tobytes()
-            except Exception as e:
-                print("Erro ao codificar frames:", e)
+                except Exception as e:
+                    print("Erro ao codificar frames:", e)
 
             cv.imshow("Lane Detection", main_display)
+
             if cv.waitKey(1) == ord('q'):
                 break
 
             lane_data = {"speed": speed, "direction": direction}
             if not lane_queue.full():
                 lane_queue.put(lane_data)
+
     except Exception as e:
         print("Lane Detection Error:", e)
     finally:
