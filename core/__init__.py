@@ -18,4 +18,4 @@ from processing.multiprocessing.lane_detection_multiprocess import lane_detectio
 from processing.multiprocessing.object_detector_multiprocess import object_detection_process
 from processing.multiprocessing.security_multiprocess import security_process
 from utils.buttons import create_tkinter_controls
-from webview.flask_app import start_flask_server
+from flask_server.flask_app import start_flask_server

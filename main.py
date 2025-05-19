@@ -34,7 +34,7 @@ if __name__ == '__main__':
     processes = [lane_process, object_process, sender_process, tk_process]
 
     if shared_controls["WEBVIEW"]:
-        flask_process = mp.Process(target=start_flask_server, args=(shared_frames,))
+        flask_process = mp.Process(target=start_flask_server, args=(shared_frames, shared_controls))
         processes.append(flask_process)
         print("WEBVIEW:", shared_controls["SHOW_VIDEO"])
 

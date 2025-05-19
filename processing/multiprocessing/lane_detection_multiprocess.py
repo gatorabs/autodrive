@@ -114,7 +114,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
             if cv.waitKey(1) == ord('q'):
                 break
-
+            shared_controls["direction"] = direction
             lane_data = {"speed": speed, "direction": direction}
             if not lane_queue.full():
                 lane_queue.put(lane_data)
