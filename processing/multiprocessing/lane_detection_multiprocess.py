@@ -69,12 +69,25 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
             interval = max(1, round((ROI_END - ROI_START) / NUM_LINES))
             avg_left, avg_right = calculate_center_distance(roi, interval)
 
-            if side == 1:
-                if avg_right != float('inf'):
-                    direction = round(pid.calculate(avg_right))
-            else:
-                if avg_left != float('inf'):
-                    direction = round(pid.calculate(avg_left))
+            if side == 1 and avg_right != float('inf'):
+                direction = round(pid.calculate(avg_right))
+
+                if avg_right >= 118:
+                    shared_controls["ARROW"] = True
+                elif avg_right <= 95:
+                    shared_controls["ARROW"] = False
+                else:
+                    shared_controls.pop("ARROW", None)
+
+            elif side == 0 and avg_left != float('inf'):
+                direction = round(pid.calculate(avg_left))
+
+                if avg_left >= 118:
+                    shared_controls["ARROW"] = True
+                elif avg_left <= 95:
+                    shared_controls["ARROW"] = False
+                else:
+                    shared_controls.pop("ARROW", None)
 
             frame_display = draw_overlays(
                 frame,

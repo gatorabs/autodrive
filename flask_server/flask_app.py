@@ -8,20 +8,23 @@ from processing.priorities_processor import set_process_priority
 
 app = Flask(__name__)
 CORS(app)
+
 shared_frames = None
 shared_controls = None
 
 @app.route('/api/car_info')
 def get_direction():
     running = False
+    arrow = None
     car_info = []
     if shared_controls is not None:
         car_info = shared_controls.get("car_info", [])
         running = shared_controls.get("RUNNING", False)
-
+        arrow = shared_controls.get("ARROW", None)
     return jsonify({
         "running": running,
-        "car_info": car_info
+        "car_info": car_info,
+        "arrow": arrow
     })
 
 

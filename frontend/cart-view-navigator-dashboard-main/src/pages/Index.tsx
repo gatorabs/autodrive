@@ -25,10 +25,19 @@ const Index = () => {
           setServoAngle(data.car_info.direction);
           setSystemRunning(data.running);
           setMotorRPM(data.car_info.speed);
+
+          if (data.arrow === true) {
+            setTurnSignals({ left: false, right: true });
+          } else if (data.arrow === false) {
+            setTurnSignals({ left: true, right: false });
+          } else {
+            setTurnSignals({ left: false, right: false });
+          }
         })
         .catch(err => {
           console.error("Erro ao obter direção:", err);
           setSystemRunning(false);
+          setTurnSignals({ left: false, right: false });
         });
     }, 500);
 
@@ -44,36 +53,7 @@ const Index = () => {
     setPreviousRunning(systemRunning);
   }, [systemRunning]);
 
-
   // Simulação de dados em tempo real
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Simular RPM do motor entre 0 e 3000
-      
-      //const newRPM = Math.floor(Math.random() * 3000);
-      //setMotorRPM(newRPM);
-
-      // Simular mudança aleatória de estados dos módulos CAN
-      //const updatedModules = canModules.map(module => ({
-      //  ...module,
-      //  connected: Math.random() > 0.2 // 80% de chance de estar conectado
-      //}));
-      //setCanModules(updatedModules);
-
-      // Simular os sinais de seta (piscar)
-      if (Math.random() > 0.7) {
-        const newSignals = { ...turnSignals };
-        if (Math.random() > 0.5) {
-          newSignals.left = !newSignals.left;
-        } else {
-          newSignals.right = !newSignals.right;
-        }
-        setTurnSignals(newSignals);
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [canModules, turnSignals]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -81,7 +61,7 @@ const Index = () => {
         <header className="mb-6">
           <h1 className="text-3xl font-bold text-center">Mercedes-Benz</h1>
           <div className="flex justify-between items-center mt-2">
-            <div className={`px-4 py-2 rounded-md ${systemRunning ? "bg-gray-800 px-4 py-2 rounded-md" : "bg-gray-800 px-4 py-2 rounded-md"}`}>
+            <div className={`px-4 py-2 rounded-md bg-gray-800`}>
               <span className={systemRunning ? "text-green-400" : "text-red-400"}>
                 ● {systemRunning ? "Sistema Ativo" : "Sistema Inativo"}
               </span>
