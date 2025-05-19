@@ -8,10 +8,11 @@ TARGET_CLASSES = {0, 9}
 
 
 class ObjectDetector:
-    def __init__(self, shared_serial_data, controls, camera_source=0):
+    def __init__(self, shared_serial_data, controls, shared_frames, camera_source=0):
         self.shared_serial_data = shared_serial_data
         self.controls = controls
         self.camera_source = camera_source
+        self.shared_frames = shared_frames
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"ObjectDetector: Usando dispositivo {self.device}")
@@ -91,7 +92,7 @@ class ObjectDetector:
             if not ret:
                 return
 
-        frame = cv2.resize(frame, (320, 240))
+        frame = cv2.resize(frame, (480, 270))
         results = self.model(frame, classes=list(TARGET_CLASSES), verbose=False)
 
         person_detected = False
@@ -128,6 +129,9 @@ class ObjectDetector:
 
         self.shared_serial_data[2] = 1 if person_detected else 0
         self.shared_serial_data[1] = traffic_light_state
+
+        _, jpeg_frame = cv2.imencode('.jpg', frame)
+        self.shared_frames["object"] = jpeg_frame.tobytes()
 
         if show_window:
             if not self.window_created:

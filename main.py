@@ -27,7 +27,7 @@ if __name__ == '__main__':
     object_queue = mp.Queue(maxsize=10)
 
     lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls, shared_frames))
-    object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls, 0))
+    object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls, shared_frames, 0))
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
     tk_process = mp.Process(target=create_tkinter_controls, args=(shared_controls,))
 

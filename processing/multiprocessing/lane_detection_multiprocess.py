@@ -103,11 +103,9 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                 try:
                     _, jpeg_display = cv.imencode('.jpg', frame_display)
                     _, jpeg_edges = cv.imencode('.jpg', edges)
-                    _, jpeg_warped = cv.imencode('.jpg', warped_roi)
 
                     shared_frames["display"] = jpeg_display.tobytes()
                     shared_frames["edges"] = jpeg_edges.tobytes()
-                    shared_frames["warped"] = jpeg_warped.tobytes()
 
                 except Exception as e:
                     print("Erro ao codificar frames:", e)
