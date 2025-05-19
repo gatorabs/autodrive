@@ -8,7 +8,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     FRAME_CENTER = FRAME_WIDTH // 2
 
     NUM_LINES = 10
-    TARGET_CENTER_DISTANCE = 125
+    TARGET_CENTER_DISTANCE = 80
 
     '''
     Ki (ganho integral)
@@ -32,7 +32,10 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     MAX_OUTPUT = 32
 
     create_control_window()
-    create_warp_points_trackbars()
+
+    if not shared_controls["WEBVIEW"]:
+        create_warp_points_trackbars()
+
     create_roi_trackbars("ROI_C", FRAME_WIDTH,FRAME_HEIGHT)
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
@@ -58,9 +61,9 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
             edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, morph_kernel)
 
             roi = edges[ROI_START:ROI_END, ROI_X_START:ROI_X_END]
-            warped_roi = bird_eye(roi)
+            # warped_roi = bird_eye(roi)
             interval = max(1, round((ROI_END - ROI_START) / NUM_LINES))
-            avg_left, avg_right = calculate_center_distance(warped_roi, interval)
+            avg_left, avg_right = calculate_center_distance(roi, interval)
 
             # Cálculo do ângulo (direção) usando PID
             direction = 0
@@ -80,12 +83,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                 shared_controls.get("SHOW_FPS", True),
                 FRAME_CENTER
             )
-            main_display = create_main_window(
-                frame_display, edges, warped_roi,
-                show_video=shared_controls.get("SHOW_VIDEO", True),
-                show_edges=shared_controls.get("SHOW_EDGES", True),
-                show_roi=shared_controls.get("SHOW_ROI", True)
-            )
+
 
             # Função para Descobrir Pixel atual:
 
@@ -96,8 +94,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
             #cv.namedWindow("Inspecionar")
             #cv.setMouseCallback("Inspecionar", mouse_callback)
             #cv.imshow("Inspecionar", roi)
-
-            cv.imshow("Warped ROI", warped_roi)
 
             if shared_controls["WEBVIEW"]:
                 try:
@@ -110,7 +106,15 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                 except Exception as e:
                     print("Erro ao codificar frames:", e)
 
-            cv.imshow("Lane Detection", main_display)
+            elif not shared_controls["WEBVIEW"]:
+
+                main_display = create_main_window(
+                    frame_display, edges, roi,
+                    show_video=shared_controls.get("SHOW_VIDEO", True),
+                    show_edges=shared_controls.get("SHOW_EDGES", True),
+                    show_roi=shared_controls.get("SHOW_ROI", True)
+                )
+                cv.imshow("Lane Detection", main_display)
 
             if cv.waitKey(1) == ord('q'):
                 break

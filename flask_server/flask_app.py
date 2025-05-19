@@ -18,9 +18,13 @@ def index():
 @app.route('/api/direction')
 def get_direction():
     direction = 0
+    running = False
     if shared_controls is not None:
         direction = shared_controls.get("direction", 0)
-    return jsonify({"direction": direction})
+        running = shared_controls.get("RUNNING", False)
+
+    return jsonify({"direction": direction, "running": running})
+
 
 def generate_placeholder_image():
     img = np.zeros((270, 480, 3), dtype=np.uint8)
