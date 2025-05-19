@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 
 interface CameraFeedProps {
   label: string;
+  systemRunning: boolean
 }
 
 const keyMap: Record<string, string> = {
@@ -16,7 +17,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ label }) => {
   const [imgKey, setImgKey] = useState(0); // forçar reload do <img>
 
   const key = keyMap[label];
-  const streamUrl = `http://localhost:5000/video_feed/${key}`;
+  const streamUrl = `http://192.168.15.12:5000/video_feed/${key}`;
 
   // Verificação periódica da disponibilidade do stream
   useEffect(() => {
@@ -36,7 +37,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ label }) => {
           setIsLoading(false);
         }
       };
-    }, 5000); // a cada 5s
+    }, 3000); // a cada 5s
 
     return () => clearInterval(interval);
   }, [streamUrl, hasError]);
@@ -89,7 +90,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ label }) => {
         ) : (
           <img
             key={imgKey}
-            src={streamUrl}
+            src={`${streamUrl}?refresh=${imgKey}`} 
             alt={`Feed da câmera - ${label}`}
             className="w-full h-full object-contain"
             onLoad={() => setIsLoading(false)}

@@ -11,10 +11,6 @@ CORS(app)
 shared_frames = None
 shared_controls = None
 
-@app.route('/')
-def index():
-    return render_template("index.html")
-
 @app.route('/api/direction')
 def get_direction():
     direction = 0
@@ -62,7 +58,12 @@ def generate_feed(key):
 
 @app.route('/video_feed/<string:key>')
 def video_feed(key):
-    return Response(generate_feed(key), mimetype='multipart/x-mixed-replace; boundary=frame')
+    response = Response(generate_feed(key), mimetype='multipart/x-mixed-replace; boundary=frame')
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 
 def start_flask_server(frames_dict, controls_dict):
     global shared_frames, shared_controls

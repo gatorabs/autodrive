@@ -11,8 +11,8 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     TARGET_CENTER_DISTANCE = 80
 
     '''
-    Ki (ganho integral)
     
+    Ki (ganho integral)
     Reduz o offset em regime permanente, mas se for muito alto causa windup, acumulando erro demais.
     Solução: diminuir o valor de ki (ou então implementar/fortalecer o anti-windup, limitando ainda mais self.integral).
 
@@ -23,7 +23,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     “Frena” a resposta baseada na taxa de variação do erro, ajudando a amortecer oscilações e reduzir sobre-impulsos.
     
     '''
-    
+
     # Parâmetros do PID
     KP = 0.3
     KI = 0.003
@@ -33,26 +33,28 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
     create_control_window()
 
-    if not shared_controls["WEBVIEW"]:
+    if not shared_controls.get("WEBVIEW", True):
         create_warp_points_trackbars()
 
-    create_roi_trackbars("ROI_C", FRAME_WIDTH,FRAME_HEIGHT)
+    create_roi_trackbars("ROI_C", FRAME_WIDTH, FRAME_HEIGHT)
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
     video_proc = VideoProcessor(video_source, FRAME_WIDTH, FRAME_HEIGHT)
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (4, 4))
+
+    # Estado anterior da flag WEBVIEW
+    previous_webview = shared_controls.get("WEBVIEW", True)
 
     try:
         while shared_controls.get("RUNNING", True):
             frame, fps = video_proc.get_frame()
             canny_1, canny_2, speed, side, kp, ki, kd = get_control_trackbar_values()
 
-            ROI_START, ROI_END, ROI_X_START, ROI_X_END = \
-                get_roi_trackbars(FRAME_WIDTH, FRAME_HEIGHT)
+            # pid.kp = kp <- Para teste de valores
+            # pid.ki = ki
+            # pid.kd = kd
 
-            #pid.kp = kp <- Para teste de valores
-            #pid.ki = ki
-            #pid.kd = kd
+            ROI_START, ROI_END, ROI_X_START, ROI_X_END = get_roi_trackbars(FRAME_WIDTH, FRAME_HEIGHT)
 
             # Processamento para detecção de faixas
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
@@ -65,8 +67,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
             interval = max(1, round((ROI_END - ROI_START) / NUM_LINES))
             avg_left, avg_right = calculate_center_distance(roi, interval)
 
-            # Cálculo do ângulo (direção) usando PID
-            direction = 0
             if side == 1:
                 if avg_right != float('inf'):
                     direction = round(pid.calculate(avg_right))
@@ -84,30 +84,46 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                 FRAME_CENTER
             )
 
-
             # Função para Descobrir Pixel atual:
 
-            #def mouse_callback(event, x, y, flags, param):
+            # def mouse_callback(event, x, y, flags, param):
             #    if event == cv.EVENT_LBUTTONDOWN:
             #        print(f"Coordenadas: x={x}, y={y}")
 
-            #cv.namedWindow("Inspecionar")
-            #cv.setMouseCallback("Inspecionar", mouse_callback)
-            #cv.imshow("Inspecionar", roi)
+            # cv.namedWindow("Inspecionar")
+            # cv.setMouseCallback("Inspecionar", mouse_callback)
+            # cv.imshow("Inspecionar", roi)
 
-            if shared_controls["WEBVIEW"]:
+            current_webview = shared_controls.get("WEBVIEW", True)
+
+            # Detecta mudança na flag WEBVIEW
+            if previous_webview != current_webview:
+                if current_webview:
+                    print("[INFO] WEBVIEW ativado")
+                    # Fecha janelas se estavam abertas
+                    if cv.getWindowProperty("Lane Detection", cv.WND_PROP_VISIBLE) >= 0:
+                        cv.destroyWindow("Lane Detection")
+                else:
+                    print("[INFO] WEBVIEW desativado")
+                    # Limpa os dados enviados ao front
+                    shared_frames.pop("display", None)
+                    shared_frames.pop("edges", None)
+
+            # Atualiza o estado anterior
+            previous_webview = current_webview
+
+            # WEBVIEW ativo → envia para o front
+            if current_webview:
                 try:
                     _, jpeg_display = cv.imencode('.jpg', frame_display)
                     _, jpeg_edges = cv.imencode('.jpg', edges)
-
                     shared_frames["display"] = jpeg_display.tobytes()
                     shared_frames["edges"] = jpeg_edges.tobytes()
-
                 except Exception as e:
                     print("Erro ao codificar frames:", e)
 
-            elif not shared_controls["WEBVIEW"]:
-
+            # WEBVIEW desativado → exibe localmente
+            else:
                 main_display = create_main_window(
                     frame_display, edges, roi,
                     show_video=shared_controls.get("SHOW_VIDEO", True),
@@ -118,6 +134,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
             if cv.waitKey(1) == ord('q'):
                 break
+
             shared_controls["direction"] = direction
             lane_data = {"speed": speed, "direction": direction}
             if not lane_queue.full():
@@ -125,6 +142,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
     except Exception as e:
         print("Lane Detection Error:", e)
+
     finally:
         video_proc.release()
         cv.destroyAllWindows()

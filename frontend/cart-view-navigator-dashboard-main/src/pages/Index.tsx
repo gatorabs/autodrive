@@ -19,7 +19,7 @@ const Index = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      fetch("http://localhost:5000/api/direction")
+      fetch("http://192.168.15.12:5000/api/direction")
         .then(res => res.json())
         .then(data => {
           setServoAngle(data.direction);
@@ -42,6 +42,7 @@ const Index = () => {
     }
     setPreviousRunning(systemRunning);
   }, [systemRunning]);
+
 
   // Simulação de dados em tempo real
   useEffect(() => {
@@ -92,9 +93,9 @@ const Index = () => {
 
         {/* Câmeras - Apenas 3 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <CameraFeed label="Fasor" />
-          <CameraFeed label="Filtros" />
-          <CameraFeed label="Detecção de Objetos" />
+          <CameraFeed label="Fasor" systemRunning={systemRunning} />
+          <CameraFeed label="Filtros" systemRunning={systemRunning} />
+          <CameraFeed label="Detecção de Objetos" systemRunning={systemRunning} />
         </div>
 
         {/* Painel de informações */}
