@@ -53,8 +53,6 @@ const Index = () => {
     setPreviousRunning(systemRunning);
   }, [systemRunning]);
 
-  // Simulação de dados em tempo real
-
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto p-4">
