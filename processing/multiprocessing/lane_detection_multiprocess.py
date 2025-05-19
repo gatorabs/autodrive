@@ -8,7 +8,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     FRAME_CENTER = FRAME_WIDTH // 2
 
     NUM_LINES = 10
-    TARGET_CENTER_DISTANCE = 80
+    TARGET_CENTER_DISTANCE = 110
 
     '''
     
