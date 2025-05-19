@@ -2,6 +2,8 @@ from core import *
 
 
 def lane_detection_process(lane_queue, shared_controls, shared_frames, video_source="test_videos/teste1.mp4"):
+    global direction
+
     set_process_priority("above_normal")
     FRAME_WIDTH = int(1920 / 4)
     FRAME_HEIGHT = int(1080 / 4)
@@ -135,8 +137,9 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
             if cv.waitKey(1) == ord('q'):
                 break
 
-            shared_controls["direction"] = direction
             lane_data = {"speed": speed, "direction": direction}
+            shared_controls["car_info"] = lane_data
+
             if not lane_queue.full():
                 lane_queue.put(lane_data)
 

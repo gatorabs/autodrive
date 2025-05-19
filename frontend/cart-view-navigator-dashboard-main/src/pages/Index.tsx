@@ -9,8 +9,8 @@ const Index = () => {
   const [servoAngle, setServoAngle] = useState(0);
   const [motorRPM, setMotorRPM] = useState(0);
   const [canModules, setCanModules] = useState([
-    { id: 1, name: "Módulo Principal", connected: true },
-    { id: 2, name: "Módulo Sensor", connected: true },
+    { id: 1, name: "Módulo Principal", connected: false },
+    { id: 2, name: "Módulo Sensor", connected: false },
     { id: 3, name: "Módulo Motor", connected: false },
   ]);
   const [turnSignals, setTurnSignals] = useState({ left: false, right: false });
@@ -19,11 +19,12 @@ const Index = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      fetch("http://192.168.15.12:5000/api/direction")
+      fetch("http://192.168.15.12:5000/api/car_info")
         .then(res => res.json())
         .then(data => {
-          setServoAngle(data.direction);
+          setServoAngle(data.car_info.direction);
           setSystemRunning(data.running);
+          setMotorRPM(data.car_info.speed);
         })
         .catch(err => {
           console.error("Erro ao obter direção:", err);
@@ -48,15 +49,16 @@ const Index = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       // Simular RPM do motor entre 0 e 3000
-      const newRPM = Math.floor(Math.random() * 3000);
-      setMotorRPM(newRPM);
+      
+      //const newRPM = Math.floor(Math.random() * 3000);
+      //setMotorRPM(newRPM);
 
       // Simular mudança aleatória de estados dos módulos CAN
-      const updatedModules = canModules.map(module => ({
-        ...module,
-        connected: Math.random() > 0.2 // 80% de chance de estar conectado
-      }));
-      setCanModules(updatedModules);
+      //const updatedModules = canModules.map(module => ({
+      //  ...module,
+      //  connected: Math.random() > 0.2 // 80% de chance de estar conectado
+      //}));
+      //setCanModules(updatedModules);
 
       // Simular os sinais de seta (piscar)
       if (Math.random() > 0.7) {
@@ -113,10 +115,10 @@ const Index = () => {
               />
               <MotorStatus
                 title="Motor DC"
-                value={`${motorRPM} RPM`}
+                value={`${motorRPM} PWM`}
                 color="#eab308"
                 icon="gauge"
-                maxValue={3000}
+                maxValue={255}
                 currentValue={motorRPM}
               />
             </div>

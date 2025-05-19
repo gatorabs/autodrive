@@ -11,15 +11,18 @@ CORS(app)
 shared_frames = None
 shared_controls = None
 
-@app.route('/api/direction')
+@app.route('/api/car_info')
 def get_direction():
-    direction = 0
     running = False
+    car_info = []
     if shared_controls is not None:
-        direction = shared_controls.get("direction", 0)
+        car_info = shared_controls.get("car_info", [])
         running = shared_controls.get("RUNNING", False)
 
-    return jsonify({"direction": direction, "running": running})
+    return jsonify({
+        "running": running,
+        "car_info": car_info
+    })
 
 
 def generate_placeholder_image():
