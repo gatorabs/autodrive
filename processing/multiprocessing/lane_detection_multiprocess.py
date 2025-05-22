@@ -44,11 +44,16 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     video_proc = VideoProcessor(video_source, FRAME_WIDTH, FRAME_HEIGHT)
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (4, 4))
 
-    # Estado anterior da flag WEBVIEW
     previous_webview = shared_controls.get("WEBVIEW", True)
+
+    # Variáveis para medir eficiência
+    frame_count = 0
+    total_processing_time = 0
 
     try:
         while shared_controls.get("RUNNING", True):
+            start_time = time.time()
+
             frame, fps = video_proc.get_frame()
             canny_1, canny_2, speed, side, kp, ki, kd = get_control_trackbar_values()
 
@@ -71,7 +76,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
             if side == 1 and avg_right != float('inf'):
                 direction = round(pid.calculate(avg_right))
-
                 if avg_right >= 118:
                     shared_controls["ARROW"] = True
                 elif avg_right <= 95:
@@ -81,7 +85,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
             elif side == 0 and avg_left != float('inf'):
                 direction = round(pid.calculate(avg_left))
-
                 if avg_left >= 118:
                     shared_controls["ARROW"] = True
                 elif avg_left <= 95:
@@ -120,11 +123,9 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                         cv.destroyWindow("Lane Detection")
                 else:
                     print("[INFO] WEBVIEW desativado")
-                    # Limpa os dados enviados ao front
                     shared_frames.pop("display", None)
                     shared_frames.pop("edges", None)
 
-            # Atualiza o estado anterior
             previous_webview = current_webview
 
             # WEBVIEW ativo → envia para o front
@@ -136,8 +137,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                     shared_frames["edges"] = jpeg_edges.tobytes()
                 except Exception as e:
                     print("Erro ao codificar frames:", e)
-
-            # WEBVIEW desativado → exibe localmente
             else:
                 main_display = create_main_window(
                     frame_display, edges, roi,
@@ -155,6 +154,16 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
             if not lane_queue.full():
                 lane_queue.put(lane_data)
+
+            # Medição do tempo de processamento
+            end_time = time.time()
+            frame_processing_time = (end_time - start_time) * 1000  # em milissegundos
+            total_processing_time += frame_processing_time
+            frame_count += 1
+
+            if frame_count % 100 == 0:
+                avg_time = total_processing_time / frame_count
+                print(f"[INFO] Tempo médio por frame: {avg_time:.2f} ms (baseado em {frame_count} frames)")
 
     except Exception as e:
         print("Lane Detection Error:", e)

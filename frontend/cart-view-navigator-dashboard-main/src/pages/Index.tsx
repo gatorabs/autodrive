@@ -57,7 +57,7 @@ const Index = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto p-4">
         <header className="mb-6">
-          <h1 className="text-3xl font-bold text-center">Mercedes-Benz</h1>
+          <h1 className="text-3xl font-bold text-center"></h1>
           <div className="flex justify-between items-center mt-2">
             <div className={`px-4 py-2 rounded-md bg-gray-800`}>
               <span className={systemRunning ? "text-green-400" : "text-red-400"}>
