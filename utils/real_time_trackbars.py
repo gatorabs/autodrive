@@ -66,16 +66,16 @@ def get_roi_trackbars(frame_width, frame_height):
 
 def create_warp_points_trackbars():
     cv.namedWindow('Points')
-    cv.createTrackbar('tl x', 'Points', 90, 320, lambda x: None)
+    cv.createTrackbar('tl x', 'Points', 20, 320, lambda x: None)
     cv.createTrackbar('tl y', 'Points', 0, 20, lambda x: None)
 
     cv.createTrackbar('tr x', 'Points', 280, 320, lambda x: None)
     cv.createTrackbar('tr y', 'Points', 0, 20, lambda x: None)
 
-    cv.createTrackbar('bl x', 'Points', 55, 320, lambda x: None)
+    cv.createTrackbar('bl x', 'Points', 0, 320, lambda x: None)
     cv.createTrackbar('bl y', 'Points', 20, 20, lambda x: None)
 
-    cv.createTrackbar('br x', 'Points', 315, 320, lambda x: None)
+    cv.createTrackbar('br x', 'Points', 300, 320, lambda x: None)
     cv.createTrackbar('br y', 'Points', 20, 20, lambda x: None)
 
 

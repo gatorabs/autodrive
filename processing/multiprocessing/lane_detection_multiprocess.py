@@ -1,7 +1,9 @@
+import cv2
+
 from core import *
 
 
-def lane_detection_process(lane_queue, shared_controls, shared_frames, video_source="test_videos/teste1.mp4"):
+def lane_detection_process(lane_queue, shared_controls, shared_frames, video_source="test_videos/pista_01 (1).mov"):
     global direction
 
     set_process_priority("above_normal")
@@ -12,6 +14,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     NUM_LINES = 10
     TARGET_CENTER_DISTANCE = 110
 
+    CALIBRATE_ROI = False
     '''
     
     Ki (ganho integral)
@@ -34,17 +37,16 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     MAX_OUTPUT = 32
 
     create_control_window()
+    webview = shared_controls.get("WEBVIEW")
 
-    if not shared_controls.get("WEBVIEW", True):
-        create_warp_points_trackbars()
+
 
     create_roi_trackbars("ROI_C", FRAME_WIDTH, FRAME_HEIGHT)
+    create_warp_points_trackbars()
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
     video_proc = VideoProcessor(video_source, FRAME_WIDTH, FRAME_HEIGHT)
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (4, 4))
-
-    previous_webview = shared_controls.get("WEBVIEW", True)
 
     # Variáveis para medir eficiência
     frame_count = 0
@@ -70,9 +72,10 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
             edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, morph_kernel)
 
             roi = edges[ROI_START:ROI_END, ROI_X_START:ROI_X_END]
-            # warped_roi = bird_eye(roi)
+
+            warped_roi = bird_eye(roi, CALIBRATE_ROI)
             interval = max(1, round((ROI_END - ROI_START) / NUM_LINES))
-            avg_left, avg_right = calculate_center_distance(roi, interval)
+            avg_left, avg_right = calculate_center_distance(warped_roi, interval)
 
             if side == 1 and avg_right != float('inf'):
                 direction = round(pid.calculate(avg_right))
@@ -112,24 +115,8 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
             # cv.setMouseCallback("Inspecionar", mouse_callback)
             # cv.imshow("Inspecionar", roi)
 
-            current_webview = shared_controls.get("WEBVIEW", True)
-
-            # Detecta mudança na flag WEBVIEW
-            if previous_webview != current_webview:
-                if current_webview:
-                    print("[INFO] WEBVIEW ativado")
-                    # Fecha janelas se estavam abertas
-                    if cv.getWindowProperty("Lane Detection", cv.WND_PROP_VISIBLE) >= 0:
-                        cv.destroyWindow("Lane Detection")
-                else:
-                    print("[INFO] WEBVIEW desativado")
-                    shared_frames.pop("display", None)
-                    shared_frames.pop("edges", None)
-
-            previous_webview = current_webview
-
             # WEBVIEW ativo → envia para o front
-            if current_webview:
+            if webview:
                 try:
                     _, jpeg_display = cv.imencode('.jpg', frame_display)
                     _, jpeg_edges = cv.imencode('.jpg', edges)
@@ -139,7 +126,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                     print("Erro ao codificar frames:", e)
             else:
                 main_display = create_main_window(
-                    frame_display, edges, roi,
+                    frame_display, edges, warped_roi,
                     show_video=shared_controls.get("SHOW_VIDEO", True),
                     show_edges=shared_controls.get("SHOW_EDGES", True),
                     show_roi=shared_controls.get("SHOW_ROI", True)
@@ -160,7 +147,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
             frame_processing_time = (end_time - start_time) * 1000  # em milissegundos
             total_processing_time += frame_processing_time
             frame_count += 1
-
+            cv2.imshow("warped", warped_roi)
             if frame_count % 100 == 0:
                 avg_time = total_processing_time / frame_count
                 print(f"[INFO] Tempo médio por frame: {avg_time:.2f} ms (baseado em {frame_count} frames)")

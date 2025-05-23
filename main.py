@@ -16,7 +16,7 @@ if __name__ == '__main__':
         "SECURITY_COM": 'COM5',
         "SENDER_COM": 'COM3',
         "RUNNING": True,
-        "WEBVIEW": True,
+        "WEBVIEW": False,
         "EMERGENCY_STOP": 0,
         "object_serial_data": manager.list([0, 0, 0]),
     })
