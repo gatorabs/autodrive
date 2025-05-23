@@ -2,14 +2,9 @@ import numpy as np
 import cv2 as cv
 
 from utils.real_time_trackbars import get_warp_points_trackbars
+from utils.constants import tl,tr,bl,br
 
-
-tl = (20, 0)
-tr = (300, 0)
-bl = (0, 20)
-br = (320, 20)
-
-def bird_eye(roi, calibrate):
+def bird_eye(roi, calibrate, roi_frame=None):
     h, w = roi.shape
 
     if calibrate:
@@ -20,16 +15,16 @@ def bird_eye(roi, calibrate):
         bl_cal = (bl_x, bl_y)
         br_cal = (br_x, br_y)
 
+        cv.circle(roi_frame, tl_cal, 1, (255, 0, 255), 3)
+        cv.circle(roi_frame, tr_cal, 1, (255, 0, 255), 3)
+        cv.circle(roi_frame, bl_cal, 1, (255, 0, 255), 3)
+        cv.circle(roi_frame, br_cal, 1, (255, 0, 255), 3)
+
         return return_warped_roi(roi, tl_cal, tr_cal, bl_cal, br_cal, h, w)
 
     return return_warped_roi(roi, tl, tr, bl, br, h, w)
 
 def return_warped_roi(roi, tl, tr, bl, br, h, w):
-    cv.circle(roi, tl, 5, (255, 255, 255), 1)
-    cv.circle(roi, tr, 5, (255, 255, 255), 1)
-    cv.circle(roi, bl, 5, (255, 255, 255), 1)
-    cv.circle(roi, br, 5, (255, 255, 255), 1)
-
     pts1 = np.float32([tl, bl, tr, br])
     pts2 = np.float32([[0, 0], [0, 20], [330, 0], [330, 20]])
 

@@ -14,7 +14,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     NUM_LINES = 10
     TARGET_CENTER_DISTANCE = 110
 
-    CALIBRATE_ROI = False
     '''
     
     Ki (ganho integral)
@@ -38,11 +37,18 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
     create_control_window()
     webview = shared_controls.get("WEBVIEW")
+    CALIBRATE_ROI = False
 
+    def init_points_trackbar():
+        create_warp_points_trackbars()
 
+    if webview:
+        CALIBRATE_ROI = False
+    else:
+        if CALIBRATE_ROI:
+            init_points_trackbar()
 
     create_roi_trackbars("ROI_C", FRAME_WIDTH, FRAME_HEIGHT)
-    create_warp_points_trackbars()
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
     video_proc = VideoProcessor(video_source, FRAME_WIDTH, FRAME_HEIGHT)

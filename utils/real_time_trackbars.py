@@ -1,5 +1,5 @@
 import cv2 as cv
-
+from utils.constants import tl,tr,bl,br
 
 def create_control_window():
     cv.namedWindow('Controls')
@@ -64,20 +64,20 @@ def get_roi_trackbars(frame_width, frame_height):
     return y_start, y_end, x_start, x_end
 
 
+
 def create_warp_points_trackbars():
     cv.namedWindow('Points')
-    cv.createTrackbar('tl x', 'Points', 20, 320, lambda x: None)
-    cv.createTrackbar('tl y', 'Points', 0, 20, lambda x: None)
+    cv.createTrackbar('tl x', 'Points', tl[0], 320, lambda x: None)
+    cv.createTrackbar('tl y', 'Points', tl[1], 20, lambda x: None)
 
-    cv.createTrackbar('tr x', 'Points', 280, 320, lambda x: None)
-    cv.createTrackbar('tr y', 'Points', 0, 20, lambda x: None)
+    cv.createTrackbar('tr x', 'Points', tr[0], 320, lambda x: None)
+    cv.createTrackbar('tr y', 'Points', tr[1], 20, lambda x: None)
 
-    cv.createTrackbar('bl x', 'Points', 0, 320, lambda x: None)
-    cv.createTrackbar('bl y', 'Points', 20, 20, lambda x: None)
+    cv.createTrackbar('bl x', 'Points', bl[0], 320, lambda x: None)
+    cv.createTrackbar('bl y', 'Points', bl[1], 20, lambda x: None)
 
-    cv.createTrackbar('br x', 'Points', 300, 320, lambda x: None)
-    cv.createTrackbar('br y', 'Points', 20, 20, lambda x: None)
-
+    cv.createTrackbar('br x', 'Points', br[0], 320, lambda x: None)
+    cv.createTrackbar('br y', 'Points', br[1], 20, lambda x: None)
 
 def get_warp_points_trackbars():
     tl_x = cv.getTrackbarPos('tl x', 'Points')
