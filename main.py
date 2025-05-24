@@ -1,6 +1,7 @@
+
 from core import *
 import multiprocessing as mp
-
+from utils.constants import RED,RESET
 
 if __name__ == '__main__':
     mp.set_start_method('spawn')
@@ -17,9 +18,14 @@ if __name__ == '__main__':
         "SENDER_COM": 'COM3',
         "RUNNING": True,
         "WEBVIEW": False,
-        "EMERGENCY_STOP": 0,
         "object_serial_data": manager.list([0, 0, 0]),
     })
+
+    for key, value in shared_controls.items():
+        if value:
+            print(f"{key}: {value}")
+        else:
+            print(f"{key}: {RED}{value}{RESET}")
 
     shared_frames = manager.dict()
 

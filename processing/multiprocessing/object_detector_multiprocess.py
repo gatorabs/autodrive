@@ -2,7 +2,7 @@ import time
 
 from processing.object_detection_processor import ObjectDetector
 from processing.priorities_processor import set_process_priority
-
+from utils.constants import RED,RESET,YELLOW
 
 def object_detection_process(object_queue, shared_controls, shared_frames, camera_source=1):
     set_process_priority("high")
@@ -29,6 +29,6 @@ def object_detection_process(object_queue, shared_controls, shared_frames, camer
                 remaining = send_interval - (current_time - last_put_time)
                 time.sleep(remaining)
     except Exception as e:
-        print("Object Detection Error:", e)
+        print(f"{YELLOW}[ObjectDetection]{RED}[ERROR]Object Detection Error:{e}{RESET}")
     finally:
         object_detector.cleanup()

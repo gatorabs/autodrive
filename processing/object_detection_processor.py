@@ -3,6 +3,7 @@ from ultralytics import YOLO
 import torch
 import numpy as np
 from utils.real_time_trackbars import create_object_roi_control_window, get_object_roi_trackbar_values
+from utils.constants import RED,RESET,YELLOW, GREEN
 
 TARGET_CLASSES = {0, 9}
 
@@ -15,17 +16,17 @@ class ObjectDetector:
         self.shared_frames = shared_frames
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"ObjectDetector: Usando dispositivo {self.device}")
+        print(f"{YELLOW}[ObjectDetector]{GREEN}[INFO] Usando dispositivo {self.device}{RESET}")
 
         self.model = YOLO('yolov8n.pt')
         try:
             self.model.to(self.device)
         except Exception as e:
-            print("Não foi possível mover o modelo para o dispositivo desejado:", e)
+            print(f"{YELLOW}[ObjectDetector]{RED}[ERROR] Não foi possível mover o modelo para o dispositivo desejado:{e}{RESET}")
 
         self.cap = cv2.VideoCapture(self.camera_source)
         if not self.cap.isOpened():
-            print("Falha ao abrir o vídeo ou câmera.")
+            print(f"{YELLOW}[ObjectDetector]{RED}[ERROR] Falha ao abrir o vídeo ou câmera.{RESET}")
             exit()
 
         # Inicializa valores padrão

@@ -1,7 +1,6 @@
 import tkinter as tk
 from processing.priorities_processor import set_process_priority
 
-
 def create_tkinter_controls(controls):
     set_process_priority("below_normal")
     root = tk.Tk()

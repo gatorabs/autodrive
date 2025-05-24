@@ -1,5 +1,6 @@
 import time
 import serial
+from utils.constants import RED, RESET, YELLOW
 
 class SerialCommunicator:
     def __init__(self, com_port, baud_rate=115200, send_interval=0.1, send_data=False, open_for_receive=False):
@@ -12,7 +13,7 @@ class SerialCommunicator:
             try:
                 self.serial_port = serial.Serial(com_port, baud_rate)
             except Exception as e:
-                print(f"Erro ao abrir {com_port}: {e}")
+                print(f"{YELLOW}[SerialCommunicator]{RED}[ERROR] Erro ao abrir {com_port}: {e}{RESET}")
                 self.serial_port = None
         else:
             self.serial_port = None

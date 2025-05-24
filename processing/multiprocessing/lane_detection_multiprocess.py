@@ -1,10 +1,9 @@
 import cv2
 
 from core import *
-
+from utils.constants import RED,RESET,YELLOW, GREEN
 
 def lane_detection_process(lane_queue, shared_controls, shared_frames, video_source="test_videos/pista_01 (1).mov"):
-    global direction
 
     set_process_priority("above_normal")
     FRAME_WIDTH = int(1920 / 4)
@@ -34,6 +33,8 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     KD = 0.015
     MIN_OUTPUT = -32
     MAX_OUTPUT = 32
+
+    direction = 0
 
     create_control_window()
     webview = shared_controls.get("WEBVIEW")
@@ -153,13 +154,15 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
             frame_processing_time = (end_time - start_time) * 1000  # em milissegundos
             total_processing_time += frame_processing_time
             frame_count += 1
+
             cv2.imshow("warped", warped_roi)
+
             if frame_count % 100 == 0:
                 avg_time = total_processing_time / frame_count
-                print(f"[INFO] Tempo médio por frame: {avg_time:.2f} ms (baseado em {frame_count} frames)")
+                print(f"{YELLOW}[LaneDetection]{GREEN}[INFO] Tempo médio por frame: {avg_time:.2f} ms (baseado em {frame_count} frames){RESET}")
 
     except Exception as e:
-        print("Lane Detection Error:", e)
+        print(f"{YELLOW}[LaneDetection]{RED}[ERROR] Lane Detection Error:{e}{RESET}")
 
     finally:
         video_proc.release()

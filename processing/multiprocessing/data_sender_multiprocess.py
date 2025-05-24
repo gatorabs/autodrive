@@ -48,11 +48,11 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
                 try:
                     serial_comm.send(data_to_send)
                 except Exception as e:
-                    print(f"[DataSender] Falha ao enviar dados: {e}")
+                    print(f"[DataSender][ERROR] Falha ao enviar dados: {e}")
                 last_send_time = current_time
 
     except Exception as e:
-        print(f"[DataSender] Erro inesperado: {e}")
+        print(f"[DataSender][ERROR] Erro inesperado: {e}")
     finally:
         serial_comm.close()
-        print("[DataSender] Comunicação serial encerrada.")
+        print("[DataSender][ERROR] Comunicação serial encerrada.")
