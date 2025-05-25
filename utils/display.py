@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 from utils.constants import YELLOW,RESET,GREEN
-def draw_overlays(frame, roi_coords, roi_x_coords, distances, fps, show_fps, frame_center):
+def draw_overlays(frame, roi_coords, roi_x_coords, distances, show_fps, frame_center):
     # Cache das propriedades de fonte para evitar redefinições
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {
@@ -48,11 +48,11 @@ def draw_overlays(frame, roi_coords, roi_x_coords, distances, fps, show_fps, fra
     cv.line(frame, (frame_center, 0), (frame_center, frame.shape[0]), (255, 255, 255), 2)
 
     # Exibe FPS (print limitado em produção)
-    if show_fps:
-        cv.putText(frame, f"FPS: {fps:.2f}", (10, 30), font, 0.7, (0, 255, 0), 2, cv.LINE_AA)
+    #if show_fps:
+        #cv.putText(frame, f"FPS: {fps:.2f}", (10, 30), font, 0.7, (0, 255, 0), 2, cv.LINE_AA)
         #cv.putText(frame, f"MS: {avg_time:.2f}", (10,70), font, 0.7, (0,255,0), 2, cv.LINE_AA)
 
-        return frame
+    return frame
 
 
 def create_main_window(video_img, edges_img, roi_img, show_video=True, show_edges=True, show_roi=True):

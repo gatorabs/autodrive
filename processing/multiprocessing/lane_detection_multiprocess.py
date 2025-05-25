@@ -58,12 +58,12 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
     # Variáveis para medir eficiência
     total_processing_time = 0
-
+    frame_count = 0
     try:
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
 
-            frame, fps = video_proc.get_frame()
+            frame = video_proc.get_frame()
             canny_1, canny_2, speed, side, kp, ki, kd = get_control_trackbar_values()
 
             # pid.kp = kp <- Para teste de valores
@@ -107,7 +107,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                 (ROI_START, ROI_END),
                 (ROI_X_START, ROI_X_END),
                 (avg_left, avg_right),
-                fps,
                 shared_controls.get("SHOW_FPS", True),
                 FRAME_CENTER
             )
@@ -149,9 +148,8 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
             if not lane_queue.full():
                 lane_queue.put(lane_data)
 
-            # Medição do tempo de processamento
-            total_processing_time = update_processing_time(start_time, total_processing_time, frame_count)
-
+            total_processing_time, frame_count, fps = update_processing_time(start_time, total_processing_time,
+                                                                             frame_count)
             cv2.imshow("warped", warped_roi)
 
     except Exception as e:

@@ -1,5 +1,5 @@
 import time
-from utils.constants import YELLOW,GREEN,RESET
+from utils.constants import YELLOW, GREEN, RESET
 
 def update_processing_time(start_time, total_time, frame_count, log_interval=100):
     end_time = time.time()
@@ -7,9 +7,15 @@ def update_processing_time(start_time, total_time, frame_count, log_interval=100
     total_time += frame_time
     frame_count += 1
 
+    fps = 1.0 / (end_time - start_time) if (end_time - start_time) > 0 else 0.0
+
     if frame_count % log_interval == 0:
         avg_time = total_time / frame_count
         print(
             f"{YELLOW}[LaneDetection]{GREEN}[INFO] Tempo médio por frame: {avg_time:.2f} ms (baseado em {frame_count} frames){RESET}")
+        print(
+            f"{YELLOW}[LaneDetection]{GREEN}[INFO] FPS: {fps:.2f}.{RESET}"
+        )
 
-    return total_time
+    return total_time, frame_count, fps
+

@@ -26,11 +26,7 @@ class VideoProcessor:
 
         frame = cv.resize(frame, (self.frame_width, self.frame_height))
 
-        # Cálculo de FPS
-        current_time = time.time()
-        fps = 1.0 / (current_time - self.prev_time)
-        self.prev_time = current_time
-        return frame, fps
+        return frame
 
     def release(self):
         self.cap.release()
