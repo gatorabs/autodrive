@@ -19,4 +19,3 @@ from processing.multiprocessing.object_detector_multiprocess import object_detec
 from processing.multiprocessing.security_multiprocess import security_process
 from utils.buttons import create_tkinter_controls
 from flask_server.flask_app import start_flask_server
-

@@ -3,6 +3,7 @@ from queue import Empty
 
 from controllers.serial_comm import SerialCommunicator
 from processing.priorities_processor import set_process_priority
+from utils.constants import RED,YELLOW,RESET
 
 def data_sender_process(lane_queue, object_queue, shared_controls):
     set_process_priority("high")
@@ -48,11 +49,11 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
                 try:
                     serial_comm.send(data_to_send)
                 except Exception as e:
-                    print(f"[DataSender][ERROR] Falha ao enviar dados: {e}")
+                    print(f"{YELLOW}[DataSender]{RED}[ERROR] Falha ao enviar dados: {e}{RESET}")
                 last_send_time = current_time
 
     except Exception as e:
-        print(f"[DataSender][ERROR] Erro inesperado: {e}")
+        print(f"{YELLOW}[DataSender]{RED}[ERROR] Erro inesperado: {e}{RESET}")
     finally:
         serial_comm.close()
-        print("[DataSender][ERROR] Comunicação serial encerrada.")
+        print(f"{YELLOW}[DataSender]{RED}[ERROR] Comunicação serial encerrada.{RESET}")

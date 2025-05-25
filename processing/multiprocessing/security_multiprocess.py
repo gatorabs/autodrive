@@ -12,7 +12,7 @@ def security_process(shared_controls):
     interval_time = 0.01
     last_check_time = time.time()
     try:
-        while True:
+        while shared_controls.get("RUNNING", True):
             current_time = time.time()
 
             if current_time - last_check_time >= interval_time:

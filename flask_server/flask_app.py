@@ -12,6 +12,12 @@ CORS(app)
 shared_frames = None
 shared_controls = None
 
+def start_flask_server(frames_dict, controls_dict):
+    global shared_frames, shared_controls
+    shared_frames = frames_dict
+    shared_controls = controls_dict
+    app.run(host='0.0.0.0', port=5000)
+
 @app.route('/api/car_info')
 def get_direction():
     running = False
@@ -26,6 +32,14 @@ def get_direction():
         "car_info": car_info,
         "arrow": arrow
     })
+
+@app.route('/video_feed/<string:key>')
+def video_feed(key):
+    response = Response(generate_feed(key), mimetype='multipart/x-mixed-replace; boundary=frame')
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 def generate_placeholder_image():
@@ -61,18 +75,3 @@ def generate_feed(key):
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + placeholder + b'\r\n')
 
-
-@app.route('/video_feed/<string:key>')
-def video_feed(key):
-    response = Response(generate_feed(key), mimetype='multipart/x-mixed-replace; boundary=frame')
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
-
-
-def start_flask_server(frames_dict, controls_dict):
-    global shared_frames, shared_controls
-    shared_frames = frames_dict
-    shared_controls = controls_dict
-    app.run(host='0.0.0.0', port=5000)

@@ -2,6 +2,7 @@ import cv2
 
 from core import *
 from utils.constants import RED,RESET,YELLOW, GREEN
+from processing.update_time_processor import update_processing_time
 
 def lane_detection_process(lane_queue, shared_controls, shared_frames, video_source="test_videos/pista_01 (1).mov"):
 
@@ -56,7 +57,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (4, 4))
 
     # Variáveis para medir eficiência
-    frame_count = 0
     total_processing_time = 0
 
     try:
@@ -150,16 +150,9 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                 lane_queue.put(lane_data)
 
             # Medição do tempo de processamento
-            end_time = time.time()
-            frame_processing_time = (end_time - start_time) * 1000  # em milissegundos
-            total_processing_time += frame_processing_time
-            frame_count += 1
+            total_processing_time = update_processing_time(start_time, total_processing_time, frame_count)
 
             cv2.imshow("warped", warped_roi)
-
-            if frame_count % 100 == 0:
-                avg_time = total_processing_time / frame_count
-                print(f"{YELLOW}[LaneDetection]{GREEN}[INFO] Tempo médio por frame: {avg_time:.2f} ms (baseado em {frame_count} frames){RESET}")
 
     except Exception as e:
         print(f"{YELLOW}[LaneDetection]{RED}[ERROR] Lane Detection Error:{e}{RESET}")
