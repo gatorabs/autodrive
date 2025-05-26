@@ -23,14 +23,19 @@ def get_direction():
     running = False
     arrow = None
     car_info = []
+    time_info = []
+
     if shared_controls is not None:
         car_info = shared_controls.get("car_info", [])
         running = shared_controls.get("RUNNING", False)
         arrow = shared_controls.get("ARROW", None)
+        time_info = shared_controls.get("time_info", [])
+
     return jsonify({
         "running": running,
         "car_info": car_info,
-        "arrow": arrow
+        "arrow": arrow,
+        "time_info": time_info
     })
 
 @app.route('/video_feed/<string:key>')

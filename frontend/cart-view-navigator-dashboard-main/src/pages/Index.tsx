@@ -4,10 +4,13 @@ import MotorStatus from "@/components/MotorStatus";
 import CANModule from "@/components/CANModule";
 import TurnSignal from "@/components/TurnSignal";
 import { toast } from "sonner";
+import PerformanceMonitor from "@/components/PerformanceMonitor";
 
 const Index = () => {
   const [servoAngle, setServoAngle] = useState(0);
   const [motorRPM, setMotorRPM] = useState(0);
+  const [fps, setFps] = useState(0);
+  const [frameTime, setFrameTime] = useState(0);
   const [canModules, setCanModules] = useState([
     { id: 1, name: "Módulo Principal", connected: false },
     { id: 2, name: "Módulo Sensor", connected: false },
@@ -33,11 +36,17 @@ const Index = () => {
           } else {
             setTurnSignals({ left: false, right: false });
           }
+          if (data.time_info) {
+            setFps(data.time_info.fps);
+            setFrameTime(data.time_info.total_processing_time);
+          }
         })
         .catch(err => {
           console.error("Erro ao obter direção:", err);
           setSystemRunning(false);
           setTurnSignals({ left: false, right: false });
+          setFps(0);
+          setFrameTime(0);
         });
     }, 500);
 
@@ -59,10 +68,13 @@ const Index = () => {
         <header className="mb-6">
           <h1 className="text-3xl font-bold text-center"></h1>
           <div className="flex justify-between items-center mt-2">
+            <div className="flex items-center space-x-4">
             <div className={`px-4 py-2 rounded-md bg-gray-800`}>
               <span className={systemRunning ? "text-green-400" : "text-red-400"}>
                 ● {systemRunning ? "Sistema Ativo" : "Sistema Inativo"}
               </span>
+            </div>
+            <PerformanceMonitor fps={fps} frameTime={frameTime} />
             </div>
             <div className="flex space-x-4">
               <TurnSignal direction="left" active={turnSignals.left} />

@@ -41,14 +41,11 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     webview = shared_controls.get("WEBVIEW")
     CALIBRATE_ROI = False
 
-    def init_points_trackbar():
-        create_warp_points_trackbars()
-
     if webview:
         CALIBRATE_ROI = False
     else:
         if CALIBRATE_ROI:
-            init_points_trackbar()
+            create_warp_points_trackbars()
 
     create_roi_trackbars("ROI_C", FRAME_WIDTH, FRAME_HEIGHT)
 
@@ -59,6 +56,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     # Variáveis para medir eficiência
     total_processing_time = 0
     frame_count = 0
+
     try:
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
@@ -86,21 +84,9 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
             if side == 1 and avg_right != float('inf'):
                 direction = round(pid.calculate(avg_right))
-                if avg_right >= 118:
-                    shared_controls["ARROW"] = True
-                elif avg_right <= 95:
-                    shared_controls["ARROW"] = False
-                else:
-                    shared_controls.pop("ARROW", None)
 
             elif side == 0 and avg_left != float('inf'):
                 direction = round(pid.calculate(avg_left))
-                if avg_left >= 118:
-                    shared_controls["ARROW"] = True
-                elif avg_left <= 95:
-                    shared_controls["ARROW"] = False
-                else:
-                    shared_controls.pop("ARROW", None)
 
             frame_display = draw_overlays(
                 frame,
@@ -143,13 +129,19 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                 break
 
             lane_data = {"speed": speed, "direction": direction}
-            shared_controls["car_info"] = lane_data
 
             if not lane_queue.full():
                 lane_queue.put(lane_data)
 
-            total_processing_time, frame_count, fps = update_processing_time(start_time, total_processing_time,
+            frame_count, fps, avg_time, total_processing_time  = update_processing_time(shared_controls, start_time,
+                                                                             total_processing_time,
                                                                              frame_count)
+            shared_controls["car_info"] = lane_data
+            shared_controls["time_info"] = {
+                "fps": round(fps, 0),
+                "total_processing_time": round(avg_time, 2)
+            }
+
             cv2.imshow("warped", warped_roi)
 
     except Exception as e:
