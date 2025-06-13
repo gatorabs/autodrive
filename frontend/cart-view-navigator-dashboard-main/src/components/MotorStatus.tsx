@@ -9,7 +9,8 @@ interface MotorStatusProps {
 
 const MotorStatus = ({ title, value, color, icon, maxValue, currentValue }: MotorStatusProps) => {
   const percentage = (currentValue / maxValue) * 100;
-  const servoAngle = icon === "rotate" ? currentValue - 90 : 0;
+
+  const servoRotationAngle = icon === "rotate" ? currentValue - 180 : 0;
   const isMotorRunning = icon === "gauge" && currentValue > 0;
 
   const spinDuration = isMotorRunning
@@ -46,10 +47,12 @@ const MotorStatus = ({ title, value, color, icon, maxValue, currentValue }: Moto
               <div className="w-3 h-3 bg-gray-400 rounded-full relative">
                 {/* Braço do servo */}
                 <div 
-                  className="absolute w-8 h-1 bg-orange-500 rounded-full origin-left top-1/2 -translate-y-1/2 transition-transform duration-1000 ease-out"
+                  className="absolute w-8 h-1 bg-orange-500 rounded-full transition-transform duration-1000 ease-out"
                   style={{ 
-                    transform: `rotate(${servoAngle}deg) translateY(-50%)`,
-                    transformOrigin: '0 50%'
+                    left: 'calc(50% - 4px)',
+                    top: '50%',
+                    transform: `translateY(-50%) rotate(${servoRotationAngle}deg)`,
+                    transformOrigin: '4px 50%'
                   }}
                 >
                   {/* Ponta do braço */}
@@ -60,7 +63,7 @@ const MotorStatus = ({ title, value, color, icon, maxValue, currentValue }: Moto
             {/* Indicador de posição */}
             <div className="text-center mt-2">
               <span className="text-xs text-gray-400">
-                {servoAngle === 0 ? "Centro" : servoAngle > 0 ? "Direita" : "Esquerda"}
+                {currentValue === 90 ? "Centro" : currentValue > 90 ? "Direita" : "Esquerda"}
               </span>
             </div>
           </div>
