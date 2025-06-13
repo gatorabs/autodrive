@@ -1,4 +1,3 @@
-
 interface MotorStatusProps {
   title: string;
   value: string;
@@ -12,6 +11,10 @@ const MotorStatus = ({ title, value, color, icon, maxValue, currentValue }: Moto
   const percentage = (currentValue / maxValue) * 100;
   const servoAngle = icon === "rotate" ? currentValue - 90 : 0;
   const isMotorRunning = icon === "gauge" && currentValue > 0;
+
+  const spinDuration = isMotorRunning
+    ? 5 - (4.8 * (currentValue / maxValue)) // De 5s até 0.2s
+    : 0;
 
   return (
     <div className="bg-gray-700 p-4 rounded-lg">
@@ -32,7 +35,8 @@ const MotorStatus = ({ title, value, color, icon, maxValue, currentValue }: Moto
         <span className="text-xl font-bold">{value}</span>
         <span className="text-xs text-gray-400">Máx: {icon === "rotate" ? "180°" : `${maxValue} RPM`}</span>
       </div>
-            {/* Visualização do Servo Motor */}
+
+      {/* Visualização do Servo Motor */}
       {icon === "rotate" && (
         <div className="flex justify-center my-4">
           <div className="relative">
@@ -62,6 +66,7 @@ const MotorStatus = ({ title, value, color, icon, maxValue, currentValue }: Moto
           </div>
         </div>
       )}
+
       {/* Visualização do Motor DC */}
       {icon === "gauge" && (
         <div className="flex justify-center my-4">
@@ -70,9 +75,10 @@ const MotorStatus = ({ title, value, color, icon, maxValue, currentValue }: Moto
             <div className="w-16 h-12 bg-gray-600 rounded-lg border-2 border-gray-500 flex items-center justify-center">
               {/* Rotor central */}
               <div 
-                className={`w-8 h-8 border-4 border-yellow-500 rounded-full relative ${
-                  isMotorRunning ? 'animate-spin' : ''
-                }`}
+                className="w-8 h-8 border-4 border-yellow-500 rounded-full relative"
+                style={{
+                  animation: isMotorRunning ? `spin ${spinDuration}s linear infinite` : "none"
+                }}
               >
                 {/* Indicador de rotação */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-2 bg-yellow-400 rounded-full"></div>
