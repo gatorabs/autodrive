@@ -10,7 +10,9 @@ interface MotorStatusProps {
 
 const MotorStatus = ({ title, value, color, icon, maxValue, currentValue }: MotorStatusProps) => {
   const percentage = (currentValue / maxValue) * 100;
-  
+  const servoAngle = icon === "rotate" ? currentValue - 90 : 0;
+  const isMotorRunning = icon === "gauge" && currentValue > 0;
+
   return (
     <div className="bg-gray-700 p-4 rounded-lg">
       <div className="flex items-center mb-2">
@@ -30,7 +32,62 @@ const MotorStatus = ({ title, value, color, icon, maxValue, currentValue }: Moto
         <span className="text-xl font-bold">{value}</span>
         <span className="text-xs text-gray-400">Máx: {icon === "rotate" ? "180°" : `${maxValue} RPM`}</span>
       </div>
-      
+            {/* Visualização do Servo Motor */}
+      {icon === "rotate" && (
+        <div className="flex justify-center my-4">
+          <div className="relative">
+            {/* Base do servo */}
+            <div className="w-16 h-12 bg-gray-600 rounded-lg border-2 border-gray-500 flex items-center justify-center">
+              {/* Eixo central */}
+              <div className="w-3 h-3 bg-gray-400 rounded-full relative">
+                {/* Braço do servo */}
+                <div 
+                  className="absolute w-8 h-1 bg-orange-500 rounded-full origin-left top-1/2 -translate-y-1/2 transition-transform duration-1000 ease-out"
+                  style={{ 
+                    transform: `rotate(${servoAngle}deg) translateY(-50%)`,
+                    transformOrigin: '0 50%'
+                  }}
+                >
+                  {/* Ponta do braço */}
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-orange-400 rounded-full"></div>
+                </div>
+              </div>
+            </div>
+            {/* Indicador de posição */}
+            <div className="text-center mt-2">
+              <span className="text-xs text-gray-400">
+                {servoAngle === 0 ? "Centro" : servoAngle > 0 ? "Direita" : "Esquerda"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Visualização do Motor DC */}
+      {icon === "gauge" && (
+        <div className="flex justify-center my-4">
+          <div className="relative flex flex-col items-center">
+            {/* Base do motor */}
+            <div className="w-16 h-12 bg-gray-600 rounded-lg border-2 border-gray-500 flex items-center justify-center">
+              {/* Rotor central */}
+              <div 
+                className={`w-8 h-8 border-4 border-yellow-500 rounded-full relative ${
+                  isMotorRunning ? 'animate-spin' : ''
+                }`}
+              >
+                {/* Indicador de rotação */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-2 bg-yellow-400 rounded-full"></div>
+              </div>
+            </div>
+            {/* Indicador de status */}
+            <div className="mt-2 text-center">
+              <span className="text-xs text-gray-400 inline-block w-24">
+                {isMotorRunning ? "Movimentando" : "Parado"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full bg-gray-600 rounded-full h-2.5">
         <div 
           className="h-2.5 rounded-full transition-all duration-1000 ease-out"
