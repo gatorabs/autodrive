@@ -12,7 +12,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     FRAME_CENTER = FRAME_WIDTH // 2
 
     NUM_LINES = 10
-    TARGET_CENTER_DISTANCE = 110
+    TARGET_CENTER_DISTANCE = 80
 
     '''
     
@@ -36,6 +36,9 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
     MAX_OUTPUT = 32
 
     direction = 0
+
+    def map_direction(value, in_min=-32, in_max=32, out_min=0, out_max=180):
+        return int((value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
 
     create_control_window()
     webview = shared_controls.get("WEBVIEW")
@@ -127,8 +130,8 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
 
             if cv.waitKey(1) == ord('q'):
                 break
-
-            lane_data = {"speed": speed, "direction": direction}
+            mapped_direction = map_direction(direction)
+            lane_data = {"speed": speed, "direction": mapped_direction}
 
             if not lane_queue.full():
                 lane_queue.put(lane_data)

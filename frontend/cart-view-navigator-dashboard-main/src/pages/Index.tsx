@@ -101,7 +101,7 @@ const Index = () => {
                 color="#f97316"
                 icon="rotate"
                 maxValue={180}
-                currentValue={servoAngle + 90}  // Converter para escala 0-180
+                currentValue={servoAngle}  // Converter para escala 0-180
               />
               <MotorStatus
                 title="Motor DC"

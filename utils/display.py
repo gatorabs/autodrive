@@ -32,7 +32,7 @@ def draw_overlays(frame, roi_coords, roi_x_coords, distances, show_fps, frame_ce
     if avg_right != float('inf'):
         top_left = (frame_center, roi_start)
         bottom_right = (frame_center + int(avg_right), roi_end)
-        cv.rectangle(frame, top_left, bottom_right, (255, 0, 0), 2)
+        cv.rectangle(frame, top_left, bottom_right, (0, 255, 255), 2)
         cv.putText(frame, f"{avg_right:.1f}", (frame_center + 30, roi_start - 10),
                    font, font_scale, font_color, thickness, cv.LINE_AA)
 
@@ -45,7 +45,7 @@ def draw_overlays(frame, roi_coords, roi_x_coords, distances, show_fps, frame_ce
                    font, font_scale, font_color, thickness, cv.LINE_AA)
 
     # Linha central
-    cv.line(frame, (frame_center, 0), (frame_center, frame.shape[0]), (255, 255, 255), 2)
+    #cv.line(frame, (frame_center, 0), (frame_center, frame.shape[0]), (255, 255, 255), 2)
 
     # Exibe FPS (print limitado em produção)
     #if show_fps:

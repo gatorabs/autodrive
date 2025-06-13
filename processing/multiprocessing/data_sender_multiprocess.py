@@ -37,6 +37,9 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
             # Condição de parada de emergência
             if obj_data.get("person", 0) == 1 or shared_controls.get("EMERGENCY_STOP", 0) == 1 or obj_data.get("semaforo", 0) == 0:
                 lane_data["speed"] = 0
+                car_info = shared_controls.get("car_info", {})
+                car_info["speed"] = 0
+                shared_controls["car_info"] = car_info
 
             current_time = time.time()
             elapsed = current_time - last_send_time
