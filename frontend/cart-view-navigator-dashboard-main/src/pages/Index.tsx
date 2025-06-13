@@ -19,6 +19,9 @@ const Index = () => {
   const [turnSignals, setTurnSignals] = useState({ left: false, right: false });
   const [previousRunning, setPreviousRunning] = useState(false);
   const [systemRunning, setSystemRunning] = useState(false);
+  
+  var rightSignalThresh = 100;
+  var leftSignalThresh = 80;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -29,13 +32,14 @@ const Index = () => {
           setSystemRunning(data.running);
           setMotorRPM(data.car_info.speed);
 
-          if (data.arrow === true) {
-            setTurnSignals({ left: false, right: true });
-          } else if (data.arrow === false) {
-            setTurnSignals({ left: true, right: false });
-          } else {
+          if (data.car_info.direction == 90) {
             setTurnSignals({ left: false, right: false });
+          } else if (data.car_info.direction > rightSignalThresh) {
+            setTurnSignals({ left: false, right: true });
+          } else if (data.car_info.direction < leftSignalThresh){
+            setTurnSignals({ left: true, right: false });
           }
+
           if (data.time_info) {
             setFps(data.time_info.fps);
             setFrameTime(data.time_info.total_processing_time);
@@ -69,12 +73,12 @@ const Index = () => {
           <h1 className="text-3xl font-bold text-center"></h1>
           <div className="flex justify-between items-center mt-2">
             <div className="flex items-center space-x-4">
-            <div className={`px-4 py-2 rounded-md bg-gray-800`}>
-              <span className={systemRunning ? "text-green-400" : "text-red-400"}>
-                ● {systemRunning ? "Sistema Ativo" : "Sistema Inativo"}
-              </span>
-            </div>
-            <PerformanceMonitor fps={fps} frameTime={frameTime} />
+              <div className={`px-4 py-2 rounded-md bg-gray-800`}>
+                <span className={systemRunning ? "text-green-400" : "text-red-400"}>
+                  ● {systemRunning ? "Sistema Ativo" : "Sistema Inativo"}
+                </span>
+              </div>
+              <PerformanceMonitor fps={fps} frameTime={frameTime} />
             </div>
             <div className="flex space-x-4">
               <TurnSignal direction="left" active={turnSignals.left} />

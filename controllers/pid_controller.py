@@ -19,7 +19,7 @@ class PIDController:
             delta_time = 1e-3
 
         error = input_val - self.set_point
-        
+
         # Termo proporcional
         p = self.kp * error
 
@@ -32,6 +32,9 @@ class PIDController:
 
         output = p + self.integral + d
         output = max(min(output, self.max_output), self.min_output)
+        
+        if abs(output) < 2:
+            output = 0
 
         self.last_error = error
         self.last_time = now
