@@ -18,8 +18,8 @@ class PIDController:
         if delta_time <= 0:
             delta_time = 1e-3
 
-        error = self.set_point - input_val
-
+        error = input_val - self.set_point
+        
         # Termo proporcional
         p = self.kp * error
 
