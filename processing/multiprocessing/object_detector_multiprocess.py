@@ -4,11 +4,11 @@ from processing.object_detection_processor import ObjectDetector
 from processing.priorities_processor import set_process_priority
 from utils.constants import RED,RESET,YELLOW
 
-def object_detection_process(object_queue, shared_controls, shared_frames, camera_source=1):
+def object_detection_process(object_queue, shared_controls, shared_frames, tk_controls, camera_source=1):
     set_process_priority("high")
     object_serial_data = shared_controls["object_serial_data"]
 
-    object_detector = ObjectDetector(object_serial_data, shared_controls, shared_frames, camera_source)
+    object_detector = ObjectDetector(object_serial_data, shared_frames, tk_controls, camera_source)
 
     try:
         send_interval = 0.05  # intervalo em segundos

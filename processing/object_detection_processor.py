@@ -2,18 +2,19 @@ import cv2
 from ultralytics import YOLO
 import torch
 import numpy as np
-from utils.real_time_trackbars import create_object_roi_control_window, get_object_roi_trackbar_values
 from utils.constants import RED,RESET,YELLOW, GREEN
 
 TARGET_CLASSES = {0, 9}
 
 
 class ObjectDetector:
-    def __init__(self, shared_serial_data, controls, shared_frames, camera_source=0):
+    def __init__(self, shared_serial_data, shared_frames, tk_controls, camera_source=0):
         self.shared_serial_data = shared_serial_data
-        self.controls = controls
+
         self.camera_source = camera_source
         self.shared_frames = shared_frames
+
+        self.tk_controls = tk_controls
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"{YELLOW}[ObjectDetector]{GREEN}[INFO] Usando dispositivo {self.device}{RESET}")
@@ -35,8 +36,6 @@ class ObjectDetector:
         self.shared_serial_data[2] = 0  # pessoa
 
         self.window_created = False
-
-        create_object_roi_control_window()
 
     def process_traffic_light_roi(self, roi):
 
@@ -100,9 +99,10 @@ class ObjectDetector:
         # Estado default para o semáforo
         traffic_light_state = 2
 
-        show_window = self.controls.get("SHOW_PERSON_DETECTION", True)
-        min_person_height, min_traffic_height = get_object_roi_trackbar_values()
+        show_window = self.tk_controls.get("SHOW_PERSON_DETECTION", True)
 
+        min_person_height = self.tk_controls["Person"]
+        min_traffic_height = self.tk_controls["Traffic"]
         for result in results:
             for box in result.boxes:
                 cls = int(box.cls[0])
