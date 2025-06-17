@@ -1,23 +1,17 @@
-
 from core import *
 import multiprocessing as mp
-from utils.constants import RED,RESET
+
+from utils.constants import RED, RESET, flags
+from utils.flags_init import setup_flag_interface
 
 if __name__ == '__main__':
+    user_flags = setup_flag_interface()
+
     mp.set_start_method('spawn')
     manager = mp.Manager()
 
     shared_controls = manager.dict({
-        "SHOW_VIDEO": True,
-        "SHOW_EDGES": True,
-        "SHOW_ROI": True,
-        "SHOW_PERSON_DETECTION": True,
-        "SHOW_FPS": True,
-        "SEND_DATA": True,
-        "SECURITY_COM": 'COM5',
-        "SENDER_COM": 'COM3',
-        "RUNNING": True,
-        "WEBVIEW": False,
+        **user_flags,
         "object_serial_data": manager.list([0, 0, 0]),
     })
 
