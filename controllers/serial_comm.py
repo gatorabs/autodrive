@@ -12,6 +12,7 @@ class SerialCommunicator:
         if send_data or open_for_receive:
             try:
                 self.serial_port = serial.Serial(com_port, baud_rate)
+                time.sleep(1)
             except Exception as e:
                 print(f"{YELLOW}[SerialCommunicator]{RED}[ERROR] Erro ao abrir {com_port}: {e}{RESET}")
                 self.serial_port = None
