@@ -1,7 +1,8 @@
 import cv2 as cv
 import numpy as np
 from utils.constants import YELLOW,RESET,GREEN
-def draw_overlays(frame, roi_coords, roi_x_coords, distances, show_fps, frame_center):
+
+def draw_overlays(frame, roi_coords, roi_x_coords, distances, frame_center):
     # Cache das propriedades de fonte para evitar redefinições
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {

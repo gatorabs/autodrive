@@ -6,7 +6,7 @@ from utils.constants import flags
 def setup_flag_interface():
     root = tk.Tk()
     root.title("Configure Shared Controls")
-    root.geometry("400x400")
+    root.geometry("300x230")
 
     com_defaults = {"SECURITY_COM": "COM5", "SENDER_COM": "COM3"}
 

@@ -96,7 +96,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, video_sou
                 (ROI_START, ROI_END),
                 (ROI_X_START, ROI_X_END),
                 (avg_left, avg_right),
-                shared_controls.get("SHOW_FPS", True),
                 FRAME_CENTER
             )
 

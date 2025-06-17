@@ -2,9 +2,13 @@ import tkinter as tk
 from processing.priorities_processor import set_process_priority
 
 def create_tkinter_controls(controls):
+
     set_process_priority("below_normal")
     root = tk.Tk()
     root.title("Controles Adicionais")
+
+    for flag in ["SHOW_VIDEO", "SHOW_EDGES", "SHOW_ROI", "SHOW_PERSON_DETECTION"]:
+        controls.setdefault(flag, True)
 
     frame = tk.Frame(root)
     frame.pack(padx=10, pady=10)

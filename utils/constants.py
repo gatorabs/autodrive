@@ -14,11 +14,6 @@ ORANGE = "\033[35m"
 
 
 flags = {
-        "SHOW_VIDEO": True,
-        "SHOW_EDGES": True,
-        "SHOW_ROI": True,
-        "SHOW_PERSON_DETECTION": True,
-        "SHOW_FPS": True,
         "SEND_DATA": True,
         "RUNNING": True,
         "WEBVIEW": False,
