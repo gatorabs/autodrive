@@ -83,9 +83,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
             except Exception as e:
                 print(f"{RED}[ERROR]{RESET} Erro ao codificar frames: {e}")
 
-            if cv.waitKey(1) == ord('q'):
-                break
-
             mapped_direction = map_direction(direction)
 
             lane_data = {"speed": speed, "direction": mapped_direction}
@@ -102,7 +99,17 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 "total_processing_time": round(avg_time, 2)
             }
 
-            cv.imshow("warped", warped_roi)
+            if tk_controls.get("SHOW_ROI", False):
+                cv.imshow("warped", warped_roi)
+            else:
+                try:
+                    if cv.getWindowProperty("warped", cv.WND_PROP_VISIBLE) >= 1:
+                        cv.destroyWindow("warped")
+                except cv.error:
+                    pass
+
+            if cv.waitKey(1) == ord('q'):
+                break
 
     except Exception as e:
         print(f"{YELLOW}[LaneDetection]{RED}[ERROR] Lane Detection Error: {e}{RESET}")

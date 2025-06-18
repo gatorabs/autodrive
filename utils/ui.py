@@ -83,7 +83,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls, fra
     # Linha 0: 5 seções lado a lado
     # Toggles
     flags_frame = create_section("Toggles de Visualização", 0, 0)
-    for key in ["SHOW_ROI", "SHOW_PERSON_DETECTION"]:
+    for key in ["SHOW_ROI"]:
         ttk.Button(flags_frame, text=f"Toggle {key}", command=lambda k=key: toggle_flag(k)).pack(fill="x", pady=2)
     # Filtragem
     filter_frame = create_section("Parâmetros de Filtragem", 0, 1)

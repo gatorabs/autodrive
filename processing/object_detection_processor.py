@@ -99,8 +99,6 @@ class ObjectDetector:
         # Estado default para o semáforo
         traffic_light_state = 2
 
-        show_window = self.tk_controls.get("SHOW_PERSON_DETECTION", True)
-
         min_person_height = self.tk_controls["Person"]
         min_traffic_height = self.tk_controls["Traffic"]
         for result in results:
@@ -133,20 +131,6 @@ class ObjectDetector:
 
         _, jpeg_frame = cv2.imencode('.jpg', frame)
         self.shared_frames["object"] = jpeg_frame.tobytes()
-
-        if show_window:
-            if not self.window_created:
-                cv2.namedWindow("Object Detection", cv2.WINDOW_NORMAL)
-                self.window_created = True
-            cv2.imshow("Object Detection", frame)
-            cv2.waitKey(1)
-        else:
-            if self.window_created:
-                try:
-                    cv2.destroyWindow("Object Detection")
-                except cv2.error as e:
-                    print("Erro ao destruir janela:", e)
-                self.window_created = False
 
     def cleanup(self):
         self.cap.release()

@@ -21,10 +21,7 @@ flags = {
 
 
 track_flags = {
-        "SHOW_VIDEO": True,
-        "SHOW_EDGES": True,
         "SHOW_ROI": True,
-        "SHOW_PERSON_DETECTION": True,
         "F_Canny": 20,
         "S_Canny": 152,
         "Speed": 1,
@@ -32,10 +29,6 @@ track_flags = {
         "KP": 0.3,
         "KI": 0.005,
         "KD": 0.01,
-        "ROI_START": 200,
-        "ROI_END": 220,
-        "ROI_X_START": 80,
-        "ROI_X_END": 400,
         "Person": 0,
         "Traffic": 0,
         "tl_x": 120, "tl_y": 180,
