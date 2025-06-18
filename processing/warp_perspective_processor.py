@@ -1,30 +1,29 @@
+# Atualização do arquivo warp.py para usar os pontos da interface Tkinter:
 import numpy as np
 import cv2 as cv
 
-from utils.real_time_trackbars import get_warp_points_trackbars
-from utils.constants import tl,tr,bl,br
+def get_warp_points_from_controls(ctrl):
+    return (
+        ctrl["tl_x"], ctrl["tl_y"],
+        ctrl["tr_x"], ctrl["tr_y"],
+        ctrl["bl_x"], ctrl["bl_y"],
+        ctrl["br_x"], ctrl["br_y"]
+    )
 
-def bird_eye(roi, calibrate, frame=None):
-    h, w = roi.shape
+def bird_eye(roi, warp_points):
+    h, w = roi.shape[:2]
 
-    if calibrate:
-        tl_x, tl_y, tr_x, tr_y, bl_x, bl_y, br_x, br_y = get_warp_points_trackbars()
+    tl_x, tl_y, tr_x, tr_y, bl_x, bl_y, br_x, br_y = warp_points
 
-        tl_cal = (tl_x, tl_y)
-        tr_cal = (tr_x, tr_y)
-        bl_cal = (bl_x, bl_y)
-        br_cal = (br_x, br_y)
+    tl = (tl_x, tl_y)
+    tr = (tr_x, tr_y)
+    bl = (bl_x, bl_y)
+    br = (br_x, br_y)
 
-        cv.circle(roi, tl_cal, 1, (255, 0, 255), 3)
-        cv.circle(roi, tr_cal, 1, (255, 0, 255), 3)
-        cv.circle(roi, bl_cal, 1, (255, 0, 255), 3)
-        cv.circle(roi, br_cal, 1, (255, 0, 255), 3)
+    debug_roi = roi.copy()
+    for pt in [tl, tr, bl, br]:
+        cv.circle(roi, pt, 3, (255, 0, 255), -1)
 
-        return return_warped_roi(roi, tl_cal, tr_cal, bl_cal, br_cal, h, w)
-
-    return return_warped_roi(roi, tl, tr, bl, br, h, w)
-
-def return_warped_roi(roi, tl, tr, bl, br, h, w):
     pts1 = np.float32([tl, bl, tr, br])
     pts2 = np.float32([[0, 0], [0, h], [w, 0], [w, h]])
 
@@ -32,4 +31,3 @@ def return_warped_roi(roi, tl, tr, bl, br, h, w):
     warped_roi = cv.warpPerspective(roi, M, (w, h))
 
     return warped_roi
-

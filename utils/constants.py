@@ -37,5 +37,9 @@ track_flags = {
         "ROI_X_START": 80,
         "ROI_X_END": 400,
         "Person": 0,
-        "Traffic": 0
+        "Traffic": 0,
+        "tl_x": 20, "tl_y": 0,
+        "tr_x": 300, "tr_y": 0,
+        "bl_x": 0, "bl_y": 20,
+        "br_x": 320, "br_y": 20,
     }
