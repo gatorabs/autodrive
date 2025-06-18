@@ -49,22 +49,10 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
             speed = tk_controls.get("Speed", 50)
             side = tk_controls.get("Side", 1)
 
-            ROI_START = tk_controls.get("ROI_START", 0)
-            ROI_END = tk_controls.get("ROI_END", FRAME_HEIGHT)
-            ROI_X_START = tk_controls.get("ROI_X_START", 0)
-            ROI_X_END = tk_controls.get("ROI_X_END", FRAME_WIDTH)
-
-            ROI_START = max(0, min(ROI_START, FRAME_HEIGHT - 1))
-            ROI_END = max(ROI_START + 10, min(ROI_END, FRAME_HEIGHT))
-
-            ROI_X_START = max(0, min(ROI_X_START, FRAME_WIDTH - 1))
-            ROI_X_END = max(ROI_X_START + 10, min(ROI_X_END, FRAME_WIDTH))
-
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
             blur = cv.GaussianBlur(gray, (5, 5), 0)
             edges = cv.Canny(blur, canny_1, canny_2)
             edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, morph_kernel)
-
 
             try:
                 warp_points = get_warp_points_from_controls(tk_controls)
@@ -73,7 +61,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 print(f"{RED}[ERROR]{RESET} Erro no warpPerspective: {e}")
                 continue
 
-            interval = max(1, round(warped_roi.shape[0] / NUM_LINES))   
+            interval = max(1, round(warped_roi.shape[0] / NUM_LINES))
             avg_left, avg_right = calculate_center_distance(warped_roi, interval)
 
             if side == 1 and avg_right != float('inf'):
@@ -83,8 +71,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
 
             frame_display = draw_overlays(
                 frame,
-                (ROI_START, ROI_END),
-                (ROI_X_START, ROI_X_END),
                 (avg_left, avg_right),
                 FRAME_CENTER, warp_points,edges
             )

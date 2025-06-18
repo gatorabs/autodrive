@@ -2,10 +2,10 @@ import cv2 as cv
 import numpy as np
 from utils.constants import YELLOW,RESET,GREEN
 
-def draw_overlays(frame, roi_coords, roi_x_coords, distances, frame_center, warp_points=None, edges=None):
+def draw_overlays(frame, distances, frame_center, warp_points=None, edges=None):
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {
-            "font": cv.FONT_HERSHEY_SIMPLEX,
+            "font": cv.QT_FONT_NORMAL,
             "scale": 0.5,
             "color": (0, 255, 255),
             "thickness": 1
@@ -15,10 +15,6 @@ def draw_overlays(frame, roi_coords, roi_x_coords, distances, frame_center, warp
     font_scale = draw_overlays.font_props["scale"]
     font_color = draw_overlays.font_props["color"]
     thickness = draw_overlays.font_props["thickness"]
-
-    avg_left, avg_right = distances
-    roi_start, roi_end = roi_coords
-    roi_x_start, roi_x_end = roi_x_coords
 
     overlay = frame.copy()
 
@@ -42,28 +38,30 @@ def draw_overlays(frame, roi_coords, roi_x_coords, distances, frame_center, warp
         alpha = 0.3
         frame = cv.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
 
+        # Desenhar contorno do polígono
         cv.polylines(frame, [pts], isClosed=True, color=(255, 0, 0), thickness=2)
 
-    #cv.rectangle(overlay, (roi_x_start, roi_start), (roi_x_end, roi_end), (0, 255, 0), -1)
-    #frame = cv.addWeighted(overlay, 0.3, frame, 0.7, 0)
-    else:
-        # Retângulos de controle do centro
-        if avg_right != float('inf'):
-            cv.rectangle(frame, (frame_center, roi_start),
-                         (frame_center + int(avg_right), roi_end),
-                         (0, 255, 255), 2)
-            cv.putText(frame, f"{avg_right:.1f}", (frame_center + 30, roi_start - 10),
-                       font, font_scale, font_color, thickness, cv.LINE_AA)
+        # --- DESENHAR FASOR DE DESBALANÇO ---
+        avg_left, avg_right = distances
 
-        if avg_left != float('inf'):
-            cv.rectangle(frame, (frame_center - int(avg_left), roi_start),
-                         (frame_center, roi_end),
-                         (0, 255, 255), 2)
-            cv.putText(frame, f"{avg_left:.1f}", (frame_center - 60, roi_start - 10),
-                       font, font_scale, font_color, thickness, cv.LINE_AA)
+        if avg_left != float('inf') and avg_right != float('inf'):
+            mid_y = (tl_y + tr_y) // 2 + 50  # altura média + deslocamento
+            center_x = (tl_x + tr_x) // 2
 
-        return frame
+            # Define o vetor em relação ao centro da imagem (direita - esquerda)
+            magnitude = int(avg_right - avg_left)
+            fasor_length = max(min(magnitude * 2, 100), -100)  # limitar o tamanho do vetor
+            end_point = (center_x + fasor_length, mid_y)
+
+            # Desenha o vetor como uma seta
+            cv.arrowedLine(frame, (center_x, mid_y), end_point, (0, 0, 255), 2, tipLength=0.1)
+
+            # Texto com os valores
+            cv.putText(frame, f"L: {avg_left:.1f} R: {avg_right:.1f}", (center_x - 60, mid_y - 10),
+                       font, font_scale, font_color, thickness)
+
     return frame
+
 
 
 

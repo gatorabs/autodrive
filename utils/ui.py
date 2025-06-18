@@ -3,7 +3,6 @@ from tkinter import ttk
 from utils.constants import RED, RESET, YELLOW, GREEN
 from utils.calibration_io import save_calibration
 
-
 def create_responsive_interface(tk_controls, frame_width=640, frame_height=480):
     root = tk.Tk()
     root.title("Interface de Controle Unificada")
@@ -101,13 +100,7 @@ def create_responsive_interface(tk_controls, frame_width=640, frame_height=480):
         vars[key] = create_trackbar_var(key, "int")
         create_trackbar_row(extras_frame, key, vars[key], 0, limit)
 
-    roi_main_frame = create_section("ROI da Imagem Principal", 1, 0, colspan=2)
-    for key in ["ROI_START", "ROI_END", "ROI_X_START", "ROI_X_END"]:
-        max_val = frame_height if "Y" in key else frame_width
-        vars[key] = create_trackbar_var(key, "int")
-        create_trackbar_row(roi_main_frame, key, vars[key], 0, max_val)
-
-    roi_obj_frame = create_section("ROI para Objetos", 1, 2, colspan=2)
+    roi_obj_frame = create_section("ROI para Objetos", 1, 0, colspan=4)
     for key in ["Person", "Traffic"]:
         vars[key] = create_trackbar_var(key, "int")
         create_trackbar_row(roi_obj_frame, key, vars[key], 0, 240)
