@@ -17,7 +17,7 @@ flags = {
         "SEND_DATA": True,
         "RUNNING": True,
         "WEBVIEW": False,
-    }
+}
 
 
 track_flags = {

@@ -4,6 +4,7 @@ import multiprocessing as mp
 from utils.constants import RED, RESET, flags
 from utils.flags_init import setup_flag_interface
 from utils.ui import create_responsive_interface
+from utils.calibration_io import load_calibration
 
 if __name__ == '__main__':
     user_flags = setup_flag_interface()
@@ -11,12 +12,15 @@ if __name__ == '__main__':
     mp.set_start_method('spawn')
     manager = mp.Manager()
 
+
+    calibrated_data = load_calibration()
+
     shared_controls = manager.dict({
         **user_flags,
         "object_serial_data": manager.list([0, 0, 0]),
     })
 
-    tk_controls = manager.dict()
+    tk_controls = manager.dict(calibrated_data)
 
     for key, value in shared_controls.items():
         if value:

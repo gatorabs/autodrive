@@ -1,13 +1,13 @@
 import tkinter as tk
-from utils.constants import track_flags as defaults
+from utils.constants import RED, RESET, YELLOW, GREEN
+from utils.calibration_io import save_calibration
+
 
 def create_responsive_interface(tk_controls, frame_width=640, frame_height=480):
     root = tk.Tk()
     root.title("Interface de Controle Unificada")
-    root.geometry("1000x600")
+    root.geometry("1000x700")
 
-    for key, value in defaults.items():
-        tk_controls.setdefault(key, value)
 
     vars = {}
 
@@ -33,10 +33,30 @@ def create_responsive_interface(tk_controls, frame_width=640, frame_height=480):
     main_frame = tk.Frame(root)
     main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
+    def save_calibration_data():
+
+        try:
+            # Converte para dict comum antes de iterar
+            controls_copy = dict(tk_controls)
+            calib_data = {k: v for k, v in controls_copy.items() if isinstance(v, (int, float, bool))}
+            save_calibration(calib_data)
+            print(f"{YELLOW}[UI]{RESET}{GREEN}[INFO] Calibração salva com sucesso.{RESET}")
+        except Exception as e:
+            print(f"{YELLOW}[UI]{RESET}{RED}[ERROR] Erro na calibração: {e}.{RESET}")
+
     for i in range(4):
         main_frame.columnconfigure(i, weight=1)
     for i in range(2):
         main_frame.rowconfigure(i, weight=1)
+
+    def restore_defaults():
+        from utils.constants import track_flags
+        for key, val in track_flags.items():
+            tk_controls[key] = val
+            if key in vars:
+                vars[key].set(val)
+        save_calibration(dict(track_flags))  # Salva no JSON imediatamente
+        print(f"{YELLOW}[UI]{RESET}{GREEN}[INFO] Calibração setada em Default.{RESET}")
 
     def create_section(title, row, col, colspan=1):
         frame = tk.LabelFrame(main_frame, text=title, padx=10, pady=10)
@@ -91,5 +111,20 @@ def create_responsive_interface(tk_controls, frame_width=640, frame_height=480):
         scale = tk.Scale(roi_obj_frame, label=key, from_=0, to=240, orient="horizontal",
                          variable=vars[key])
         scale.pack(fill="x")
+
+
+    calibration_frame = tk.LabelFrame(root, text="Gerenciar Calibração", padx=10, pady=10)
+    calibration_frame.pack(pady=10, fill="x")
+
+    calibration_frame.configure(height=60)
+    calibration_frame.pack_propagate(False)
+
+    save_btn = tk.Button(calibration_frame, text="Salvar Calibração", command=save_calibration_data,
+                         bg="green", fg="white")
+    save_btn.pack(side="left", expand=True, fill="x", padx=5, ipady=10)
+
+    restore_btn = tk.Button(calibration_frame, text="Restaurar Padrão", command=restore_defaults,
+                            bg="orange", fg="white")
+    restore_btn.pack(side="left", expand=True, fill="x", padx=5, ipady=10)
 
     root.mainloop()
