@@ -73,7 +73,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
 
             try:
                 warp_points = get_warp_points_from_controls(tk_controls)
-                warped_roi = bird_eye(roi, warp_points)
+                warped_roi = bird_eye(roi, warp_points, offset_x=ROI_X_START, offset_y=ROI_START)
             except cv.error as e:
                 print(f"{RED}[ERROR]{RESET} Erro no warpPerspective: {e}")
                 continue
