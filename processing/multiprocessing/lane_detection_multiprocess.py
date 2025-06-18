@@ -65,20 +65,15 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
             edges = cv.Canny(blur, canny_1, canny_2)
             edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, morph_kernel)
 
-            roi = edges[ROI_START:ROI_END, ROI_X_START:ROI_X_END]
-
-            if roi.size == 0:
-                print(f"{YELLOW}[WARNING]{RESET} ROI vazio! Verifique os parâmetros de ROI.")
-                continue
 
             try:
                 warp_points = get_warp_points_from_controls(tk_controls)
-                warped_roi = bird_eye(roi, warp_points, offset_x=ROI_X_START, offset_y=ROI_START)
+                warped_roi = bird_eye_full(edges, warp_points, draw_on=frame)
             except cv.error as e:
                 print(f"{RED}[ERROR]{RESET} Erro no warpPerspective: {e}")
                 continue
 
-            interval = max(1, round((ROI_END - ROI_START) / NUM_LINES))
+            interval = max(1, round(warped_roi.shape[0] / NUM_LINES))   
             avg_left, avg_right = calculate_center_distance(warped_roi, interval)
 
             if side == 1 and avg_right != float('inf'):
@@ -91,7 +86,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 (ROI_START, ROI_END),
                 (ROI_X_START, ROI_X_END),
                 (avg_left, avg_right),
-                FRAME_CENTER
+                FRAME_CENTER, warp_points,edges
             )
 
             if webview:

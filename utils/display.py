@@ -2,8 +2,7 @@ import cv2 as cv
 import numpy as np
 from utils.constants import YELLOW,RESET,GREEN
 
-def draw_overlays(frame, roi_coords, roi_x_coords, distances, frame_center):
-    # Cache das propriedades de fonte para evitar redefinições
+def draw_overlays(frame, roi_coords, roi_x_coords, distances, frame_center, warp_points=None, edges=None):
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {
             "font": cv.FONT_HERSHEY_SIMPLEX,
@@ -22,38 +21,50 @@ def draw_overlays(frame, roi_coords, roi_x_coords, distances, frame_center):
     roi_x_start, roi_x_end = roi_x_coords
 
     overlay = frame.copy()
-    overlay_color = (0, 255, 0)
-    alpha = 0.3
 
-    # Retângulo semi-transparente sobre a ROI
-    cv.rectangle(overlay, (roi_x_start, roi_start), (roi_x_end, roi_end), overlay_color, -1)
-    frame = cv.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
+    # --- Desenhar área da perspectiva e pintar faixas de amarelo ---
+    if warp_points and edges is not None:
+        # Extrair pontos do warp
+        tl_x, tl_y, tr_x, tr_y, bl_x, bl_y, br_x, br_y = warp_points
+        pts = np.array([[tl_x, tl_y], [tr_x, tr_y], [br_x, br_y], [bl_x, bl_y]], np.int32).reshape((-1, 1, 2))
 
-    # Desenha retângulo para o lado direito
-    if avg_right != float('inf'):
-        top_left = (frame_center, roi_start)
-        bottom_right = (frame_center + int(avg_right), roi_end)
-        cv.rectangle(frame, top_left, bottom_right, (0, 255, 255), 2)
-        cv.putText(frame, f"{avg_right:.1f}", (frame_center + 30, roi_start - 10),
-                   font, font_scale, font_color, thickness, cv.LINE_AA)
+        # Máscara binária da área de interesse
+        mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+        cv.fillPoly(mask, [pts], 255)
 
-    # Desenha retângulo para o lado esquerdo
-    if avg_left != float('inf'):
-        top_left = (frame_center - int(avg_left), roi_start)
-        bottom_right = (frame_center, roi_end)
-        cv.rectangle(frame, top_left, bottom_right, (0, 255, 255), 2)
-        cv.putText(frame, f"{avg_left:.1f}", (frame_center - 60, roi_start - 10),
-                   font, font_scale, font_color, thickness, cv.LINE_AA)
+        # Pintar os pontos das bordas (edges == 255) dentro da região com amarelo
+        yellow = (0, 255, 255)
+        edge_mask = cv.bitwise_and(edges, edges, mask=mask)
+        frame[edge_mask == 255] = yellow
 
-    # Linha central
-    #cv.line(frame, (frame_center, 0), (frame_center, frame.shape[0]), (255, 255, 255), 2)
+        # Desenhar transparência verde da perspectiva
+        cv.fillPoly(overlay, [pts], (0, 255, 0))
+        alpha = 0.3
+        frame = cv.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
 
-    # Exibe FPS (print limitado em produção)
-    #if show_fps:
-        #cv.putText(frame, f"FPS: {fps:.2f}", (10, 30), font, 0.7, (0, 255, 0), 2, cv.LINE_AA)
-        #cv.putText(frame, f"MS: {avg_time:.2f}", (10,70), font, 0.7, (0,255,0), 2, cv.LINE_AA)
+        cv.polylines(frame, [pts], isClosed=True, color=(255, 0, 0), thickness=2)
 
+    #cv.rectangle(overlay, (roi_x_start, roi_start), (roi_x_end, roi_end), (0, 255, 0), -1)
+    #frame = cv.addWeighted(overlay, 0.3, frame, 0.7, 0)
+    else:
+        # Retângulos de controle do centro
+        if avg_right != float('inf'):
+            cv.rectangle(frame, (frame_center, roi_start),
+                         (frame_center + int(avg_right), roi_end),
+                         (0, 255, 255), 2)
+            cv.putText(frame, f"{avg_right:.1f}", (frame_center + 30, roi_start - 10),
+                       font, font_scale, font_color, thickness, cv.LINE_AA)
+
+        if avg_left != float('inf'):
+            cv.rectangle(frame, (frame_center - int(avg_left), roi_start),
+                         (frame_center, roi_end),
+                         (0, 255, 255), 2)
+            cv.putText(frame, f"{avg_left:.1f}", (frame_center - 60, roi_start - 10),
+                       font, font_scale, font_color, thickness, cv.LINE_AA)
+
+        return frame
     return frame
+
 
 
 def create_main_window(video_img, edges_img, roi_img, show_video=True, show_edges=True, show_roi=True):
