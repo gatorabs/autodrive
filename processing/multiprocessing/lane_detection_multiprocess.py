@@ -44,9 +44,8 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 print(f"{RED}[ERROR]{RESET} Frame não capturado. Cheque o vídeo ou câmera.")
                 break
 
-            canny_1 = tk_controls.get("F_Canny", 50)
-            canny_2 = tk_controls.get("S_Canny", 150)
-            speed = tk_controls.get("Speed", 50)
+            canny_1 = tk_controls.get("F_Canny")
+            canny_2 = tk_controls.get("S_Canny")
             side = tk_controls.get("Side", 1)
 
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
@@ -64,10 +63,21 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
             interval = max(1, round(warped_roi.shape[0] / NUM_LINES))
             avg_left, avg_right = calculate_center_distance(warped_roi, interval)
 
-            if side == 1 and avg_right != float('inf'):
-                direction = round(pid.calculate(avg_right))
-            elif side == 0 and avg_left != float('inf'):
-                direction = round(pid.calculate(avg_left))
+            lost_ref = (side == 1 and avg_right == float('inf')) or \
+                       (side == 0 and avg_left == float('inf'))
+
+            if lost_ref:
+                speed = 0
+                direction = 0
+            else:
+                speed = tk_controls.get("Speed")
+
+                if side == 1:
+                    direction = round(pid.calculate(avg_right))
+                else:
+                    direction = round(pid.calculate(avg_left))
+
+            mapped_direction = map_direction(direction)
 
             frame_display = draw_overlays(
                 frame,
@@ -82,8 +92,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 shared_frames["edges"] = jpeg_edges.tobytes()
             except Exception as e:
                 print(f"{RED}[ERROR]{RESET} Erro ao codificar frames: {e}")
-
-            mapped_direction = map_direction(direction)
 
             lane_data = {"speed": speed, "direction": mapped_direction}
 
