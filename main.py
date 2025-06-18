@@ -36,7 +36,7 @@ if __name__ == '__main__':
     lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls, shared_frames, tk_controls))
     object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls, shared_frames, tk_controls, 0))
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
-    tk_process = mp.Process(target=create_responsive_interface, args=(tk_controls,))
+    tk_process = mp.Process(target=create_responsive_interface, args=(tk_controls, shared_frames, shared_controls))
 
     processes = [tk_process, lane_process, object_process, sender_process,]
 

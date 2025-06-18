@@ -1,12 +1,20 @@
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image, ImageTk
+import numpy as np
+import cv2
 from utils.constants import RED, RESET, YELLOW, GREEN
 from utils.calibration_io import save_calibration
 
-def create_responsive_interface(tk_controls, frame_width=640, frame_height=480):
+def create_responsive_interface(tk_controls, shared_frames, shared_controls, frame_width=640, frame_height=480):
     root = tk.Tk()
     root.title("Interface de Controle Unificada")
-    root.geometry("1000x700")
+
+    webview = shared_controls.get("WEBVIEW")
+    if not webview:
+        root.geometry("1500x800")
+    else:
+        root.geometry("1000x600")
 
     style = ttk.Style()
     style.configure("TButton", font=("Arial", 10))
@@ -19,112 +27,152 @@ def create_responsive_interface(tk_controls, frame_width=640, frame_height=480):
 
     def create_trackbar_var(key, var_type="int"):
         if var_type == "float":
-            var = tk.DoubleVar(value=tk_controls[key])
+            var = tk.DoubleVar(value=tk_controls.get(key, 0.0))
         else:
-            var = tk.IntVar(value=tk_controls[key])
-
-        def on_var_change(*args):
-            val = var.get()
-            tk_controls[key] = val
-
-        var.trace_add("write", on_var_change)
+            var = tk.IntVar(value=tk_controls.get(key, 0))
+        var.trace_add("write", lambda *args: tk_controls.__setitem__(key, var.get()))
         return var
 
     def create_trackbar_row(parent, label_text, var, from_, to, resolution=None):
         row = ttk.Frame(parent)
         row.pack(fill="x", pady=2)
         ttk.Label(row, text=label_text, width=8).pack(side="left")
-
         scale = ttk.Scale(row, from_=from_, to=to, orient="horizontal", variable=var)
         if resolution:
             scale.configure(length=200)
         scale.pack(side="left", fill="x", expand=True)
-
         value_label = ttk.Label(row, text=str(var.get()), width=6)
         value_label.pack(side="left", padx=5)
+        var.trace_add("write", lambda *args: value_label.config(
+            text=f"{var.get():.3f}" if isinstance(var.get(), float) else str(var.get())
+        ))
 
-        def update_label(*args):
-            value_label.config(text=f"{var.get():.3f}" if isinstance(var.get(), float) else str(var.get()))
-
-        var.trace_add("write", update_label)
-
+    # Container principal
     main_frame = ttk.Frame(root)
     main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
+    # Grade de 5 colunas e linhas automáticas
+    for i in range(5):
+        main_frame.columnconfigure(i, weight=1)
+        main_frame.rowconfigure(i, weight=1)
+
+    # Funções de calibração
     def save_calibration_data():
         try:
-            controls_copy = dict(tk_controls)
-            calib_data = {k: v for k, v in controls_copy.items() if isinstance(v, (int, float, bool))}
-            save_calibration(calib_data)
-            print(f"{YELLOW}[UI]{RESET}{GREEN}[INFO] Calibração salva com sucesso.{RESET}")
+            data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
+            save_calibration(data)
+            print(f"{YELLOW}[UI]{RESET}{GREEN}Calibração salva.{RESET}")
         except Exception as e:
-            print(f"{YELLOW}[UI]{RESET}{RED}[ERROR] Erro na calibração: {e}.{RESET}")
-
-    for i in range(4):
-        main_frame.columnconfigure(i, weight=1)
-    for i in range(5):
-        main_frame.rowconfigure(i, weight=1)
+            print(f"{YELLOW}[UI]{RESET}{RED}Erro ao salvar calibração: {e}{RESET}")
 
     def restore_defaults():
         from utils.constants import track_flags
-        for key, val in track_flags.items():
-            tk_controls[key] = val
-            if key in vars:
-                vars[key].set(val)
+        for k, v in track_flags.items():
+            tk_controls[k] = v
+            if k in vars:
+                vars[k].set(v)
         save_calibration(dict(track_flags))
-        print(f"{YELLOW}[UI]{RESET}{GREEN}[INFO] Calibração setada em Default.{RESET}")
+        print(f"{YELLOW}[UI]{RESET}{GREEN}Defaults restaurados.{RESET}")
 
+    # Helper para criar seções
     def create_section(title, row, col, colspan=1):
         frame = ttk.LabelFrame(main_frame, text=title, padding=(10, 5))
         frame.grid(row=row, column=col, columnspan=colspan, padx=5, pady=5, sticky="nsew")
         return frame
 
+    # Linha 0: 5 seções lado a lado
+    # Toggles
     flags_frame = create_section("Toggles de Visualização", 0, 0)
-    for key in ["SHOW_VIDEO", "SHOW_EDGES", "SHOW_ROI", "SHOW_PERSON_DETECTION"]:
-        btn = ttk.Button(flags_frame, text=f"Toggle {key}", command=lambda k=key: toggle_flag(k))
-        btn.pack(anchor="w", fill="x", pady=2)
-
+    for key in ["SHOW_ROI", "SHOW_PERSON_DETECTION"]:
+        ttk.Button(flags_frame, text=f"Toggle {key}", command=lambda k=key: toggle_flag(k)).pack(fill="x", pady=2)
+    # Filtragem
     filter_frame = create_section("Parâmetros de Filtragem", 0, 1)
     for key in ["F_Canny", "S_Canny"]:
         vars[key] = create_trackbar_var(key, "int")
         create_trackbar_row(filter_frame, key, vars[key], 0, 400)
-
+    # PID
     pid_frame = create_section("Parâmetros de Controle (PID)", 0, 2)
-    pid_params = {"KP": (0.0, 1.0), "KI": (0.0, 0.1), "KD": (0.0, 0.5)}
-    for key, (min_val, max_val) in pid_params.items():
+    for key, (mn, mx) in {"KP": (0.0, 1.0), "KI": (0.0, 0.1), "KD": (0.0, 0.5)}.items():
         vars[key] = create_trackbar_var(key, "float")
-        create_trackbar_row(pid_frame, key, vars[key], min_val, max_val)
-
+        create_trackbar_row(pid_frame, key, vars[key], mn, mx)
+    # Extras
     extras_frame = create_section("Extras", 0, 3)
-    for key, limit in [("Speed", 255), ("Side", 1)]:
+    for key, lim in [("Speed", 255), ("Side", 1)]:
         vars[key] = create_trackbar_var(key, "int")
-        create_trackbar_row(extras_frame, key, vars[key], 0, limit)
-
-    roi_obj_frame = create_section("ROI para Objetos", 1, 0, colspan=4)
+        create_trackbar_row(extras_frame, key, vars[key], 0, lim)
+    # ROI para Objetos
+    roi_frame = create_section("ROI para Objetos", 0, 4)
     for key in ["Person", "Traffic"]:
         vars[key] = create_trackbar_var(key, "int")
-        create_trackbar_row(roi_obj_frame, key, vars[key], 0, 240)
+        create_trackbar_row(roi_frame, key, vars[key], 0, 240)
 
-    warp_top = create_section("Warp Top Points", 2, 0, colspan=2)
-    for pt in ["tl", "tr"]:
-        for axis in ["x", "y"]:
-            key = f"{pt}_{axis}"
-            max_val = frame_width if axis == "x" else frame_height
+    # Linha 1: Warp Top e Bottom lado a lado em container
+    warp_container = ttk.Frame(main_frame)
+    warp_container.grid(row=1, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
+    warp_container.columnconfigure(0, weight=1)
+    warp_container.columnconfigure(1, weight=1)
+    warp_top = ttk.LabelFrame(warp_container, text="Warp Top Points", padding=(10,5))
+    warp_top.grid(row=0, column=0, sticky="nsew", padx=(0,5))
+    warp_bot = ttk.LabelFrame(warp_container, text="Warp Bottom Points", padding=(10,5))
+    warp_bot.grid(row=0, column=1, sticky="nsew", padx=(5,0))
+    for pt, frame in [("tl", warp_top), ("tr", warp_top)]:
+        for ax in ["x", "y"]:
+            key = f"{pt}_{ax}"
+            mv = frame_width if ax == 'x' else frame_height
             vars[key] = create_trackbar_var(key, "int")
-            create_trackbar_row(warp_top, key, vars[key], 0, max_val)
-
-    warp_bottom = create_section("Warp Bottom Points", 2, 2, colspan=2)
-    for pt in ["bl", "br"]:
-        for axis in ["x", "y"]:
-            key = f"{pt}_{axis}"
-            max_val = frame_width if axis == "x" else frame_height
+            create_trackbar_row(frame, key, vars[key], 0, mv)
+    for pt, frame in [("bl", warp_bot), ("br", warp_bot)]:
+        for ax in ["x", "y"]:
+            key = f"{pt}_{ax}"
+            mv = frame_width if ax == 'x' else frame_height
             vars[key] = create_trackbar_var(key, "int")
-            create_trackbar_row(warp_bottom, key, vars[key], 0, max_val)
+            create_trackbar_row(frame, key, vars[key], 0, mv)
 
-    calibration_frame = create_section("Gerenciar Calibração", 3, 0, colspan=4)
-    calibration_frame.configure(height=60)
+    # Linha 2: Calibração
+    calib_frame = create_section("Gerenciar Calibração", 2, 0, colspan=5)
+    ttk.Button(calib_frame, text="Salvar Calibração", command=save_calibration_data).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
+    ttk.Button(calib_frame, text="Restaurar Padrão", command=restore_defaults).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
 
-    ttk.Button(calibration_frame, text="Salvar Calibração", command=save_calibration_data).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
-    ttk.Button(calibration_frame, text="Restaurar Padrão", command=restore_defaults).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
+    # Linha 3: Vídeos horizontal (se webview False)
+    if not webview:
+        video_sec = ttk.LabelFrame(main_frame, text="Exibição de Vídeo / Edges / Object")
+        video_sec.grid(row=3, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
+        video_sec.columnconfigure((0,1,2), weight=1)
+        lbl_v = ttk.Label(video_sec)
+        lbl_e = ttk.Label(video_sec)
+        lbl_o = ttk.Label(video_sec)
+        lbl_v.grid(row=0, column=0)
+        lbl_e.grid(row=0, column=1)
+        lbl_o.grid(row=0, column=2)
+
+        def to_tk(img):
+            if img is None:
+                return None
+            if img.ndim == 2:
+                img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            return ImageTk.PhotoImage(Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
+
+        def update_display():
+            try:
+                if "display" in shared_frames:
+                    img = cv2.imdecode(np.frombuffer(shared_frames["display"], np.uint8), cv2.IMREAD_COLOR)
+                    i = to_tk(img)
+                    lbl_v.config(image=i)
+                    lbl_v.image = i
+                if "edges" in shared_frames:
+                    img = cv2.imdecode(np.frombuffer(shared_frames["edges"], np.uint8), cv2.IMREAD_COLOR)
+                    j = to_tk(img)
+                    lbl_e.config(image=j)
+                    lbl_e.image = j
+                if "object" in shared_frames:
+                    img = cv2.imdecode(np.frombuffer(shared_frames["object"], np.uint8), cv2.IMREAD_COLOR)
+                    k = to_tk(img)
+                    lbl_o.config(image=k)
+                    lbl_o.image = k
+            except Exception as e:
+                print(f"{RED}[UI]{RESET}Erro ao atualizar imagens: {e}")
+            root.after(50, update_display)
+
+        update_display()
 
     root.mainloop()

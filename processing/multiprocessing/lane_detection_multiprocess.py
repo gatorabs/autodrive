@@ -75,22 +75,13 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 FRAME_CENTER, warp_points,edges
             )
 
-            if webview:
-                try:
-                    _, jpeg_display = cv.imencode('.jpg', frame_display)
-                    _, jpeg_edges = cv.imencode('.jpg', edges)
-                    shared_frames["display"] = jpeg_display.tobytes()
-                    shared_frames["edges"] = jpeg_edges.tobytes()
-                except Exception as e:
-                    print(f"{RED}[ERROR]{RESET} Erro ao codificar frames: {e}")
-            else:
-                main_display = create_main_window(
-                    frame_display, edges, warped_roi,
-                    show_video=tk_controls.get("SHOW_VIDEO", True),
-                    show_edges=tk_controls.get("SHOW_EDGES", True),
-                    show_roi=tk_controls.get("SHOW_ROI", True)
-                )
-                cv.imshow("Lane Detection", main_display)
+            try:
+                _, jpeg_display = cv.imencode('.jpg', frame_display)
+                _, jpeg_edges = cv.imencode('.jpg', edges)
+                shared_frames["display"] = jpeg_display.tobytes()
+                shared_frames["edges"] = jpeg_edges.tobytes()
+            except Exception as e:
+                print(f"{RED}[ERROR]{RESET} Erro ao codificar frames: {e}")
 
             if cv.waitKey(1) == ord('q'):
                 break
