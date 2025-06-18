@@ -26,9 +26,10 @@ def bird_eye(roi, calibrate, frame=None):
 
 def return_warped_roi(roi, tl, tr, bl, br, h, w):
     pts1 = np.float32([tl, bl, tr, br])
-    pts2 = np.float32([[0, 0], [0, 20], [330, 0], [330, 20]])
+    pts2 = np.float32([[0, 0], [0, h], [w, 0], [w, h]])
 
     M = cv.getPerspectiveTransform(pts1, pts2)
     warped_roi = cv.warpPerspective(roi, M, (w, h))
 
     return warped_roi
+

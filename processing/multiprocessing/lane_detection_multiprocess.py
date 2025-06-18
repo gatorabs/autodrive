@@ -23,18 +23,19 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
     MAX_OUTPUT = 32
 
     direction = 0
+    last_roi_shape = None
 
     def map_direction(value, in_min=-32, in_max=32, out_min=0, out_max=180):
         return int((value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
 
     webview = shared_controls.get("WEBVIEW")
-    CALIBRATE_ROI = True
+    CALIBRATE_ROI = False
 
     if webview:
         CALIBRATE_ROI = False
     else:
         if CALIBRATE_ROI:
-            create_warp_points_trackbars()
+            create_warp_points_trackbars(FRAME_WIDTH, FRAME_HEIGHT)
 
     pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
     video_proc = VideoProcessor(video_source, FRAME_WIDTH, FRAME_HEIGHT)
@@ -52,7 +53,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 print(f"{RED}[ERROR]{RESET} Frame não capturado. Cheque o vídeo ou câmera.")
                 break
 
-            # Controle vindo do Tkinter
             canny_1 = tk_controls.get("F_Canny", 50)
             canny_2 = tk_controls.get("S_Canny", 150)
             speed = tk_controls.get("Speed", 50)
@@ -63,7 +63,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
             ROI_X_START = tk_controls.get("ROI_X_START", 0)
             ROI_X_END = tk_controls.get("ROI_X_END", FRAME_WIDTH)
 
-            # 🔐 Validação do ROI
             ROI_START = max(0, min(ROI_START, FRAME_HEIGHT - 1))
             ROI_END = max(ROI_START + 10, min(ROI_END, FRAME_HEIGHT))
 
@@ -86,7 +85,10 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
             except cv.error as e:
                 print(f"{RED}[ERROR]{RESET} Erro no warpPerspective: {e}")
                 continue
-
+            if CALIBRATE_ROI:
+                if last_roi_shape != roi.shape:
+                    recreate_warp_trackbar_window(roi.shape[1], roi.shape[0])
+                    last_roi_shape = roi.shape
             interval = max(1, round((ROI_END - ROI_START) / NUM_LINES))
             avg_left, avg_right = calculate_center_distance(warped_roi, interval)
 

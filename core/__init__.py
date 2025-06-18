@@ -10,7 +10,7 @@ from processing.priorities_processor import set_process_priority
 from processing.warp_perspective_processor import bird_eye
 from processing.object_detection_processor import ObjectDetector
 from utils.display import draw_overlays, create_main_window
-from utils.real_time_trackbars import  create_warp_points_trackbars, get_warp_points_trackbars
+from utils.real_time_trackbars import  create_warp_points_trackbars, get_warp_points_trackbars, recreate_warp_trackbar_window
 from processing.multiprocessing.data_sender_multiprocess import data_sender_process
 from processing.multiprocessing.lane_detection_multiprocess import lane_detection_process
 from processing.multiprocessing.object_detector_multiprocess import object_detection_process
