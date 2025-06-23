@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import CameraFeed from "@/components/CameraFeed";
 import MotorStatus from "@/components/MotorStatus";
 import CANModule from "@/components/CANModule";
 import TurnSignal from "@/components/TurnSignal";
 import { toast } from "sonner";
 import PerformanceMonitor from "@/components/PerformanceMonitor";
+import LogsModal from "@/components/LogsModal";
+import { useLogsContext } from "@/contexts/LogsContext";
 
 const Index = () => {
   const [servoAngle, setServoAngle] = useState(0);
@@ -19,43 +21,98 @@ const Index = () => {
   const [turnSignals, setTurnSignals] = useState({ left: false, right: false });
   const [previousRunning, setPreviousRunning] = useState(false);
   const [systemRunning, setSystemRunning] = useState(false);
-  
+  const [previousRPM, setPreviousRPM] = useState(null);
+  const [previousDirection, setPreviousDirection] = useState(null);
+  const [connectionError, setConnectionError] = useState(false);
+  const { logs, addLog, clearLogs } = useLogsContext();
+  const connectionErrorRef = useRef(false);
+
   var rightSignalThresh = 100;
   var leftSignalThresh = 80;
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetch("http://192.168.15.12:5000/api/car_info")
-        .then(res => res.json())
-        .then(data => {
-          setServoAngle(data.car_info.direction);
-          setSystemRunning(data.running);
-          setMotorRPM(data.car_info.speed);
+  const interval = setInterval(() => {
+    fetch("http://192.168.15.12:5000/api/car_info")
+      .then(res => res.json())
+      .then(data => {
+        const speed = data.car_info.speed;
+        const running = data.running;
+        const direction = data.car_info.direction;
 
-          if (data.car_info.direction == 90) {
-            setTurnSignals({ left: false, right: false });
-          } else if (data.car_info.direction > rightSignalThresh) {
-            setTurnSignals({ left: false, right: true });
-          } else if (data.car_info.direction < leftSignalThresh){
-            setTurnSignals({ left: true, right: false });
-          }
+        setServoAngle(direction);
+        setSystemRunning(running);
+        setMotorRPM(speed);
+        
+        if (connectionErrorRef.current) {
+          connectionErrorRef.current = false;
+          setConnectionError(false);
+          addLog('success', 'system', 'Conexão restabelecida', 'Veículo voltou a responder.');
+        }
 
-          if (data.time_info) {
-            setFps(data.time_info.fps);
-            setFrameTime(data.time_info.total_processing_time);
+        if (previousRunning !== running) {
+          if (running) {
+            addLog('success', 'system', 'Sistema ativado', 'O veículo autônomo está ativo.');
+          } else {
+            addLog('warning', 'system', 'Sistema desativado', 'O veículo autônomo foi desativado.');
           }
-        })
-        .catch(err => {
-          console.error("Erro ao obter direção:", err);
-          setSystemRunning(false);
+          setPreviousRunning(running);
+        }
+
+        // Verifica e loga somente se houve alteração no RPM
+        if (previousRPM !== speed) {
+          if (speed > 0) {
+            addLog('success', 'motor', 'Motor DC rodando', `RPM: ${speed}`);
+          } else if (speed === 0) {
+            addLog('warning', 'motor', 'Motor DC parado', 'RPM: 0');
+          } else if (speed < 0) {
+            addLog('error', 'motor', 'Motor DC em valor negativo inesperado', `RPM: ${speed}`);
+          }
+          setPreviousRPM(speed);
+        }
+
+        // Verifica e loga somente se houve alteração na direção do servo
+        if (previousDirection !== direction) {
+          addLog('info', 'navigation', 'Direção alterada', `Servo ângulo: ${direction}°`);
+          setPreviousDirection(direction);
+        }
+
+        // Lógica dos sinais direcionais
+        if (direction === 90) {
           setTurnSignals({ left: false, right: false });
-          setFps(0);
-          setFrameTime(0);
-        });
-    }, 500);
+        } else if (direction > rightSignalThresh) {
+          setTurnSignals({ left: false, right: true });
+        } else if (direction < leftSignalThresh) {
+          setTurnSignals({ left: true, right: false });
+        }
+
+        // Atualização de métricas adicionais
+        if (data.time_info) {
+          setFps(data.time_info.fps);
+          setFrameTime(data.time_info.total_processing_time);
+        }
+      })
+      .catch(err => {
+        console.error("Erro ao obter direção:", err);
+        setSystemRunning(false);
+        setTurnSignals({ left: false, right: false });
+        setFps(0);
+        setFrameTime(0);
+
+        if (!connectionErrorRef.current) {
+          addLog(
+            'error',
+            'system',
+            'Falha de comunicação',
+            'Não foi possível obter dados do veículo. Verifique se o servidor está ativo.'
+          );
+          connectionErrorRef.current = true;
+          setConnectionError(true); 
+        }
+      });
+  }, 500);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [previousRPM, previousRunning, previousDirection, addLog]);
 
   useEffect(() => {
     if (!previousRunning && systemRunning) {
@@ -83,6 +140,7 @@ const Index = () => {
             <div className="flex space-x-4">
               <TurnSignal direction="left" active={turnSignals.left} />
               <TurnSignal direction="right" active={turnSignals.right} />
+              <LogsModal logs={logs} onClearLogs={clearLogs} />
             </div>
           </div>
         </header>
