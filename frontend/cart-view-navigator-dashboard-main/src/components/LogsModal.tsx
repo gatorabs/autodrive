@@ -71,13 +71,13 @@ const LogsModal = ({ logs, onClearLogs }: LogsModalProps) => {
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[80vh] bg-gray-900 text-white border-gray-700">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle className="flex items-center justify-between pr-8">
             <span className="flex items-center space-x-2">
               <FileText className="h-5 w-5" />
               <span>Logs do Sistema ({logs.length})</span>
             </span>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={exportLogs}>
+              <Button variant="default" size="sm" onClick={exportLogs}>
                 <Download className="h-4 w-4 mr-1" />
                 Exportar
               </Button>
