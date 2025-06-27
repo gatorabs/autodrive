@@ -29,6 +29,7 @@ track_flags = {
         "Speed": 1,
         "Side": 1,
         "Distance": 80,
+        "Lines": 10,
         "KP": 0.3,
         "KI": 0.003,
         "KD": 0.015,

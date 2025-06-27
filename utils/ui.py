@@ -109,7 +109,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         create_trackbar_row(pid_frame, key, vars[key], mn, mx)
     # Extras
     extras_frame = create_section("Extras", 0, 3)
-    for key, lim in [("Speed", 255), ("Side", 1), ("Distance", 250)]:
+    for key, lim in [("Speed", 255), ("Side", 1), ("Distance", 250), ("Lines", FRAME_HEIGHT)]:
         vars[key] = create_trackbar_var(key, "int")
         create_trackbar_row(extras_frame, key, vars[key], 0, lim)
     # ROI para Objetos

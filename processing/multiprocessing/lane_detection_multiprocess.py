@@ -7,9 +7,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                            video_source="test_videos/pista_01.mov"):
     set_process_priority("above_normal")
 
-    FRAME_CENTER = FRAME_WIDTH // 2
-
-    NUM_LINES = 10
     TARGET_CENTER_DISTANCE = 80
 
     # PID parâmetros
@@ -23,8 +20,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
 
     def map_direction(value, in_min=-32, in_max=32, out_min=0, out_max=180):
         return int((value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
-
-    webview = shared_controls.get("WEBVIEW")
 
     pid = PIDController(set_point=TARGET_CENTER_DISTANCE,
                         kp=KP,
@@ -54,6 +49,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
             canny_1 = tk_controls.get("F_Canny")
             canny_2 = tk_controls.get("S_Canny")
             side = tk_controls.get("Side", 1)
+            num_lines = tk_controls.get("Lines", 10)
 
             pid.set_point = tk_controls.get("Distance", 80)
             pid.kp = tk_controls.get("KP", 0.3)
@@ -72,7 +68,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 print(f"{RED}[ERROR]{RESET} Erro no warpPerspective: {e}")
                 continue
 
-            interval = max(1, round(warped_roi.shape[0] / NUM_LINES))
+            interval = max(1, round(warped_roi.shape[0] / num_lines))
             avg_left, avg_right = calculate_center_distance(warped_roi, interval)
 
             lost_ref = (side == 1 and avg_right == float('inf')) or \
@@ -80,7 +76,6 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
 
             if lost_ref:
                 speed = 0
-                direction = 0
             else:
                 speed = tk_controls.get("Speed")
 
@@ -128,7 +123,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                         cv.destroyWindow("warped")
                 except cv.error:
                     pass
-
+                
             if cv.waitKey(1) == ord('q'):
                 break
 

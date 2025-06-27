@@ -17,5 +17,6 @@
     "bl_y": 220,
     "br_x": 440,
     "br_y": 220,
-    "Distance": 123
+    "Distance": 80,
+    "Lines": 10
 }
