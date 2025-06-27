@@ -28,6 +28,7 @@ track_flags = {
         "S_Canny": 152,
         "Speed": 1,
         "Side": 1,
+        "Distance": 80,
         "KP": 0.3,
         "KI": 0.003,
         "KD": 0.015,
