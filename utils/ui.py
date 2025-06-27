@@ -3,8 +3,8 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
-from utils.constants import RED, RESET, YELLOW, GREEN, FRAME_WIDTH, FRAME_HEIGHT
-from utils.calibration_io import save_calibration
+from utils.constants import RED, RESET, YELLOW, GREEN, FRAME_WIDTH, FRAME_HEIGHT, track_flags
+from utils.calibration_io import save_calibration, save_defaults, load_defaults
 
 def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     root = tk.Tk()
@@ -66,21 +66,25 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
             print(f"{YELLOW}[UI]{RESET}{RED}Erro ao salvar calibração: {e}{RESET}")
 
     def restore_defaults():
-        from utils.constants import track_flags
-        for k, v in track_flags.items():
-            tk_controls[k] = v
-            if k in vars:
-                vars[k].set(v)
-        save_calibration(dict(track_flags))
-        print(f"{YELLOW}[UI]{RESET}{GREEN}Defaults restaurados.{RESET}")
+        try:
+            defaults = load_defaults()
+            if defaults == dict(track_flags):
+                save_defaults(defaults)
+            for k, v in defaults.items():
+                tk_controls[k] = v
+                if k in vars:
+                    vars[k].set(v)
+            print(f"{YELLOW}[UI]{RESET}{GREEN}[INFO] Defaults restaurados com sucesso.{RESET}")
+        except Exception as e:
+            print(f"{YELLOW}[UI]{RESET}{RED}[ERROR] Erro ao restaurar padrão: {e}{RESET}")
 
     def save_as_new_defaults():
-        from utils.constants import track_flags
-        for k in tk_controls:
-            if isinstance(tk_controls[k], (int, float, bool)):
-                track_flags[k] = tk_controls[k]
-        save_calibration(dict(track_flags))
-        print(f"{YELLOW}[UI]{RESET}{GREEN}Novo padrão salvo com sucesso.{RESET}")
+        try:
+            data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
+            save_defaults(data)
+            print(f"{YELLOW}[UI]{RESET}{GREEN}Novo padrão salvo em defaults.json.{RESET}")
+        except Exception as e:
+            print(f"{YELLOW}[UI]{RESET}{RED}Erro ao salvar novo padrão: {e}{RESET}")
 
     # Helper para criar seções
     def create_section(title, row, col, colspan=1):
@@ -140,9 +144,9 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     calib_frame = create_section("Gerenciar Calibração", 2, 0, colspan=5)
     ttk.Button(calib_frame, text="Salvar Calibração", command=save_calibration_data).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
     ttk.Button(calib_frame, text="Restaurar Padrão", command=restore_defaults).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
-    ttk.Button(calib_frame, text="Salvar como Novo Padrão", command=save_as_new_defaults).pack(side="left", expand=True,
-                                                                                               fill="x", padx=5,
-                                                                                               ipady=10)
+    ttk.Button(calib_frame, text="Salvar Novo Padrão", command=save_as_new_defaults).pack(
+        side="left", expand=True, fill="x", padx=5, ipady=10
+    )
     
     # Linha 3: Vídeos horizontal (se webview False)
     if not webview:
