@@ -107,7 +107,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 lane_queue.put(lane_data)
 
             frame_count, fps, avg_time, total_processing_time = update_processing_time(
-                shared_controls, start_time, total_processing_time, frame_count)
+                "Lane Detection",shared_controls, start_time, total_processing_time, frame_count)
 
             shared_controls["car_info"] = lane_data
             shared_controls["time_info"] = {
