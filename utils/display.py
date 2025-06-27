@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 from utils.constants import YELLOW,RESET,GREEN
 
-def draw_overlays(frame, distances, frame_center, warp_points=None, edges=None):
+def draw_overlays(frame, distances, warp_points=None, edges=None):
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {
             "font": cv.QT_FONT_NORMAL,

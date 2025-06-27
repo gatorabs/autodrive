@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 import torch
 import numpy as np
-from utils.constants import RED,RESET,YELLOW, GREEN
+from utils.constants import RED,RESET,YELLOW, GREEN, FRAME_WIDTH, FRAME_HEIGHT
 
 TARGET_CLASSES = {0, 9}
 
@@ -92,7 +92,7 @@ class ObjectDetector:
             if not ret:
                 return
 
-        frame = cv2.resize(frame, (480, 270))
+        frame = cv2.resize(frame, (FRAME_WIDTH, FRAME_HEIGHT))
         results = self.model(frame, classes=list(TARGET_CLASSES), verbose=False)
 
         person_detected = False

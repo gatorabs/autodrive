@@ -12,6 +12,8 @@ BLUE = "\033[94m"
 RESET = "\033[0m"
 ORANGE = "\033[35m"
 
+FRAME_WIDTH = int(1920 / 4)
+FRAME_HEIGHT = int(1080 / 4)
 
 flags = {
         "SEND_DATA": True,
@@ -27,8 +29,8 @@ track_flags = {
         "Speed": 1,
         "Side": 1,
         "KP": 0.3,
-        "KI": 0.005,
-        "KD": 0.01,
+        "KI": 0.003,
+        "KD": 0.015,
         "Person": 0,
         "Traffic": 0,
         "tl_x": 120, "tl_y": 180,

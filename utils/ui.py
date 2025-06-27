@@ -3,10 +3,10 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
-from utils.constants import RED, RESET, YELLOW, GREEN
+from utils.constants import RED, RESET, YELLOW, GREEN, FRAME_WIDTH, FRAME_HEIGHT
 from utils.calibration_io import save_calibration
 
-def create_responsive_interface(tk_controls, shared_frames, shared_controls, frame_width=640, frame_height=480):
+def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     root = tk.Tk()
     root.title("Interface de Controle Unificada")
 
@@ -74,6 +74,14 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls, fra
         save_calibration(dict(track_flags))
         print(f"{YELLOW}[UI]{RESET}{GREEN}Defaults restaurados.{RESET}")
 
+    def save_as_new_defaults():
+        from utils.constants import track_flags
+        for k in tk_controls:
+            if isinstance(tk_controls[k], (int, float, bool)):
+                track_flags[k] = tk_controls[k]
+        save_calibration(dict(track_flags))
+        print(f"{YELLOW}[UI]{RESET}{GREEN}Novo padrão salvo com sucesso.{RESET}")
+
     # Helper para criar seções
     def create_section(title, row, col, colspan=1):
         frame = ttk.LabelFrame(main_frame, text=title, padding=(10, 5))
@@ -97,7 +105,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls, fra
         create_trackbar_row(pid_frame, key, vars[key], mn, mx)
     # Extras
     extras_frame = create_section("Extras", 0, 3)
-    for key, lim in [("Speed", 255), ("Side", 1)]:
+    for key, lim in [("Speed", 255), ("Side", 1), ("Distance", 250)]:
         vars[key] = create_trackbar_var(key, "int")
         create_trackbar_row(extras_frame, key, vars[key], 0, lim)
     # ROI para Objetos
@@ -118,13 +126,13 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls, fra
     for pt, frame in [("tl", warp_top), ("tr", warp_top)]:
         for ax in ["x", "y"]:
             key = f"{pt}_{ax}"
-            mv = frame_width if ax == 'x' else frame_height
+            mv = FRAME_WIDTH if ax == 'x' else FRAME_HEIGHT
             vars[key] = create_trackbar_var(key, "int")
             create_trackbar_row(frame, key, vars[key], 0, mv)
     for pt, frame in [("bl", warp_bot), ("br", warp_bot)]:
         for ax in ["x", "y"]:
             key = f"{pt}_{ax}"
-            mv = frame_width if ax == 'x' else frame_height
+            mv = FRAME_WIDTH if ax == 'x' else FRAME_HEIGHT
             vars[key] = create_trackbar_var(key, "int")
             create_trackbar_row(frame, key, vars[key], 0, mv)
 
@@ -132,7 +140,10 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls, fra
     calib_frame = create_section("Gerenciar Calibração", 2, 0, colspan=5)
     ttk.Button(calib_frame, text="Salvar Calibração", command=save_calibration_data).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
     ttk.Button(calib_frame, text="Restaurar Padrão", command=restore_defaults).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
-
+    ttk.Button(calib_frame, text="Salvar como Novo Padrão", command=save_as_new_defaults).pack(side="left", expand=True,
+                                                                                               fill="x", padx=5,
+                                                                                               ipady=10)
+    
     # Linha 3: Vídeos horizontal (se webview False)
     if not webview:
         video_sec = ttk.LabelFrame(main_frame, text="Exibição de Vídeo / Edges / Object")

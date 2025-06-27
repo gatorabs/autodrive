@@ -1,14 +1,12 @@
 import cv2
 from core import *
-from utils.constants import RED, RESET, YELLOW, GREEN
+from utils.constants import RED, RESET, YELLOW, FRAME_WIDTH, FRAME_HEIGHT
 from processing.update_time_processor import update_processing_time
 
 def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_controls,
                            video_source="test_videos/pista_01.mov"):
     set_process_priority("above_normal")
 
-    FRAME_WIDTH = int(1920 / 4)
-    FRAME_HEIGHT = int(1080 / 4)
     FRAME_CENTER = FRAME_WIDTH // 2
 
     NUM_LINES = 10
@@ -28,8 +26,17 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
 
     webview = shared_controls.get("WEBVIEW")
 
-    pid = PIDController(TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT)
-    video_proc = VideoProcessor(video_source, FRAME_WIDTH, FRAME_HEIGHT)
+    pid = PIDController(set_point=TARGET_CENTER_DISTANCE,
+                        kp=KP,
+                        ki=KI,
+                        kd=KD,
+                        min_output=MIN_OUTPUT,
+                        max_output=MAX_OUTPUT)
+
+    video_proc = VideoProcessor(video_source=video_source,
+                                frame_width=FRAME_WIDTH,
+                                frame_height=FRAME_HEIGHT)
+
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (4, 4))
 
     total_processing_time = 0
@@ -47,6 +54,11 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
             canny_1 = tk_controls.get("F_Canny")
             canny_2 = tk_controls.get("S_Canny")
             side = tk_controls.get("Side", 1)
+
+            pid.set_point = tk_controls.get("Distance", 80)
+            pid.kp = tk_controls.get("KP", 0.3)
+            pid.ki = tk_controls.get("KI", 0.003)
+            pid.kd = tk_controls.get("KD", 0.015)
 
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
             blur = cv.GaussianBlur(gray, (5, 5), 0)
@@ -80,9 +92,10 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
             mapped_direction = map_direction(direction)
 
             frame_display = draw_overlays(
-                frame,
-                (avg_left, avg_right),
-                FRAME_CENTER, warp_points,edges
+                frame=frame,
+                distances=(avg_left, avg_right),
+                warp_points=warp_points,
+                edges=edges
             )
 
             try:
