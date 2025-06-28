@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 import torch
 import numpy as np
-from utils.constants import RED,RESET,YELLOW, GREEN, FRAME_WIDTH, FRAME_HEIGHT
+from utils.constants import RED, RESET, YELLOW, GREEN, FRAME_WIDTH, FRAME_HEIGHT
 
 TARGET_CLASSES = {0, 9}
 
@@ -10,11 +10,9 @@ TARGET_CLASSES = {0, 9}
 class ObjectDetector:
     def __init__(self, shared_serial_data, shared_frames, tk_controls, camera_source=0):
         self.shared_serial_data = shared_serial_data
-
-        self.camera_source = camera_source
         self.shared_frames = shared_frames
-
         self.tk_controls = tk_controls
+        self.camera_source = camera_source
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"{YELLOW}[ObjectDetector]{GREEN}[INFO] Usando dispositivo {self.device}{RESET}")
@@ -23,22 +21,30 @@ class ObjectDetector:
         try:
             self.model.to(self.device)
         except Exception as e:
-            print(f"{YELLOW}[ObjectDetector]{RED}[ERROR] Não foi possível mover o modelo para o dispositivo desejado:{e}{RESET}")
+            print(f"{YELLOW}[ObjectDetector]{RED}[ERROR] Não foi possível mover o modelo para o dispositivo desejado: {e}{RESET}")
 
-        self.cap = cv2.VideoCapture(self.camera_source)
+        # Detecta se é vídeo (caminho) ou câmera (índice ou string numérica)
+        if isinstance(camera_source, str) and camera_source.isdigit():
+            self.is_video = False
+            self.cap = cv2.VideoCapture(int(camera_source), cv2.CAP_DSHOW)
+        elif isinstance(camera_source, int):
+            self.is_video = False
+            self.cap = cv2.VideoCapture(camera_source, cv2.CAP_DSHOW)
+        else:
+            self.is_video = True
+            self.cap = cv2.VideoCapture(camera_source)
+
         if not self.cap.isOpened():
-            print(f"{YELLOW}[ObjectDetector]{RED}[ERROR] Falha ao abrir o vídeo ou câmera.{RESET}")
+            print(f"{YELLOW}[ObjectDetector]{RED}[ERROR] Falha ao abrir o vídeo ou câmera ({camera_source}).{RESET}")
             exit()
 
         # Inicializa valores padrão
         # 0: vermelho; 1: amarelo; 2: verde
-        self.shared_serial_data[1] = 0
+        self.shared_serial_data[1] = 0  # semáforo
         self.shared_serial_data[2] = 0  # pessoa
-
         self.window_created = False
 
     def process_traffic_light_roi(self, roi):
-
         active_color = "Unknown"
         color_bgr = (255, 255, 255)  # branco padrão
         traffic_light_state = 2  # padrão: verde
@@ -62,12 +68,12 @@ class ObjectDetector:
             mean_yellow = np.mean(yellow_roi)
             mean_green = np.mean(green_roi)
 
-            # 5) escolhe a cor com maior intensidade média
             means = {
                 "Red": mean_red,
                 "Yellow": mean_yellow,
                 "Green": mean_green
             }
+
             active_color = max(means, key=means.get)
 
             # 6) mapeia o resultado para BGR e estado
@@ -87,9 +93,12 @@ class ObjectDetector:
         ret, frame = self.cap.read()
         if not ret:
             # Se o vídeo chegar ao fim, volta ao início
-            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            ret, frame = self.cap.read()
-            if not ret:
+            if self.is_video:
+                self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                ret, frame = self.cap.read()
+                if not ret:
+                    return
+            else:
                 return
 
         frame = cv2.resize(frame, (FRAME_WIDTH, FRAME_HEIGHT))
@@ -101,6 +110,7 @@ class ObjectDetector:
 
         min_person_height = self.tk_controls["Person"]
         min_traffic_height = self.tk_controls["Traffic"]
+
         for result in results:
             for box in result.boxes:
                 cls = int(box.cls[0])

@@ -30,8 +30,8 @@ if __name__ == '__main__':
 
     shared_frames = manager.dict()
 
-    lane_source = user_flags.get("lane_source", 0)
-    object_source = user_flags.get("object_source", "test_videos/people.mp4")
+    lane_source = user_flags.get("LANE_SOURCE", 0)
+    object_source = user_flags.get("OBJECT_SOURCE", "test_videos/people.mp4")
 
     lane_queue = mp.Queue(maxsize=10)
     object_queue = mp.Queue(maxsize=10)
