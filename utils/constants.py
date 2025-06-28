@@ -17,7 +17,6 @@ FRAME_HEIGHT = int(1080 / 4)
 
 flags = {
         "SEND_DATA": True,
-        "RUNNING": True,
         "WEBVIEW": False,
 }
 

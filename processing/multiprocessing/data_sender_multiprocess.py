@@ -11,7 +11,8 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
     com_port = shared_controls.get("SENDER_COM")
     send_data = shared_controls.get("SEND_DATA")
 
-    serial_comm = SerialCommunicator(com_port, send_data=send_data)
+    serial_comm = SerialCommunicator(com_port=com_port,
+                                     send_data=send_data)
 
     lane_data = {"speed": 255, "direction": 180}
     obj_data = {"person": 0, "semaforo": 0}

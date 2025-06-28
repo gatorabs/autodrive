@@ -12,29 +12,35 @@ if __name__ == '__main__':
     mp.set_start_method('spawn')
     manager = mp.Manager()
 
-
     calibrated_data = load_calibration()
 
     shared_controls = manager.dict({
         **user_flags,
+        "RUNNING": True,
         "object_serial_data": manager.list([0, 0, 0]),
     })
 
     tk_controls = manager.dict(calibrated_data)
 
     for key, value in shared_controls.items():
-        if value:
-            print(f"{key}: {value}")
-        else:
+        if isinstance(value, bool) and not value:
             print(f"{key}: {RED}{value}{RESET}")
+        else:
+            print(f"{key}: {value}")
 
     shared_frames = manager.dict()
+
+    lane_source = user_flags.get("lane_source", 0)
+    object_source = user_flags.get("object_source", "test_videos/people.mp4")
 
     lane_queue = mp.Queue(maxsize=10)
     object_queue = mp.Queue(maxsize=10)
 
-    lane_process = mp.Process(target=lane_detection_process, args=(lane_queue, shared_controls, shared_frames, tk_controls))
-    object_process = mp.Process(target=object_detection_process, args=(object_queue, shared_controls, shared_frames, tk_controls, 0))
+    lane_process = mp.Process(target=lane_detection_process,
+                              args=(lane_queue, shared_controls, shared_frames, tk_controls, lane_source))
+    object_process = mp.Process(target=object_detection_process,
+                                args=(object_queue, shared_controls, shared_frames, tk_controls, object_source))
+
     sender_process = mp.Process(target=data_sender_process, args=(lane_queue, object_queue, shared_controls))
     tk_process = mp.Process(target=create_responsive_interface, args=(tk_controls, shared_frames, shared_controls))
 

@@ -8,7 +8,10 @@ def object_detection_process(object_queue, shared_controls, shared_frames, tk_co
     set_process_priority("high")
     object_serial_data = shared_controls["object_serial_data"]
 
-    object_detector = ObjectDetector(object_serial_data, shared_frames, tk_controls, camera_source)
+    object_detector = ObjectDetector(shared_serial_data=object_serial_data,
+                                     shared_frames=shared_frames,
+                                     tk_controls=tk_controls,
+                                     camera_source=camera_source)
 
     try:
         send_interval = 0.05  # intervalo em segundos
