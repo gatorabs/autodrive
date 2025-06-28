@@ -1,12 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
-from utils.constants import flags
+from extensions.constants.flagsConstants import flags
 from utils.camera_utils import detect_camera_indices, get_video_files_from_folder
 
 def setup_flag_interface():
     root = tk.Tk()
     root.title("Configure Shared Controls")
-    root.geometry("500x450")
+    root.geometry("420x450")
 
     style = ttk.Style()
     style.configure("TButton", font=("Arial", 10))

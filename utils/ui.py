@@ -3,7 +3,9 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
-from utils.constants import RED, RESET, YELLOW, GREEN, FRAME_WIDTH, FRAME_HEIGHT, track_flags
+from extensions.constants.colorsConstants import RED, RESET, YELLOW, GREEN
+from extensions.constants.videoConstants import  FRAME_HEIGHT, FRAME_WIDTH
+from extensions.constants.flagsConstants import track_flags
 from utils.calibration_io import save_calibration, save_defaults, load_defaults
 
 def create_responsive_interface(tk_controls, shared_frames, shared_controls):

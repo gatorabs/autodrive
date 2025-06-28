@@ -2,7 +2,8 @@ import cv2
 from ultralytics import YOLO
 import torch
 import numpy as np
-from utils.constants import RED, RESET, YELLOW, GREEN, FRAME_WIDTH, FRAME_HEIGHT
+from extensions.constants.colorsConstants import RED, RESET, YELLOW, GREEN
+from extensions.constants.videoConstants import FRAME_HEIGHT, FRAME_WIDTH
 
 TARGET_CLASSES = {0, 9}
 

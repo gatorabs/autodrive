@@ -1,6 +1,6 @@
-import cv2
 from core import *
-from utils.constants import RED, RESET, YELLOW, FRAME_WIDTH, FRAME_HEIGHT
+from extensions.constants.colorsConstants import RED, RESET, YELLOW
+from extensions.constants.videoConstants import FRAME_WIDTH, FRAME_HEIGHT
 from processing.update_time_processor import update_processing_time
 
 def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_controls,

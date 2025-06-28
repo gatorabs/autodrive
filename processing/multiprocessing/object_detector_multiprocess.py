@@ -2,7 +2,7 @@ import time
 
 from processing.object_detection_processor import ObjectDetector
 from processing.priorities_processor import set_process_priority
-from utils.constants import RED,RESET,YELLOW
+from extensions.constants.colorsConstants import RED,RESET,YELLOW
 
 def object_detection_process(object_queue, shared_controls, shared_frames, tk_controls, camera_source=1):
     set_process_priority("high")

@@ -1,6 +1,7 @@
 import json
 import os
-from utils.constants import track_flags, YELLOW, RED, RESET
+from extensions.constants.colorsConstants import YELLOW, RED, RESET
+from extensions.constants.flagsConstants import track_flags
 
 CALIBRATION_FILE = "calibration_data.json"
 DEFAULTS_FILE = "defaults.json"

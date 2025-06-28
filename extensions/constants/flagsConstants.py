@@ -1,20 +1,3 @@
-
-tl = (20, 0)
-tr = (300, 0)
-bl = (0, 20)
-br = (320, 20)
-
-# Cores ANSI
-RED = "\033[91m"
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-BLUE = "\033[94m"
-RESET = "\033[0m"
-ORANGE = "\033[35m"
-
-FRAME_WIDTH = int(1920 / 4)
-FRAME_HEIGHT = int(1080 / 4)
-
 flags = {
         "SEND_DATA": True,
         "WEBVIEW": False,

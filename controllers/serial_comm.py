@@ -1,6 +1,6 @@
 import time
 import serial
-from utils.constants import RED, RESET, YELLOW
+from extensions.constants.colorsConstants import RED, RESET, YELLOW
 
 class SerialCommunicator:
     def __init__(self, com_port, baud_rate=115200, send_interval=0.1, send_data=False, open_for_receive=False):

@@ -1,6 +1,6 @@
 import cv2 as cv
 import numpy as np
-from utils.constants import YELLOW,RESET,GREEN
+
 
 def draw_overlays(frame, distances, warp_points=None, edges=None):
     if not hasattr(draw_overlays, "font_props"):

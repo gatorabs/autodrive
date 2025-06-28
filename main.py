@@ -1,7 +1,7 @@
 from core import *
 import multiprocessing as mp
 
-from utils.constants import RED, RESET, flags
+from extensions.constants.colorsConstants import RED, RESET
 from utils.flags_init import setup_flag_interface
 from utils.ui import create_responsive_interface
 from utils.calibration_io import load_calibration
