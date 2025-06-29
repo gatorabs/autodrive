@@ -3,7 +3,7 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
-from extensions.constants.colorsConstants import RED, RESET, YELLOW, GREEN
+from tkinter.scrolledtext import ScrolledText
 from extensions.constants.videoConstants import  FRAME_HEIGHT, FRAME_WIDTH
 from extensions.constants.flagsConstants import track_flags
 from utils.calibration_io import save_calibration, save_defaults, load_defaults
@@ -14,7 +14,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
 
     webview = shared_controls.get("WEBVIEW")
     if not webview:
-        root.geometry("1500x800")
+        root.geometry("1400x950")
     else:
         root.geometry("1000x600")
 
@@ -63,9 +63,9 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
             save_calibration(data)
-            print(f"{YELLOW}[UI]{RESET}{GREEN}Calibração salva.{RESET}")
+            log_message(f"Calibração salva.")
         except Exception as e:
-            print(f"{YELLOW}[UI]{RESET}{RED}Erro ao salvar calibração: {e}{RESET}")
+            log_message(f"Erro ao salvar calibração: {e}")
 
     def restore_defaults():
         try:
@@ -76,17 +76,17 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
                 tk_controls[k] = v
                 if k in vars:
                     vars[k].set(v)
-            print(f"{YELLOW}[UI]{RESET}{GREEN}[INFO] Defaults restaurados com sucesso.{RESET}")
+            log_message(f"Defaults restaurados com sucesso.")
         except Exception as e:
-            print(f"{YELLOW}[UI]{RESET}{RED}[ERROR] Erro ao restaurar padrão: {e}{RESET}")
+            log_message(f"Erro ao restaurar padrão: {e}")
 
     def save_as_new_defaults():
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
             save_defaults(data)
-            print(f"{YELLOW}[UI]{RESET}{GREEN}Novo padrão salvo em defaults.json.{RESET}")
+            log_message(f"Novo padrão salvo em defaults.json.")
         except Exception as e:
-            print(f"{YELLOW}[UI]{RESET}{RED}Erro ao salvar novo padrão: {e}{RESET}")
+            log_message(f"Erro ao salvar novo padrão: {e}")
 
     # Helper para criar seções
     def create_section(title, row, col, colspan=1):
@@ -187,9 +187,32 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
                     lbl_o.config(image=k)
                     lbl_o.image = k
             except Exception as e:
-                print(f"{RED}[UI]{RESET}Erro ao atualizar imagens: {e}")
+                log_message(f"Erro ao atualizar imagens: {e}")
             root.after(50, update_display)
 
         update_display()
+
+    # ---- Seção de Logs ----
+    logs_frame = ttk.LabelFrame(main_frame, text="Logs de Calibração", padding=(10, 5))
+    logs_frame.grid(row=4, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
+    logs_frame.rowconfigure(0, weight=1)
+    logs_frame.columnconfigure(0, weight=1)
+    log_text = ScrolledText(logs_frame, height=4, state='disabled', wrap='word')
+    log_text.grid(row=0, column=0, sticky="nsew")
+
+    def log_message(message):
+        log_text['state'] = 'normal'
+        log_text.insert('end', message + '\n')
+        log_text['state'] = 'disabled'
+        log_text.see('end')
+
+    def clear_logs():
+        log_text['state'] = 'normal'
+        log_text.delete('1.0', 'end')
+        log_text['state'] = 'disabled'
+
+    # Botão para limpar logs
+    clear_btn = ttk.Button(logs_frame, text="Limpar Logs", command=clear_logs)
+    clear_btn.grid(row=1, column=0, sticky='e', pady=5)
 
     root.mainloop()
