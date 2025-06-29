@@ -9,20 +9,20 @@ TARGET_CLASSES = {0, 9}
 
 
 class ObjectDetector:
-    def __init__(self, shared_serial_data, shared_frames, tk_controls, camera_source=0):
+    def __init__(self, shared_serial_data, shared_frames, tk_controls, camera_source=0, logger=None):
         self.shared_serial_data = shared_serial_data
         self.shared_frames = shared_frames
         self.tk_controls = tk_controls
         self.camera_source = camera_source
-
+        self.logger = logger
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"{YELLOW}[ObjectDetector]{GREEN}[INFO] Usando dispositivo {self.device}{RESET}")
+        logger.info(f"Usando dispositivo {self.device}")
 
         self.model = YOLO('yolov8n.pt')
         try:
             self.model.to(self.device)
         except Exception as e:
-            print(f"{YELLOW}[ObjectDetector]{RED}[ERROR] Não foi possível mover o modelo para o dispositivo desejado: {e}{RESET}")
+            logger.error(f"Não foi possível mover o modelo para o dispositivo desejado: {e}")
 
         # Detecta se é vídeo (caminho) ou câmera (índice ou string numérica)
         if isinstance(camera_source, str) and camera_source.isdigit():
@@ -36,7 +36,7 @@ class ObjectDetector:
             self.cap = cv2.VideoCapture(camera_source)
 
         if not self.cap.isOpened():
-            print(f"{YELLOW}[ObjectDetector]{RED}[ERROR] Falha ao abrir o vídeo ou câmera ({camera_source}).{RESET}")
+            logger.error(f"Falha ao abrir o vídeo ou câmera ({camera_source}).")
             exit()
 
         # Inicializa valores padrão

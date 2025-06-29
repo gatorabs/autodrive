@@ -4,15 +4,18 @@ from queue import Empty
 from controllers.serial_comm import SerialCommunicator
 from processing.priorities_processor import set_process_priority
 from extensions.constants.colorsConstants import RED,YELLOW,RESET
+from extensions.logsExtension import Logger
 
-def data_sender_process(lane_queue, object_queue, shared_controls):
+def data_sender_process(lane_queue, object_queue, shared_controls, verbose=True):
     set_process_priority("high")
+    logger = Logger("SerialCommunicator", verbose=verbose)
 
     com_port = shared_controls.get("SENDER_COM")
     send_data = shared_controls.get("SEND_DATA")
 
     serial_comm = SerialCommunicator(com_port=com_port,
-                                     send_data=send_data)
+                                     send_data=send_data,
+                                     logger=logger)
 
     lane_data = {"speed": 255, "direction": 180}
     obj_data = {"person": 0, "semaforo": 0}
@@ -53,11 +56,11 @@ def data_sender_process(lane_queue, object_queue, shared_controls):
                 try:
                     serial_comm.send(data_to_send)
                 except Exception as e:
-                    print(f"{YELLOW}[DataSender]{RED}[ERROR] Falha ao enviar dados: {e}{RESET}")
+                    logger.error(f"Falha ao enviar dados: {e}")
                 last_send_time = current_time
 
     except Exception as e:
-        print(f"{YELLOW}[DataSender]{RED}[ERROR] Erro inesperado: {e}{RESET}")
+        logger.error(f"Erro inesperado: {e}")
     finally:
         serial_comm.close()
-        print(f"{YELLOW}[DataSender]{RED}[ERROR] Comunicação serial encerrada.{RESET}")
+        logger.warning(f"Comunicação serial encerrada.")

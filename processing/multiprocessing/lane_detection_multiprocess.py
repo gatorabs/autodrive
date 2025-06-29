@@ -2,12 +2,14 @@ from core import *
 from extensions.constants.colorsConstants import RED, RESET, YELLOW
 from extensions.constants.videoConstants import FRAME_WIDTH, FRAME_HEIGHT
 from processing.update_time_processor import update_processing_time
+from extensions.logsExtension import Logger
 
-def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_controls,
-                           video_source="test_videos/pista_01.mov"):
+def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_controls, verbose=True,
+                           video_source="test_videos/teste1.mp4"):
     set_process_priority("above_normal")
 
     TARGET_CENTER_DISTANCE = 80
+    logger = Logger("LaneDetection", verbose=verbose)
 
     # PID parâmetros
     KP = 0.3
@@ -43,7 +45,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
 
             frame = video_proc.get_frame()
             if frame is None:
-                print(f"{RED}[ERROR]{RESET} Frame não capturado. Cheque o vídeo ou câmera.")
+                logger.error(f"Frame não capturado. Cheque o vídeo ou câmera.")
                 break
 
             canny_1 = tk_controls.get("F_Canny")
@@ -65,7 +67,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 warp_points = get_warp_points_from_controls(tk_controls)
                 warped_roi = bird_eye_full(edges, warp_points, draw_on=frame)
             except cv.error as e:
-                print(f"{RED}[ERROR]{RESET} Erro no warpPerspective: {e}")
+                logger.error(f"Erro no warpPerspective: {e}")
                 continue
 
             interval = max(1, round(warped_roi.shape[0] / num_lines))
@@ -99,7 +101,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 shared_frames["display"] = jpeg_display.tobytes()
                 shared_frames["edges"] = jpeg_edges.tobytes()
             except Exception as e:
-                print(f"{RED}[ERROR]{RESET} Erro ao codificar frames: {e}")
+                logger.error(f"Erro ao codificar frames: {e}")
 
             lane_data = {"speed": speed, "direction": mapped_direction}
 
@@ -128,7 +130,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 break
 
     except Exception as e:
-        print(f"{YELLOW}[LaneDetection]{RED}[ERROR] Lane Detection Error: {e}{RESET}")
+        logger.error(f"Lane Detection Error: {e}")
 
     finally:
         video_proc.release()
