@@ -16,7 +16,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     if not webview:
         root.geometry("1400x950")
     else:
-        root.geometry("1000x600")
+        root.geometry("1400x600")
 
     style = ttk.Style()
     style.configure("TButton", font=("Arial", 10))
@@ -100,7 +100,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
 
     checkboxes = [
         ("SHOW_ROI", "Show ROI"),
-        ("LANE_LOGS", "Lane Logs"),
+        ("LANE_LOGS", "Show Lane-Logs"),
     ]
     for key, label in checkboxes:
         var = tk.BooleanVar(value=tk_controls.get(key, False))
