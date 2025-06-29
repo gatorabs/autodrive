@@ -48,6 +48,8 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 logger.error(f"Frame não capturado. Cheque o vídeo ou câmera.")
                 break
 
+            logger.verbose = tk_controls.get("LANE_LOGS")
+
             canny_1 = tk_controls.get("F_Canny")
             canny_2 = tk_controls.get("S_Canny")
             side = tk_controls.get("Side", 1)

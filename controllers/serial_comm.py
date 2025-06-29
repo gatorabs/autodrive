@@ -33,7 +33,7 @@ class SerialCommunicator:
     def send(self, data):
         if (time.time() - self.last_send_time) >= self.send_interval:
             data_string = ",".join(str(d) for d in data) + ",#"
-            print(data_string)
+            #print(data_string)
             if self.send_data and self.serial_port:
                 self.serial_port.write(data_string.encode())
             self.last_send_time = time.time()

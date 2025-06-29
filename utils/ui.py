@@ -96,9 +96,23 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
 
     # Linha 0: 5 seções lado a lado
     # Toggles
-    flags_frame = create_section("Toggles de Visualização", 0, 0)
-    for key in ["SHOW_ROI"]:
-        ttk.Button(flags_frame, text=f"Toggle {key}", command=lambda k=key: toggle_flag(k)).pack(fill="x", pady=2)
+    flags_frame = create_section("Toggles", 0, 0)
+
+    checkboxes = [
+        ("SHOW_ROI", "Show ROI"),
+        ("LANE_LOGS", "Lane Logs"),
+    ]
+    for key, label in checkboxes:
+        var = tk.BooleanVar(value=tk_controls.get(key, False))
+        vars[key] = var
+
+        ttk.Checkbutton(
+            flags_frame,
+            text=label,
+            variable=var,
+            command=lambda k=key, v=var: tk_controls.__setitem__(k, v.get())
+        ).pack(fill="x", pady=2)
+
     # Filtragem
     filter_frame = create_section("Parâmetros de Filtragem", 0, 1)
     for key in ["F_Canny", "S_Canny"]:

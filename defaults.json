@@ -1,5 +1,6 @@
 {
     "SHOW_ROI": true,
+    "LANE_LOGS": true,
     "F_Canny": 20,
     "S_Canny": 152,
     "Speed": 1,
