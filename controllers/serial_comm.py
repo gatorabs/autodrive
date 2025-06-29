@@ -17,6 +17,7 @@ class SerialCommunicator:
         self.last_send_time = time.time()
         self.com_port = com_port
         self.logger = logger
+        self.baud_rate = baud_rate
 
         if send_data or open_for_receive:
             try:

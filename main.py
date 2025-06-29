@@ -1,5 +1,4 @@
 from core import *
-import multiprocessing as mp
 
 from extensions.constants.colorsConstants import RED, RESET
 from utils.flags_init import setup_flag_interface

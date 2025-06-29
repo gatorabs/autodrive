@@ -1,17 +1,6 @@
-
-import cv2 as cv
-import time
-import serial
-from controllers.pid_controller import PIDController
-from controllers.lane_detector import calculate_center_distance
-from controllers.serial_comm import SerialCommunicator
-from processing.video_processor import VideoProcessor
-from processing.priorities_processor import set_process_priority
-from processing.warp_perspective_processor import bird_eye_full, get_warp_points_from_controls
-from processing.object_detection_processor import ObjectDetector
-from utils.display import draw_overlays, create_main_window
-from processing.multiprocessing.data_sender_multiprocess import data_sender_process
-from processing.multiprocessing.lane_detection_multiprocess import lane_detection_process
-from processing.multiprocessing.object_detector_multiprocess import object_detection_process
-from processing.multiprocessing.security_multiprocess import security_process
+from multiprocess.data_sender_multiprocess import data_sender_process
+from multiprocess.lane_detection_multiprocess import lane_detection_process
+from multiprocess.object_detector_multiprocess import object_detection_process
+from multiprocess.security_multiprocess import security_process
 from flask_server.flask_app import start_flask_server
+import multiprocessing as mp

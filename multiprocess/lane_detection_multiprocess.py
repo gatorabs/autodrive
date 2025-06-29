@@ -1,5 +1,5 @@
-from core import *
-from extensions.constants.colorsConstants import RED, RESET, YELLOW
+
+from core.__init__lane import *
 from extensions.constants.videoConstants import FRAME_WIDTH, FRAME_HEIGHT
 from processing.update_time_processor import update_processing_time
 from extensions.logsExtension import Logger
@@ -109,7 +109,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                 lane_queue.put(lane_data)
 
             frame_count, fps, avg_time, total_processing_time = update_processing_time(
-                shared_controls, start_time, total_processing_time, frame_count)
+                logger, start_time, total_processing_time, frame_count)
 
             shared_controls["car_info"] = lane_data
             shared_controls["time_info"] = {
@@ -125,7 +125,7 @@ def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_contro
                         cv.destroyWindow("warped")
                 except cv.error:
                     pass
-                
+
             if cv.waitKey(1) == ord('q'):
                 break
 
