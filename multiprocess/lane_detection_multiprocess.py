@@ -1,11 +1,15 @@
-
 from core.__init__lane import *
 from extensions.constants.videoConstants import FRAME_WIDTH, FRAME_HEIGHT
 from processing.update_time_processor import update_processing_time
 from extensions.logsExtension import Logger
 
-def lane_detection_process(lane_queue, shared_controls, shared_frames, tk_controls, verbose=True,
-                           video_source="test_videos/teste1.mp4"):
+def lane_detection_process(lane_queue,
+                           shared_controls,
+                           shared_frames,
+                           tk_controls,
+                           verbose=True,
+                           video_source="test_videos/pista_01.mp4"):
+
     set_process_priority("above_normal")
 
     TARGET_CENTER_DISTANCE = 80

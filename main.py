@@ -29,39 +29,51 @@ if __name__ == '__main__':
 
     shared_frames = manager.dict()
 
-    lane_source = user_flags.get("LANE_SOURCE", 0)
-    object_source = user_flags.get("OBJECT_SOURCE", "test_videos/people.mp4")
+    lane_source = user_flags.get("LANE_SOURCE")
+    object_source = user_flags.get("OBJECT_SOURCE")
 
     lane_queue = mp.Queue(maxsize=10)
     object_queue = mp.Queue(maxsize=10)
-    verbose = True
 
-    lane_process = mp.Process(target=lane_detection_process,
-                              args=(lane_queue,
-                                    shared_controls,
-                                    shared_frames,
-                                    tk_controls,
-                                    verbose,
-                                    lane_source))
+    lane_process = mp.Process(
+        target=lane_detection_process,
+        kwargs={
+            'lane_queue': lane_queue,
+            'shared_controls': shared_controls,
+            'shared_frames': shared_frames,
+            'tk_controls': tk_controls,
+            'video_source': lane_source
+        }
+    )
 
-    object_process = mp.Process(target=object_detection_process,
-                                args=(object_queue,
-                                      shared_controls,
-                                      shared_frames,
-                                      tk_controls,
-                                      verbose,
-                                      object_source))
+    object_process = mp.Process(
+        target=object_detection_process,
+        kwargs={
+            'object_queue': object_queue,
+            'shared_controls': shared_controls,
+            'shared_frames': shared_frames,
+            'tk_controls': tk_controls,
+            'camera_source': object_source,
+        }
+    )
 
-    sender_process = mp.Process(target=data_sender_process,
-                                args=(lane_queue,
-                                      object_queue,
-                                      shared_controls,
-                                      verbose))
+    sender_process = mp.Process(
+        target=data_sender_process,
+        kwargs={
+            'lane_queue': lane_queue,
+            'object_queue': object_queue,
+            'shared_controls': shared_controls,
+        }
+    )
 
-    tk_process = mp.Process(target=create_responsive_interface,
-                            args=(tk_controls,
-                                  shared_frames,
-                                  shared_controls))
+    tk_process = mp.Process(
+        target=create_responsive_interface,
+        kwargs={
+            'tk_controls': tk_controls,
+            'shared_frames': shared_frames,
+            'shared_controls': shared_controls
+        }
+    )
 
     processes = [tk_process, lane_process, object_process, sender_process,]
 

@@ -1,5 +1,4 @@
 import time
-from extensions.constants.colorsConstants import YELLOW, GREEN, RESET
 
 def update_processing_time(logger, start_time, total_time, frame_count, log_interval=100):
     end_time = time.time()

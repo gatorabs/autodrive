@@ -3,10 +3,13 @@ from queue import Empty
 
 from controllers.serial_comm import SerialCommunicator
 from processing.priorities_processor import set_process_priority
-from extensions.constants.colorsConstants import RED,YELLOW,RESET
 from extensions.logsExtension import Logger
 
-def data_sender_process(lane_queue, object_queue, shared_controls, verbose=True):
+def data_sender_process(lane_queue,
+                        object_queue,
+                        shared_controls,
+                        verbose=True):
+
     set_process_priority("high")
     logger = Logger("SerialCommunicator", verbose=verbose)
 

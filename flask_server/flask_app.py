@@ -4,8 +4,6 @@ import numpy as np
 import cv2
 from flask_cors import CORS
 
-from processing.priorities_processor import set_process_priority
-
 app = Flask(__name__)
 CORS(app)
 

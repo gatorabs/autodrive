@@ -81,8 +81,7 @@ void parseAndExecute(String data) {
     speedValue = constrain(values[1], 0, 255);
     extraValue = values[2];
 
-    int mappedDirection = map(direction, -32, 32, 0, 180);
-    mappedDirection = constrain(mappedDirection, 0, 180);  
+    mappedDirection = constrain(direction, 0, 180);  
     servo.write(mappedDirection); 
 
     canMessage = can.readCanMessage();

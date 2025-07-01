@@ -1,11 +1,15 @@
 import time
-
 from processing.object_detection_processor import ObjectDetector
 from processing.priorities_processor import set_process_priority
-from extensions.constants.colorsConstants import RED,RESET,YELLOW
 from extensions.logsExtension import Logger
 
-def object_detection_process(object_queue, shared_controls, shared_frames, tk_controls, verbose=True, camera_source=1):
+def object_detection_process(object_queue,
+                             shared_controls,
+                             shared_frames,
+                             tk_controls,
+                             verbose=True,
+                             camera_source="test_videos/people.mp4"):
+
     set_process_priority("high")
     object_serial_data = shared_controls["object_serial_data"]
     logger = Logger("ObjectDetection", verbose=verbose)
