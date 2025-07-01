@@ -1,4 +1,4 @@
-from src.infrastructure.constants.colorsConstants import YELLOW, RED, GREEN, RESET
+from src.infrastructure.constants.colors_constants import YELLOW, RED, GREEN, RESET
 
 class Logger:
     """

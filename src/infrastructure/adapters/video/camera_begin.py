@@ -2,7 +2,7 @@ import cv2
 import contextlib
 import os
 import glob
-from src.infrastructure.constants.colorsConstants import RED, YELLOW, GREEN, RESET
+from src.infrastructure.constants.colors_constants import RED, YELLOW, GREEN, RESET
 
 def detect_camera_indices(max_tested=2):
     available = []

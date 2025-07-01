@@ -1,7 +1,7 @@
 import json
 import os
-from src.infrastructure.constants.colorsConstants import YELLOW, RED, RESET
-from src.infrastructure.constants.flagsConstants import track_flags
+from src.infrastructure.constants.colors_constants import YELLOW, RED, RESET
+from src.infrastructure.constants.flags_constants import track_flags
 
 CALIBRATION_FILE = os.path.join("config", "calibration_data.json")
 DEFAULTS_FILE    = os.path.join("config", "defaults.json")
