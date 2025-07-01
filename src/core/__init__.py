@@ -8,5 +8,5 @@ from src.infrastructure.adapters.interface.flags_init import setup_flag_interfac
 from src.infrastructure.adapters.interface.ui import create_responsive_interface
 from src.infrastructure.adapters.calibration.config_persistence import load_calibration
 
-from flask_server.flask_app import start_flask_server
+from src.infrastructure.adapters.web_server.flask_server import start_flask_server
 import multiprocessing as mp

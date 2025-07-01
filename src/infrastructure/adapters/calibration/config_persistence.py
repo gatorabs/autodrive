@@ -3,8 +3,8 @@ import os
 from src.infrastructure.constants.colorsConstants import YELLOW, RED, RESET
 from src.infrastructure.constants.flagsConstants import track_flags
 
-CALIBRATION_FILE = "calibration_data.json"
-DEFAULTS_FILE = "defaults.json"
+CALIBRATION_FILE = os.path.join("config", "calibration_data.json")
+DEFAULTS_FILE    = os.path.join("config", "defaults.json")
 
 def save_calibration(data):
     with open(CALIBRATION_FILE, 'w') as f:
