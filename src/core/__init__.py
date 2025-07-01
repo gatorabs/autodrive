@@ -1,0 +1,12 @@
+from src.application.data_sender_multiprocess import data_sender_process
+from src.application.lane_detection_multiprocess import lane_detection_process
+from src.application.object_detector_multiprocess import object_detection_process
+from src.application.security_multiprocess import security_process
+
+from src.infrastructure.constants.colorsConstants import RED, RESET
+from src.infrastructure.adapters.interface.flags_init import setup_flag_interface
+from src.infrastructure.adapters.interface.ui import create_responsive_interface
+from src.infrastructure.adapters.calibration.config_persistence import load_calibration
+
+from flask_server.flask_app import start_flask_server
+import multiprocessing as mp

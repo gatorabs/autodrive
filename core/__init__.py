@@ -1,6 +1,0 @@
-from multiprocess.data_sender_multiprocess import data_sender_process
-from multiprocess.lane_detection_multiprocess import lane_detection_process
-from multiprocess.object_detector_multiprocess import object_detection_process
-from multiprocess.security_multiprocess import security_process
-from flask_server.flask_app import start_flask_server
-import multiprocessing as mp

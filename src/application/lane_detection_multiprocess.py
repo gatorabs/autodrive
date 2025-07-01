@@ -1,7 +1,6 @@
-from core.__init__lane import *
-from extensions.constants.videoConstants import FRAME_WIDTH, FRAME_HEIGHT
-from processing.update_time_processor import update_processing_time
-from extensions.logsExtension import Logger
+
+from src.core.__init__lane import *
+
 
 def lane_detection_process(lane_queue,
                            shared_controls,

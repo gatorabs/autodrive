@@ -1,6 +1,6 @@
 import time
-from controllers.serial_comm import SerialCommunicator
-from processing.priorities_processor import set_process_priority
+from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
+from src.infrastructure.utils.priorities_processor import set_process_priority
 
 
 def security_process(shared_controls):

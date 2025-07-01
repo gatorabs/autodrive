@@ -1,9 +1,4 @@
-from core import *
-
-from extensions.constants.colorsConstants import RED, RESET
-from utils.flags_init import setup_flag_interface
-from utils.ui import create_responsive_interface
-from utils.calibration_io import load_calibration
+from src.core import *
 
 if __name__ == '__main__':
     user_flags = setup_flag_interface()

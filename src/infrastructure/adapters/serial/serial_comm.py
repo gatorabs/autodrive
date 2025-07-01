@@ -1,7 +1,6 @@
 import time
 import serial
-from extensions.constants.colorsConstants import RED, RESET, YELLOW
-from extensions.logsExtension import Logger
+
 
 class SerialCommunicator:
     def __init__(self,

@@ -1,7 +1,7 @@
 import time
-from processing.object_detection_processor import ObjectDetector
-from processing.priorities_processor import set_process_priority
-from extensions.logsExtension import Logger
+from src.infrastructure.adapters.detection.object_detection import ObjectDetector
+from src.infrastructure.utils.priorities_processor import set_process_priority
+from src.infrastructure.logging.logger import Logger
 
 def object_detection_process(object_queue,
                              shared_controls,

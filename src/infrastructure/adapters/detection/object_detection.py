@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 import torch
 import numpy as np
-from extensions.constants.videoConstants import FRAME_HEIGHT, FRAME_WIDTH
+from src.infrastructure.constants.videoConstants import FRAME_HEIGHT, FRAME_WIDTH
 
 TARGET_CLASSES = {0, 9}
 

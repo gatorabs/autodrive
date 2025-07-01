@@ -2,7 +2,7 @@ import cv2
 import contextlib
 import os
 import glob
-from extensions.constants.colorsConstants import RED, YELLOW, GREEN, RESET
+from src.infrastructure.constants.colorsConstants import RED, YELLOW, GREEN, RESET
 
 def detect_camera_indices(max_tested=2):
     available = []
@@ -22,7 +22,7 @@ def detect_camera_indices(max_tested=2):
         print(f"{YELLOW}[FLAGS]{RESET}{GREEN}[INFO] Câmeras detectadas:{RESET} (índices {', '.join(available)})")
     return available
 
-def get_video_files_from_folder(folder="test_videos"):
+def get_video_files_from_folder(folder="resources/test_videos"):
     video_exts = ("*.mp4", "*.avi", "*.mov", "*.mkv")
     files = []
     for ext in video_exts:
