@@ -81,6 +81,8 @@ def lane_detection_process(lane_queue,
             lost_ref = (side == 1 and avg_right == float('inf')) or \
                        (side == 0 and avg_left == float('inf'))
 
+            has_ref = not lost_ref
+
             if lost_ref:
                 speed = 0
             else:
@@ -97,7 +99,8 @@ def lane_detection_process(lane_queue,
                 frame=frame,
                 distances=(avg_left, avg_right),
                 warp_points=warp_points,
-                edges=edges
+                edges=edges,
+                has_ref=has_ref
             )
 
             try:
