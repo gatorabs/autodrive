@@ -26,14 +26,14 @@ def lane_detection_process(lane_queue,
     def map_direction(value, in_min=-32, in_max=32, out_min=0, out_max=180):
         return int((value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
 
-    def make_pid(use_new: bool):
+    def pid_setup(use_new: bool):
         cls = PIDV2Controller if use_new else PIDController
         return cls(set_point=TARGET_CENTER_DISTANCE,
                    kp=KP, ki=KI, kd=KD,
                    min_output=MIN_OUTPUT, max_output=MAX_OUTPUT,
                    logger=logger)
 
-    pid = make_pid(shared_controls.get("NEW_PID"))
+    pid = pid_setup(shared_controls.get("NEW_PID"))
 
     video_proc = VideoProcessor(video_source=video_source,
                                 frame_width=FRAME_WIDTH,
@@ -48,15 +48,12 @@ def lane_detection_process(lane_queue,
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
 
-            canny_1 = tk_controls.get("F_Canny")
-            canny_2 = tk_controls.get("S_Canny")
-            side = tk_controls.get("Side", 1)
-            num_lines = tk_controls.get("Lines", 10)
-
-            pid.set_point = tk_controls.get("Distance", TARGET_CENTER_DISTANCE)
-            pid.kp = tk_controls.get("KP", KP)
-            pid.ki = tk_controls.get("KI", KI)
-            pid.kd = tk_controls.get("KD", KD)
+            update_pid_from_controls(
+                pid=pid,
+                controls=tk_controls,
+                default_set_point=TARGET_CENTER_DISTANCE,
+                default_kp=KP, default_ki=KI, default_kd=KD
+            )
 
             frame = video_proc.get_frame()
             if frame is None:
@@ -65,37 +62,31 @@ def lane_detection_process(lane_queue,
 
             logger.verbose = tk_controls.get("LANE_LOGS")
 
-            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-            blur = cv.GaussianBlur(gray, (5, 5), 0)
-            edges = cv.Canny(blur, canny_1, canny_2)
-            edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, morph_kernel)
-
             try:
-                warp_points = get_warp_points_from_controls(tk_controls)
-                warped_roi = bird_eye_full(edges, warp_points, draw_on=frame)
+                (edges,
+                 warp_points,
+                 warped_roi,
+                 side,
+                 num_lines) = preprocess(frame=frame,
+                                         tk_controls=tk_controls,
+                                         morph_kernel=morph_kernel)
             except cv.error as e:
-                logger.error(f"Erro no warpPerspective: {e}")
+                logger.error(f"Erro no preprocess: {e}")
                 continue
 
-            interval = max(1, round(warped_roi.shape[0] / num_lines))
-            avg_left, avg_right = calculate_center_distance(warped_roi, interval)
+            avg_left, avg_right, has_ref = compute_distances(warped_roi, side, num_lines)
 
-            lost_ref = (side == 1 and avg_right == float('inf')) or \
-                       (side == 0 and avg_left == float('inf'))
-
-            has_ref = not lost_ref
-
-            if lost_ref:
-                speed = 0
-            else:
+            if has_ref:
                 speed = tk_controls.get("Speed")
 
                 if side == 1:
                     direction = round(pid.calculate(avg_right))
                 else:
                     direction = round(pid.calculate(avg_left))
+            else:
+                speed = 0
 
-            mapped_direction = map_direction(direction)
+            mapped_direction = map_direction(value=direction)
 
             frame_display = draw_overlays(
                 frame=frame,
@@ -106,27 +97,25 @@ def lane_detection_process(lane_queue,
                 mapped_direction=mapped_direction
             )
 
-            try:
-                _, jpeg_display = cv.imencode('.jpg', frame_display)
-                _, jpeg_edges = cv.imencode('.jpg', edges)
-                shared_frames["display"] = jpeg_display.tobytes()
-                shared_frames["edges"] = jpeg_edges.tobytes()
-            except Exception as e:
-                logger.error(f"Erro ao codificar frames: {e}")
-
             lane_data = {"speed": speed, "direction": mapped_direction}
 
-            if not lane_queue.full():
-                lane_queue.put(lane_data)
-
             frame_count, fps, avg_time, total_processing_time = update_processing_time(
-                logger, start_time, total_processing_time, frame_count)
+                logger=logger,
+                start_time=start_time,
+                total_time=total_processing_time,
+                frame_count=frame_count)
 
-            shared_controls["car_info"] = lane_data
-            shared_controls["time_info"] = {
-                "fps": round(fps, 0),
-                "total_processing_time": round(avg_time, 2)
-            }
+            publish(
+                frame_display=frame_display,
+                edges=edges,
+                lane_queue=lane_queue,
+                shared_frames=shared_frames,
+                shared_controls=shared_controls,
+                lane_data=lane_data,
+                fps=fps,
+                avg_time=avg_time,
+                logger=logger
+            )
 
             if tk_controls.get("SHOW_ROI", False):
                 cv.imshow("warped", warped_roi)
