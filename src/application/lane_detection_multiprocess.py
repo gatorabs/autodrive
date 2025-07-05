@@ -10,29 +10,10 @@ def lane_detection_process(lane_queue,
 
     set_process_priority("above_normal")
 
-    TARGET_CENTER_DISTANCE = 80
     logger = Logger("LaneDetection", verbose=verbose)
 
-    # PID parâmetros
-    KP = 0.3
-    KI = 0.003
-    KD = 0.015
-    MIN_OUTPUT = -32
-    MAX_OUTPUT = 32
 
-    direction = 0
-
-    def map_direction(value, in_min=-32, in_max=32, out_min=0, out_max=180):
-        return int((value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
-
-    def pid_setup(use_new: bool):
-        cls = PIDV2Controller if use_new else PIDController
-        return cls(set_point=TARGET_CENTER_DISTANCE,
-                   kp=KP, ki=KI, kd=KD,
-                   min_output=MIN_OUTPUT, max_output=MAX_OUTPUT,
-                   logger=logger)
-
-    pid = pid_setup(shared_controls.get("NEW_PID"))
+    pid = pid_setup(shared_controls.get("NEW_PID"), logger)
 
     video_proc = VideoProcessor(video_source=video_source,
                                 frame_width=FRAME_WIDTH,
@@ -42,24 +23,18 @@ def lane_detection_process(lane_queue,
 
     total_processing_time = 0
     frame_count = 0
+    direction = 0
 
     try:
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
 
-            update_pid_from_controls(
-                pid=pid,
-                controls=tk_controls,
-                default_set_point=TARGET_CENTER_DISTANCE,
-                default_kp=KP, default_ki=KI, default_kd=KD
-            )
+            logger.verbose = tk_controls.get("LANE_LOGS")
 
             frame = video_proc.get_frame()
             if frame is None:
                 logger.error(f"Frame não capturado. Cheque o vídeo ou câmera.")
                 break
-
-            logger.verbose = tk_controls.get("LANE_LOGS")
 
             try:
                 (edges,
@@ -74,6 +49,13 @@ def lane_detection_process(lane_queue,
                 continue
 
             avg_left, avg_right, has_ref = compute_distances(warped_roi, side, num_lines)
+
+            update_pid_from_controls(
+                pid=pid,
+                controls=tk_controls,
+                default_set_point=TARGET_CENTER_DISTANCE,
+                default_kp=KP, default_ki=KI, default_kd=KD
+            )
 
             if has_ref:
                 speed = tk_controls.get("Speed")
