@@ -19,7 +19,7 @@ def lane_detection_process(lane_queue,
                                 frame_width=FRAME_WIDTH,
                                 frame_height=FRAME_HEIGHT)
 
-    morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (4, 4))
+    morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
 
     total_processing_time = 0
     frame_count = 0

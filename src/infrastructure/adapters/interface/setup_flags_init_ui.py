@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from src.infrastructure.constants.flags_constants import flags
-from src.infrastructure.adapters.video.camera_begin import detect_camera_indices, get_video_files_from_folder
+from src.infrastructure.adapters.video.begin_the_video import detect_camera_indices, get_video_files_from_folder
 
 def setup_flag_interface():
     root = tk.Tk()
