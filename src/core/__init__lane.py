@@ -13,4 +13,3 @@ from src.infrastructure.utils.update_time_processor import update_processing_tim
 from src.infrastructure.logging.logger import Logger
 from src.application.usecases.publishers.image_publisher import publish
 from src.application.services.pid_service import update_pid_from_controls
-from src.application.state.lane_process_state import LaneDetectionState
