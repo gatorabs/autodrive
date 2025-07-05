@@ -23,11 +23,10 @@ class SerialCommunicator:
                 self.serial_port = serial.Serial(com_port, baud_rate)
                 self.logger.info(f"Porta {self.com_port} aberta a {self.baud_rate} bps")
                 time.sleep(1)
+
             except Exception as e:
-                self.logger.error(f"Erro ao abrir {self.com_port}: {e}")
+                self.logger.error(f"Erro ao abrir {com_port}: {e}")
                 self.serial_port = None
-        else:
-            self.serial_port = None
 
     def send(self, data):
         if (time.time() - self.last_send_time) >= self.send_interval:
