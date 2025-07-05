@@ -48,7 +48,9 @@ def lane_detection_process(lane_queue,
                 logger.error(f"Erro no preprocess: {e}")
                 continue
 
-            avg_left, avg_right, has_ref = compute_distances(warped_roi, side, num_lines)
+            avg_left, avg_right, has_ref = compute_distances(warped_roi=warped_roi,
+                                                             side=side,
+                                                             num_lines=num_lines)
 
             update_pid_from_controls(
                 pid=pid,
@@ -69,6 +71,11 @@ def lane_detection_process(lane_queue,
 
             mapped_direction = map_direction(value=direction)
 
+            lane_data = {
+                "speed": speed,
+                "direction": mapped_direction
+                         }
+
             frame_display = draw_overlays(
                 frame=frame,
                 distances=(avg_left, avg_right),
@@ -77,8 +84,6 @@ def lane_detection_process(lane_queue,
                 has_ref=has_ref,
                 mapped_direction=mapped_direction
             )
-
-            lane_data = {"speed": speed, "direction": mapped_direction}
 
             frame_count, fps, avg_time, total_processing_time = update_processing_time(
                 logger=logger,
