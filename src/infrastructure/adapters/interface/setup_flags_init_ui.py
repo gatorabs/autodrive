@@ -1,7 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
 from src.infrastructure.constants.flags_constants import flags
-from src.infrastructure.adapters.video.begin_the_video import detect_camera_indices, get_video_files_from_folder
+from src.infrastructure.adapters.video.begin_the_video import (
+    detect_camera_indices,
+    get_video_files_from_folder,
+)
+from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 
 def setup_flag_interface():
     root = tk.Tk()
@@ -40,18 +44,28 @@ def setup_flag_interface():
         ttk.Checkbutton(flags_frame, text=name, variable=var).pack(anchor="w", pady=2)
         bool_vars[name] = var
 
-    # === Comunicação ===
+    # === Comunicação (COM ports) ===
     com_frame = ttk.LabelFrame(main_frame, text="Portas de Comunicação", padding=10)
     com_frame.pack(fill="x", padx=5, pady=10)
+
+    # usa o método estático para obter as COM disponíveis
+    available_coms = SerialCommunicator.list_available_ports()
 
     for name, default in com_defaults.items():
         row = ttk.Frame(com_frame)
         row.pack(fill="x", pady=2)
         ttk.Label(row, text=name, width=16).pack(side="left")
-        entry = ttk.Entry(row)
-        entry.insert(0, default)
-        entry.pack(side="left", fill="x", expand=True)
-        com_vars[name] = entry
+
+        combo = ttk.Combobox(row, values=available_coms, width=30)
+        # se a porta padrão existir, seta; senão escolhe a primeira disponível (ou deixa em branco)
+        if default in available_coms:
+            combo.set(default)
+        elif available_coms:
+            combo.set(available_coms[0])
+        else:
+            combo.set(default)
+        combo.pack(side="left", fill="x", expand=True)
+        com_vars[name] = combo
 
     # === Fontes de Vídeo ===
     video_frame = ttk.LabelFrame(main_frame, text="Fontes de Vídeo ou Câmera", padding=10)
@@ -77,8 +91,8 @@ def setup_flag_interface():
     def submit():
         for name, var in bool_vars.items():
             result[name] = var.get()
-        for name, entry in com_vars.items():
-            result[name] = entry.get()
+        for name, widget in com_vars.items():
+            result[name] = widget.get()
         for name, widget in video_vars.items():
             val = widget.get()
             result[name] = int(val) if val.isdigit() else val

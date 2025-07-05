@@ -1,6 +1,7 @@
 import time
+from typing import List
+from serial.tools import list_ports
 import serial
-
 
 class SerialCommunicator:
     def __init__(self,
@@ -27,6 +28,10 @@ class SerialCommunicator:
             except Exception as e:
                 self.logger.error(f"Erro ao abrir {com_port}: {e}")
                 self.serial_port = None
+
+    @staticmethod
+    def list_available_ports() -> List[str]:
+        return [p.device for p in list_ports.comports()]
 
     def send(self, data):
         if (time.time() - self.last_send_time) >= self.send_interval:
