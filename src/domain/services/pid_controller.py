@@ -1,7 +1,7 @@
 import time
 
 class PIDController:
-    def __init__(self, set_point, kp, ki, kd, min_output, max_output):
+    def __init__(self, set_point, kp, ki, kd, min_output, max_output, logger):
         self.set_point = set_point
         self.kp = kp
         self.ki = ki
@@ -11,6 +11,8 @@ class PIDController:
         self.integral = 0
         self.last_error = 0
         self.last_time = time.time()
+        self.logger = logger
+        logger.info("Inicializando com PID V1.")
 
     def calculate(self, input_val):
         now = time.time()
@@ -32,7 +34,7 @@ class PIDController:
 
         output = p + self.integral + d
         output = max(min(output, self.max_output), self.min_output)
-        
+
         if abs(output) < 2:
             output = 0
 

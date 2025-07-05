@@ -2,6 +2,7 @@ import cv2 as cv
 import time
 import serial
 from src.domain.services.pid_controller import PIDController
+from src.domain.services.pid_v2_controller import PIDV2Controller
 from src.infrastructure.adapters.detection.lane_detection import calculate_center_distance
 from src.infrastructure.adapters.video.video_processor import VideoProcessor
 from src.infrastructure.utils.priorities_processor import set_process_priority

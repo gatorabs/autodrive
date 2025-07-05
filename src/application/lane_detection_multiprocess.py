@@ -26,12 +26,14 @@ def lane_detection_process(lane_queue,
     def map_direction(value, in_min=-32, in_max=32, out_min=0, out_max=180):
         return int((value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
 
-    pid = PIDController(set_point=TARGET_CENTER_DISTANCE,
-                        kp=KP,
-                        ki=KI,
-                        kd=KD,
-                        min_output=MIN_OUTPUT,
-                        max_output=MAX_OUTPUT)
+    def make_pid(use_new: bool):
+        cls = PIDV2Controller if use_new else PIDController
+        return cls(set_point=TARGET_CENTER_DISTANCE,
+                   kp=KP, ki=KI, kd=KD,
+                   min_output=MIN_OUTPUT, max_output=MAX_OUTPUT,
+                   logger=logger)
+
+    pid = make_pid(shared_controls.get("NEW_PID"))
 
     video_proc = VideoProcessor(video_source=video_source,
                                 frame_width=FRAME_WIDTH,
@@ -46,22 +48,22 @@ def lane_detection_process(lane_queue,
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
 
+            canny_1 = tk_controls.get("F_Canny")
+            canny_2 = tk_controls.get("S_Canny")
+            side = tk_controls.get("Side", 1)
+            num_lines = tk_controls.get("Lines", 10)
+
+            pid.set_point = tk_controls.get("Distance", TARGET_CENTER_DISTANCE)
+            pid.kp = tk_controls.get("KP", KP)
+            pid.ki = tk_controls.get("KI", KI)
+            pid.kd = tk_controls.get("KD", KD)
+
             frame = video_proc.get_frame()
             if frame is None:
                 logger.error(f"Frame não capturado. Cheque o vídeo ou câmera.")
                 break
 
             logger.verbose = tk_controls.get("LANE_LOGS")
-
-            canny_1 = tk_controls.get("F_Canny")
-            canny_2 = tk_controls.get("S_Canny")
-            side = tk_controls.get("Side", 1)
-            num_lines = tk_controls.get("Lines", 10)
-
-            pid.set_point = tk_controls.get("Distance", 80)
-            pid.kp = tk_controls.get("KP", 0.3)
-            pid.ki = tk_controls.get("KI", 0.003)
-            pid.kd = tk_controls.get("KD", 0.015)
 
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
             blur = cv.GaussianBlur(gray, (5, 5), 0)
@@ -100,7 +102,8 @@ def lane_detection_process(lane_queue,
                 distances=(avg_left, avg_right),
                 warp_points=warp_points,
                 edges=edges,
-                has_ref=has_ref
+                has_ref=has_ref,
+                mapped_direction=mapped_direction
             )
 
             try:
