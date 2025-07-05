@@ -1,0 +1,9 @@
+from src.application.data_sender_multiprocess import data_sender_process
+from src.application.lane_detection_multiprocess import lane_detection_process
+from src.application.object_detector_multiprocess import object_detection_process
+from src.application.security_multiprocess import security_process
+
+from src.infrastructure.adapters.web_server.flask_server import start_flask_server
+from src.infrastructure.adapters.interface.ui import create_responsive_interface
+
+import multiprocessing as mp

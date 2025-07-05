@@ -1,90 +1,40 @@
 from src.core import *
 
-if __name__ == '__main__':
-    user_flags = setup_flag_interface()
-
+def main():
     mp.set_start_method('spawn')
-    manager = mp.Manager()
 
+    user_flags = setup_flag_interface()
     calibrated_data = load_calibration()
 
-    shared_controls = manager.dict({
-        **user_flags,
-        "RUNNING": True,
-        "object_serial_data": manager.list([0, 0, 0]),
-    })
+    with mp.Manager() as manager:
+        shared_controls = manager.dict(
+            init_shared_controls(user_flags, calibrated_data)
+        )
 
-    tk_controls = manager.dict(calibrated_data)
+        tk_controls = manager.dict(calibrated_data)
+        shared_frames = manager.dict()
 
-    for key, value in shared_controls.items():
-        if isinstance(value, bool) and not value:
-            print(f"{key}: {RED}{value}{RESET}")
-        else:
-            print(f"{key}: {value}")
+        print_initial_flags(shared_controls)
 
-    shared_frames = manager.dict()
+        processes = create_processes(
+            shared_controls,
+            shared_frames,
+            tk_controls,
+            user_flags
+        )
 
-    lane_source = user_flags.get("LANE_SOURCE")
-    object_source = user_flags.get("OBJECT_SOURCE")
-
-    lane_queue = mp.Queue(maxsize=10)
-    object_queue = mp.Queue(maxsize=10)
-
-    lane_process = mp.Process(
-        target=lane_detection_process,
-        kwargs={
-            'lane_queue': lane_queue,
-            'shared_controls': shared_controls,
-            'shared_frames': shared_frames,
-            'tk_controls': tk_controls,
-            'video_source': lane_source
-        }
-    )
-
-    object_process = mp.Process(
-        target=object_detection_process,
-        kwargs={
-            'object_queue': object_queue,
-            'shared_controls': shared_controls,
-            'shared_frames': shared_frames,
-            'tk_controls': tk_controls,
-            'camera_source': object_source,
-        }
-    )
-
-    sender_process = mp.Process(
-        target=data_sender_process,
-        kwargs={
-            'lane_queue': lane_queue,
-            'object_queue': object_queue,
-            'shared_controls': shared_controls,
-        }
-    )
-
-    tk_process = mp.Process(
-        target=create_responsive_interface,
-        kwargs={
-            'tk_controls': tk_controls,
-            'shared_frames': shared_frames,
-            'shared_controls': shared_controls
-        }
-    )
-
-    processes = [tk_process, lane_process, object_process, sender_process,]
-
-    if shared_controls["WEBVIEW"]:
-        flask_process = mp.Process(target=start_flask_server, args=(shared_frames, shared_controls))
-        processes.append(flask_process)
-
-    for p in processes:
-        p.start()
-
-    try:
         for p in processes:
-            p.join()
-    except KeyboardInterrupt:
-        print("Interrompido pelo usuário.")
-        shared_controls["RUNNING"] = False
-        for p in processes:
-            if p.is_alive():
-                p.terminate()
+            p.start()
+
+        try:
+            for p in processes:
+                p.join()
+        except KeyboardInterrupt:
+            print("Interrompido pelo usuário.")
+            shared_controls["RUNNING"] = False
+            for p in processes:
+                if p.is_alive():
+                    p.terminate()
+
+if __name__ == '__main__':
+    main()

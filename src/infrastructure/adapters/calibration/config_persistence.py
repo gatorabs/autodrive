@@ -27,7 +27,6 @@ def save_defaults(data):
     with open(DEFAULTS_FILE, 'w') as f:
         json.dump(data, f, indent=4)
 
-
 def load_defaults():
     if os.path.exists(DEFAULTS_FILE):
         try:
