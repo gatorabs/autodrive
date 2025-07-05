@@ -12,8 +12,8 @@ def publish(
     logger
 ):
     """
-    Encodes display frames to JPEG, pushes driving commands to the queue,
-    and updates shared memory with frame bytes and telemetry.
+    Codifica quadros de exibição em JPEG, envia comandos de direção para a fila
+    e atualiza a memória compartilhada com bytes de quadro e telemetria.
     """
 
     try:
