@@ -18,23 +18,14 @@ def object_detection_process(object_queue,
                                      logger=logger)
 
     try:
-        send_interval = 0.05  # intervalo em segundos
-        last_put_time = time.time()
-
-        # Inicia loop principal de detecção
         while shared_controls.get("RUNNING", True):
 
             object_detector.process_frame()
-            current_time = time.time()
 
-            if (current_time - last_put_time) >= send_interval:
-                object_data = {"person": object_serial_data[2], "semaforo": object_serial_data[1]}
-                if not object_queue.full():
-                    object_queue.put(object_data)
-                last_put_time = current_time
-            else:
-                remaining = send_interval - (current_time - last_put_time)
-                time.sleep(remaining)
+            object_data = {"person": object_serial_data[2], "semaforo": object_serial_data[1]}
+            if not object_queue.full():
+                object_queue.put(object_data)
+
     except Exception as e:
         logger.error(f"Object Detection Error:{e}")
     finally:
