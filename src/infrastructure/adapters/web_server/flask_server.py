@@ -1,4 +1,4 @@
-from flask import Flask, Response, render_template, jsonify
+from flask import Flask, Response, render_template, jsonify, stream_with_context
 import time
 import numpy as np
 import cv2
@@ -17,33 +17,26 @@ def start_flask_server(frames_dict, controls_dict):
     app.run(host='0.0.0.0', port=5000)
 
 @app.route('/api/car_info')
-def get_direction():
-    running = False
-    arrow = None
-    car_info = []
-    time_info = []
-
-    if shared_controls is not None:
-        car_info = shared_controls.get("car_info", [])
-        running = shared_controls.get("RUNNING", False)
-        arrow = shared_controls.get("ARROW", None)
-        time_info = shared_controls.get("time_info", [])
-
-    return jsonify({
-        "running": running,
-        "car_info": car_info,
-        "arrow": arrow,
-        "time_info": time_info
-    })
+def get_car_info():
+    info = {
+        "running":  False,
+        "car_info": {},
+        "arrow":    None,
+        "time_info": []
+    }
+    if shared_controls:
+        info["running"]   = shared_controls.get("RUNNING", False)
+        info["car_info"]  = shared_controls.get("car_info", {})
+        info["arrow"]     = shared_controls.get("ARROW", None)
+        info["time_info"] = shared_controls.get("time_info", [])
+    return jsonify(info)
 
 @app.route('/video_feed/<string:key>')
 def video_feed(key):
-    response = Response(generate_feed(key), mimetype='multipart/x-mixed-replace; boundary=frame')
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
-
+    return Response(
+        stream_with_context(generate_feed(key)),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
 
 def generate_placeholder_image():
     img = np.zeros((270, 480, 3), dtype=np.uint8)

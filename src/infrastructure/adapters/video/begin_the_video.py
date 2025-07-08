@@ -2,7 +2,9 @@ import cv2
 import contextlib
 import os
 import glob
-from src.infrastructure.constants.colors_constants import RED, YELLOW, GREEN, RESET
+from src.infrastructure.logging.logger import Logger
+
+logger = Logger("FLAGS", verbose=True)
 
 def detect_camera_indices(max_tested=2):
     available = []
@@ -15,11 +17,11 @@ def detect_camera_indices(max_tested=2):
 
     qtd = len(available)
     if qtd == 0:
-        print(f"{YELLOW}[FLAGS]{RESET}{RED}[WARNING] Nenhuma câmera foi detectada.{RESET}")
+        logger.error(f"Nenhuma câmera foi detectada.")
     elif qtd == 1:
-        print(f"{YELLOW}[FLAGS]{RESET}{GREEN}[INFO] Câmera detectada:{RESET} (índice {available[0]}).")
+        logger.info(f"Câmera detectada: (índice {available[0]}).")
     else:
-        print(f"{YELLOW}[FLAGS]{RESET}{GREEN}[INFO] Câmeras detectadas:{RESET} (índices {', '.join(available)})")
+        logger.info(f"Câmeras detectadas: (índices {', '.join(available)})")
     return available
 
 def get_video_files_from_folder(folder="resources/test_videos"):
