@@ -14,10 +14,10 @@ class SerialCommunicator:
 
         self.send_data = send_data
         self.send_interval = send_interval
-        self.last_send_time = time.time()
         self.com_port = com_port
         self.logger = logger
         self.baud_rate = baud_rate
+        self.last_send_time = None
 
         if send_data or open_for_receive:
             try:
@@ -34,12 +34,13 @@ class SerialCommunicator:
         return [p.device for p in list_ports.comports()]
 
     def send(self, data):
-        if (time.time() - self.last_send_time) >= self.send_interval:
+        if (self.last_send_time is None or
+                (time.monotonic() - self.last_send_time) >= self.send_interval):
             data_string = ",".join(str(d) for d in data) + ",#"
             #print(data_string)
             if self.send_data and self.serial_port:
                 self.serial_port.write(data_string.encode())
-            self.last_send_time = time.time()
+            self.last_send_time = time.monotonic()
 
     def receive(self):
         if self.serial_port and self.serial_port.in_waiting > 0:

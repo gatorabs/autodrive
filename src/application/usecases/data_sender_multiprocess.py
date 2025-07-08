@@ -49,17 +49,16 @@ def data_sender_process(lane_queue,
                 car_info["speed"] = 0
                 shared_controls["car_info"] = car_info
 
-            now = time.monotonic()
-            if now - last_send >= send_interval:
-                payload = [
-                    lane_data["direction"],
-                    lane_data["speed"],
-                    obj_data["semaforo"]
-                ]
-                try:
-                    serial_comm.send(payload)
-                except Exception as e:
-                    logger.error(f"Falha ao enviar dados: {e}")
+            payload = [
+                lane_data["direction"],
+                lane_data["speed"],
+                obj_data["semaforo"]
+            ]
+
+            try:
+                serial_comm.send(payload)
+            except Exception as e:
+                logger.error(f"Falha ao enviar dados: {e}")
                 last_send = now
 
     except Exception as e:
