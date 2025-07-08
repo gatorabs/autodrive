@@ -8,7 +8,6 @@ class VideoProcessor:
         self.frame_height = frame_height
         self.prev_time = time.time()
 
-        # Detecta se é uma câmera (índice inteiro)
         if isinstance(video_source, str) and video_source.isdigit():
             self.is_video = False
             self.cap = cv2.VideoCapture(int(video_source), cv2.CAP_DSHOW)
@@ -25,7 +24,6 @@ class VideoProcessor:
     def get_frame(self):
         ret, frame = self.cap.read()
 
-        # Se for um vídeo e chegou ao final, reinicia
         if not ret:
             if self.is_video:
                 self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)

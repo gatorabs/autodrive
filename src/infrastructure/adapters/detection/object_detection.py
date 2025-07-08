@@ -1,19 +1,31 @@
 import cv2
 from ultralytics import YOLO
 import torch
-import numpy as np
 from src.infrastructure.constants.video_constants import FRAME_HEIGHT, FRAME_WIDTH
+from src.application.services.object_detection_service import process_traffic_light_roi, publish_results
+from src.infrastructure.adapters.video.video_process import VideoProcessor
 
 TARGET_CLASSES = {0, 9}
 
-
 class ObjectDetector:
-    def __init__(self, shared_serial_data, shared_frames, tk_controls, camera_source=0, logger=None):
+    def __init__(self,
+                 shared_serial_data,
+                 shared_frames,
+                 tk_controls,
+                 camera_source=0,
+                 logger=None):
+
         self.shared_serial_data = shared_serial_data
         self.shared_frames = shared_frames
         self.tk_controls = tk_controls
-        self.camera_source = camera_source
         self.logger = logger
+
+        self.video_processor = VideoProcessor(
+            camera_source,
+            frame_width=FRAME_WIDTH,
+            frame_height=FRAME_HEIGHT
+        )
+
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Usando dispositivo {self.device}")
 
@@ -23,89 +35,19 @@ class ObjectDetector:
         except Exception as e:
             logger.error(f"Não foi possível mover o modelo para o dispositivo desejado: {e}")
 
-        # Detecta se é vídeo (caminho) ou câmera (índice ou string numérica)
-        if isinstance(camera_source, str) and camera_source.isdigit():
-            self.is_video = False
-            self.cap = cv2.VideoCapture(int(camera_source), cv2.CAP_DSHOW)
-        elif isinstance(camera_source, int):
-            self.is_video = False
-            self.cap = cv2.VideoCapture(camera_source, cv2.CAP_DSHOW)
-        else:
-            self.is_video = True
-            self.cap = cv2.VideoCapture(camera_source)
-
-        if not self.cap.isOpened():
-            logger.error(f"Falha ao abrir o vídeo ou câmera ({camera_source}).")
-            exit()
-
-        # Inicializa valores padrão
-        # 0: vermelho; 1: amarelo; 2: verde
         self.shared_serial_data[1] = 0  # semáforo
         self.shared_serial_data[2] = 0  # pessoa
-        self.window_created = False
-
-    def process_traffic_light_roi(self, roi):
-        active_color = "Unknown"
-        color_bgr = (255, 255, 255)  # branco padrão
-        traffic_light_state = 2  # padrão: verde
-
-        if roi.size != 0:
-            # 1) converte para gray e dá um leve blur para reduzir ruído
-            gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-            gray = cv2.GaussianBlur(gray, (5, 5), 0)
-
-            # 2) dimensões
-            h = gray.shape[0]
-            h_third = h // 3
-
-            # 3) extrai as 3 regiões
-            red_roi = gray[0:h_third, :]
-            yellow_roi = gray[h_third:2 * h_third, :]
-            green_roi = gray[2 * h_third:h, :]
-
-            # 4) calcula a média de intensidade em cada região
-            mean_red = np.mean(red_roi)
-            mean_yellow = np.mean(yellow_roi)
-            mean_green = np.mean(green_roi)
-
-            means = {
-                "Red": mean_red,
-                "Yellow": mean_yellow,
-                "Green": mean_green
-            }
-
-            active_color = max(means, key=means.get)
-
-            # 6) mapeia o resultado para BGR e estado
-            if active_color == "Red":
-                color_bgr = (0, 0, 255)
-                traffic_light_state = 0
-            elif active_color == "Yellow":
-                color_bgr = (0, 255, 255)
-                traffic_light_state = 1
-            elif active_color == "Green":
-                color_bgr = (0, 255, 0)
-                traffic_light_state = 2
-
-        return active_color, color_bgr, traffic_light_state
 
     def process_frame(self):
-        ret, frame = self.cap.read()
-        if not ret:
-            # Se o vídeo chegar ao fim, volta ao início
-            if self.is_video:
-                self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                ret, frame = self.cap.read()
-                if not ret:
-                    return
-            else:
-                return
+        try:
+            frame = self.video_processor.get_frame()
+        except Exception as e:
+            self.logger.error(f"Erro ao capturar frame: {e}")
+            return
 
-        frame = cv2.resize(frame, (FRAME_WIDTH, FRAME_HEIGHT))
         results = self.model(frame, classes=list(TARGET_CLASSES), verbose=False)
 
         person_detected = False
-        # Estado default para o semáforo
         traffic_light_state = 2
 
         min_person_height = self.tk_controls["Person"]
@@ -125,7 +67,7 @@ class ObjectDetector:
 
                 elif cls == 9 and box_height >= min_traffic_height:
                     roi = frame[y1:y2, x1:x2]
-                    active_color, color_bgr, traffic_light_state = self.process_traffic_light_roi(roi)
+                    active_color, color_bgr, traffic_light_state = process_traffic_light_roi(roi)
 
                     y_div1 = y1 + box_height // 3
                     y_div2 = y1 + 2 * (box_height // 3)
@@ -136,12 +78,14 @@ class ObjectDetector:
                     cv2.putText(frame, f"TL: {active_color}", (x1, y1 - 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
 
-        self.shared_serial_data[2] = 1 if person_detected else 0
-        self.shared_serial_data[1] = traffic_light_state
-
-        _, jpeg_frame = cv2.imencode('.jpg', frame)
-        self.shared_frames["object"] = jpeg_frame.tobytes()
+        publish_results(
+            shared_serial_data=self.shared_serial_data,
+            shared_frames=self.shared_frames,
+            person_detected=person_detected,
+            traffic_light_state=traffic_light_state,
+            frame=frame
+        )
 
     def cleanup(self):
-        self.cap.release()
+        self.video_processor.release()
         cv2.destroyAllWindows()

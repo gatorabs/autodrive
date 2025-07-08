@@ -1,0 +1,55 @@
+import cv2
+import numpy as np
+
+def process_traffic_light_roi(roi):
+    active_color = "Unknown"
+    color_bgr = (255, 255, 255)  # branco padrão
+    traffic_light_state = 2  # padrão: verde
+
+    if roi.size != 0:
+        # 1) converte para gray e dá um leve blur para reduzir ruído
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+
+        # 2) dimensões
+        h = gray.shape[0]
+        h_third = h // 3
+
+        # 3) extrai as 3 regiões
+        red_roi = gray[0:h_third, :]
+        yellow_roi = gray[h_third:2 * h_third, :]
+        green_roi = gray[2 * h_third:h, :]
+
+        # 4) calcula a média de intensidade em cada região
+        mean_red = np.mean(red_roi)
+        mean_yellow = np.mean(yellow_roi)
+        mean_green = np.mean(green_roi)
+
+        means = {
+            "Red": mean_red,
+            "Yellow": mean_yellow,
+            "Green": mean_green
+        }
+
+        active_color = max(means, key=means.get)
+
+        # 6) mapeia o resultado para BGR e estado
+        if active_color == "Red":
+            color_bgr = (0, 0, 255)
+            traffic_light_state = 0
+        elif active_color == "Yellow":
+            color_bgr = (0, 255, 255)
+            traffic_light_state = 1
+        elif active_color == "Green":
+            color_bgr = (0, 255, 0)
+            traffic_light_state = 2
+
+    return active_color, color_bgr, traffic_light_state
+
+def publish_results(shared_serial_data, shared_frames, person_detected, traffic_light_state, frame):
+    shared_serial_data[2] = 1 if person_detected else 0
+    shared_serial_data[1] = traffic_light_state
+
+    # converte o frame para JPEG e armazena como bytes
+    _, jpeg_frame = cv2.imencode('.jpg', frame)
+    shared_frames["object"] = jpeg_frame.tobytes()
