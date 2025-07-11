@@ -35,19 +35,6 @@ def create_processes(shared_controls, shared_frames, tk_controls, user_flags):
 
     processes.append(
         mp.Process(
-            name="sender",
-            target=data_sender_process,
-            kwargs={
-                "lane_queue": lane_queue,
-                "object_queue": object_queue,
-                "shared_controls": shared_controls,
-                "tk_controls": tk_controls
-            },
-        )
-    )
-
-    processes.append(
-        mp.Process(
             name="tk",
             target=create_responsive_interface,
             kwargs={
@@ -57,6 +44,20 @@ def create_processes(shared_controls, shared_frames, tk_controls, user_flags):
             },
         )
     )
+
+    if shared_controls.get("SEND_DATA"):
+        processes.append(
+            mp.Process(
+                name="sender",
+                target=data_sender_process,
+                kwargs={
+                    "lane_queue": lane_queue,
+                    "object_queue": object_queue,
+                    "shared_controls": shared_controls,
+                    "tk_controls": tk_controls
+                },
+            )
+        )
 
     if shared_controls.get("WEBVIEW"):
         processes.append(
