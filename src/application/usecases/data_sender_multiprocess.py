@@ -63,7 +63,12 @@ def data_sender_process(lane_queue,
                 serial_comm.send(payload)
             except Exception as e:
                 logger.error(f"Falha ao enviar dados: {e}")
-                last_send = now
+                try:
+                    serial_comm.reconnect()
+                except Exception as re:
+                    logger.error(f"Reconexão falhou: {re}")
+            last_send = now
+
 
     except Exception as e:
         logger.error(f"Erro inesperado no loop: {e}")

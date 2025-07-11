@@ -33,14 +33,26 @@ class SerialCommunicator:
         return [p.device for p in list_ports.comports()]
 
     def send(self, data):
-        if (self.last_send_time is None or
-                (time.monotonic() - self.last_send_time) >= self.send_interval):
-            data_string = ",".join(str(d) for d in data) + "#"
-            self.logger.info(data_string)
-            if self.send_data and self.serial_port:
+        if not self.send_data:
+            return
+
+        now = time.monotonic()
+        if self.last_send_time is not None and (now - self.last_send_time) < self.send_interval:
+            return
+
+        data_string = ",".join(str(d) for d in data) + "#"
+
+        if self.serial_port and self.serial_port.is_open:
+            try:
                 self.serial_port.write(data_string.encode())
+                self.logger.info(f"{data_string}")
                 self.serial_port.flush()
-            self.last_send_time = time.monotonic()
+                self.last_send_time = now
+            except Exception as e:
+                self.logger.error(f"Erro ao enviar dados: {e}")
+                raise  # Repassa para o processo
+        else:
+            raise ConnectionError("Serial não está aberta")
 
     def receive(self):
         if self.serial_port and self.serial_port.in_waiting > 0:
@@ -48,14 +60,6 @@ class SerialCommunicator:
         return None
 
     def close(self):
-        self.serial_port.flush()
-        if self.serial_port:
-            self.serial_port.close()
-
-    def reconnect(self):
-        self.logger.info(f"Tentando reconectar na porta {self.com_port}...")
-
-        # Fecha a porta atual com segurança
         if self.serial_port:
             try:
                 self.serial_port.flush()
@@ -67,13 +71,21 @@ class SerialCommunicator:
                 self.serial_port = None
                 self.last_send_time = None
 
+    def reconnect(self):
+        self.logger.info(f"Tentando reconectar na porta {self.com_port}...")
+
+        if self.com_port not in self.list_available_ports():
+            self.logger.warning(f"Porta {self.com_port} não está disponível no sistema.")
+            self.serial_port = None
+            return
+
+        self.close()
+
         # Tenta reabrir a porta
         try:
             self.serial_port = serial.Serial(self.com_port, self.baud_rate)
-            time.sleep(2)  # espera reset do Arduino
+            time.sleep(8)
             self.logger.info(f"Porta {self.com_port} reaberta com sucesso.")
         except Exception as e:
             self.logger.error(f"Erro ao reabrir {self.com_port}: {e}")
             self.serial_port = None
-
-
