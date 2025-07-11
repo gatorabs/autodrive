@@ -41,6 +41,7 @@ def create_processes(shared_controls, shared_frames, tk_controls, user_flags):
                 "lane_queue": lane_queue,
                 "object_queue": object_queue,
                 "shared_controls": shared_controls,
+                "tk_controls": tk_controls
             },
         )
     )

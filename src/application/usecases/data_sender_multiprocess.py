@@ -3,6 +3,7 @@ from src.core.__init__sender import *
 def data_sender_process(lane_queue,
                         object_queue,
                         shared_controls,
+                        tk_controls,
                         verbose=True):
 
     set_process_priority("high")
@@ -22,8 +23,11 @@ def data_sender_process(lane_queue,
 
     try:
         while shared_controls.get("RUNNING", True):
+            logger.verbose = tk_controls.get("SEND_LOGS")
+
             now = time.monotonic()
             remaining = send_interval - (now - last_send)
+
             if remaining < 0:
                 remaining = 0
 

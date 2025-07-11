@@ -101,6 +101,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     checkboxes = [
         ("SHOW_ROI", "Show ROI"),
         ("LANE_LOGS", "Show Lane-Logs"),
+        ("SEND_LOGS", "Show Send-Logs")
     ]
     for key, label in checkboxes:
         var = tk.BooleanVar(value=tk_controls.get(key, False))
