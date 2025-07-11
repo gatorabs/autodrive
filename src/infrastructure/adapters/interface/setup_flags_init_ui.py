@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import os
 from src.infrastructure.constants.flags_constants import flags
 from src.infrastructure.adapters.video.begin_the_video import (
     detect_camera_indices,
@@ -27,8 +28,8 @@ def setup_flag_interface():
     }
 
     video_defaults = {
-        "LANE_SOURCE": "test_videos/pista_01.mov",
-        "OBJECT_SOURCE": "test_videos/people.mp4"
+        "LANE_SOURCE": "resources/test_videos/pista_01.mp4",
+        "OBJECT_SOURCE": "resources/test_videos/people.mp4"
     }
 
     bool_vars = {}
@@ -48,7 +49,6 @@ def setup_flag_interface():
     com_frame = ttk.LabelFrame(main_frame, text="Portas de Comunicação", padding=10)
     com_frame.pack(fill="x", padx=5, pady=10)
 
-    # usa o método estático para obter as COM disponíveis
     available_coms = SerialCommunicator.list_available_ports()
 
     for name, default in com_defaults.items():
@@ -57,7 +57,6 @@ def setup_flag_interface():
         ttk.Label(row, text=name, width=16).pack(side="left")
 
         combo = ttk.Combobox(row, values=available_coms, width=30)
-        # se a porta padrão existir, seta; senão escolhe a primeira disponível (ou deixa em branco)
         if default in available_coms:
             combo.set(default)
         elif available_coms:
@@ -71,17 +70,39 @@ def setup_flag_interface():
     video_frame = ttk.LabelFrame(main_frame, text="Fontes de Vídeo ou Câmera", padding=10)
     video_frame.pack(fill="x", padx=5, pady=10)
 
-    combined_sources = get_video_files_from_folder() + detect_camera_indices()
+    raw_sources = get_video_files_from_folder() + detect_camera_indices()
+    combined_sources = [os.path.normpath(s) if isinstance(s, str) else s for s in raw_sources]
 
     def create_source_selector(name, default):
         row = ttk.Frame(video_frame)
         row.pack(fill="x", pady=2)
         ttk.Label(row, text=name, width=16).pack(side="left")
 
-        combo = ttk.Combobox(row, values=combined_sources, width=40)
-        combo.set(default if default in combined_sources else combined_sources[0])
+        # Cria dicionários de mapeamento para exibição e valor real
+        path_to_label = {}
+        label_to_path = {}
+
+        for item in combined_sources:
+            if isinstance(item, int):
+                label = f"Camera {item}"
+                path = item
+            else:
+                label = os.path.basename(item)
+                path = item
+            path_to_label[path] = label
+            label_to_path[label] = path
+
+        labels = list(label_to_path.keys())
+
+        combo = ttk.Combobox(row, values=labels, width=40)
+
+        default_norm = os.path.normpath(default)
+        default_label = path_to_label.get(default_norm, labels[0])
+
+        combo.set(default_label)
         combo.pack(side="left", fill="x", expand=True)
-        video_vars[name] = combo
+
+        video_vars[name] = (combo, label_to_path)
 
     create_source_selector("LANE_SOURCE", video_defaults["LANE_SOURCE"])
     create_source_selector("OBJECT_SOURCE", video_defaults["OBJECT_SOURCE"])
@@ -93,9 +114,10 @@ def setup_flag_interface():
             result[name] = var.get()
         for name, widget in com_vars.items():
             result[name] = widget.get()
-        for name, widget in video_vars.items():
-            val = widget.get()
-            result[name] = int(val) if val.isdigit() else val
+        for name, (widget, label_to_path) in video_vars.items():
+            selected_label = widget.get()
+            val = label_to_path.get(selected_label, selected_label)
+            result[name] = int(val) if isinstance(val, str) and val.isdigit() else val
         root.quit()
 
     ttk.Button(main_frame, text="Aplicar e Iniciar", command=submit).pack(pady=15, fill="x")
