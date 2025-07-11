@@ -88,6 +88,10 @@ def lane_detection_process(lane_queue,
                 fps=fps
             )
 
+            toggle_named_window(is_enabled=tk_controls.get("SHOW_ROI"),
+                                window_name="Warped Roi",
+                                frame=warped_roi)
+
             frame_count, fps, avg_time, total_processing_time = update_processing_time(
                 logger=logger,
                 start_time=start_time,
@@ -105,15 +109,6 @@ def lane_detection_process(lane_queue,
                 avg_time=avg_time,
                 logger=logger
             )
-
-            if tk_controls.get("SHOW_ROI", False):
-                cv.imshow("warped", warped_roi)
-            else:
-                try:
-                    if cv.getWindowProperty("warped", cv.WND_PROP_VISIBLE) >= 1:
-                        cv.destroyWindow("warped")
-                except cv.error:
-                    pass
 
             if cv.waitKey(1) == ord('q'):
                 break

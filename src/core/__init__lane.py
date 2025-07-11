@@ -4,6 +4,7 @@ import serial
 from src.application.services.lane_detection_service import compute_distances, publish
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.adapters.video.video_preprocess import preprocess
+from src.infrastructure.adapters.video.video_toggle_process import toggle_named_window
 from src.infrastructure.utils.priorities_processor import set_process_priority
 from src.infrastructure.adapters.interface.setup_embedded_ui import draw_overlays
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
