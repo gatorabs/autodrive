@@ -1,5 +1,6 @@
 {
     "SHOW_ROI": true,
+    "SHOW_INFO": false,
     "LANE_LOGS": true,
     "SEND_LOGS": false,
     "F_Canny": 20,

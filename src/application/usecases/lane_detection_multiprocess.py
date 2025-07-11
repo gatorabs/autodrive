@@ -24,6 +24,7 @@ def lane_detection_process(lane_queue,
     total_processing_time = 0
     frame_count = 0
     direction = 0
+    fps = 0
 
     try:
         while shared_controls.get("RUNNING", True):
@@ -82,7 +83,9 @@ def lane_detection_process(lane_queue,
                 warp_points=warp_points,
                 edges=edges,
                 has_ref=has_ref,
-                mapped_direction=mapped_direction
+                mapped_direction=mapped_direction,
+                show_info=tk_controls.get("SHOW_INFO"),
+                fps=fps
             )
 
             frame_count, fps, avg_time, total_processing_time = update_processing_time(

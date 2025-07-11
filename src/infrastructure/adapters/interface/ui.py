@@ -94,15 +94,31 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         frame.grid(row=row, column=col, columnspan=colspan, padx=5, pady=5, sticky="nsew")
         return frame
 
+    def make_command(k, v):
+        def cmd():
+            tk_controls[k] = v.get()
+
+            if k == "SHOW_INFO" and v.get() is True:
+                vars["LANE_LOGS"].set(False)
+                tk_controls["LANE_LOGS"] = False
+
+            elif k == "LANE_LOGS" and v.get() is True:
+                vars["SHOW_INFO"].set(False)
+                tk_controls["SHOW_INFO"] = False
+
+        return cmd
+
     # Linha 0: 5 seções lado a lado
     # Toggles
     flags_frame = create_section("Toggles", 0, 0)
 
     checkboxes = [
         ("SHOW_ROI", "Show ROI"),
+        ("SHOW_INFO", "SHOW Info"),
         ("LANE_LOGS", "Show Lane-Logs"),
         ("SEND_LOGS", "Show Send-Logs")
     ]
+
     for key, label in checkboxes:
         var = tk.BooleanVar(value=tk_controls.get(key, False))
         vars[key] = var
@@ -111,7 +127,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
             flags_frame,
             text=label,
             variable=var,
-            command=lambda k=key, v=var: tk_controls.__setitem__(k, v.get())
+            command=make_command(key, var)
         ).pack(fill="x", pady=2)
 
     # Filtragem

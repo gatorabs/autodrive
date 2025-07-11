@@ -3,7 +3,7 @@ import numpy as np
 import math
 
 def draw_overlays(frame, distances, warp_points=None, edges=None,
-                  has_ref=False, mapped_direction=90):
+                  has_ref=False, show_info=None, fps=0, mapped_direction=90):
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {
             "font": cv.QT_FONT_NORMAL,
@@ -67,5 +67,34 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
                        f"L:{avg_left:.1f} R:{avg_right:.1f}",
                        (center_x - 60, mid_y - radius - 10),
                        font, font_scale, font_color, thickness)
+        if show_info:
+            debug_lines = [
+                f"Mapped Dir: {mapped_direction}",
+                f"FPS: {fps:.1f}",
+                f"Ref Detected: {has_ref}"
+            ]
+
+            # Propriedades da caixa
+            x, y = 10, 10
+            line_height = 20
+            padding = 5
+            box_width = 200
+            box_height = line_height * len(debug_lines) + padding * 2
+
+            # Fundo da caixa (semitransparente)
+            overlay_debug = frame.copy()
+            cv.rectangle(overlay_debug,
+                         (x, y),
+                         (x + box_width, y + box_height),
+                         (50, 50, 50),
+                         cv.FILLED)
+            frame = cv.addWeighted(overlay_debug, 0.5, frame, 0.5, 0)
+
+            for i, text in enumerate(debug_lines):
+                text_y = y + padding + (i + 1) * line_height - 5
+                cv.putText(frame,
+                           text,
+                           (x + padding, text_y),
+                           font, font_scale, font_color, thickness)
 
     return frame
