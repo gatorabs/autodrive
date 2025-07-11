@@ -5,7 +5,7 @@ def object_detection_process(object_queue,
                              shared_frames,
                              tk_controls,
                              verbose=True,
-                             camera_source="test_videos/people.mp4"):
+                             camera_source=None):
 
     set_process_priority("high")
     object_serial_data = shared_controls["OBJECT_SERIAL_DATA"]

@@ -28,8 +28,8 @@ def setup_flag_interface():
     }
 
     video_defaults = {
-        "LANE_SOURCE": "resources/test_videos/pista_01.mp4",
-        "OBJECT_SOURCE": "resources/test_videos/people.mp4"
+        "LANE_SOURCE": "resources/test_videos/road_video_test_1.mp4",
+        "OBJECT_SOURCE": "resources/test_videos/people_video_test_1.mp4"
     }
 
     bool_vars = {}

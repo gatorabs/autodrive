@@ -6,7 +6,7 @@ def lane_detection_process(lane_queue,
                            shared_frames,
                            tk_controls,
                            verbose=True,
-                           video_source="test_videos/pista_01.mp4"):
+                           video_source=None):
 
     set_process_priority("above_normal")
 
