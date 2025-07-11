@@ -4,13 +4,15 @@
 #include "BuzzerController.h"
 #include "LightController.h"
 
-#define LED_PIN 2
+#define LED_PIN 13
 #define SERVO_PIN 33
 
-MotorController motor1(6,7);
-MotorController motor2(5,4);
-MotorController motor3(8,9);
-MotorController motor4(11,10);
+MotorController motors[] = {
+  MotorController(6, 7),
+  MotorController(5, 4),
+  MotorController(8, 9),
+  MotorController(11, 10)
+};
 
 CanController can;
 BuzzerController buzzer;
@@ -32,20 +34,29 @@ int extraValue = 0;
 void setup() {
   Serial.begin(115200);
 
-  can.setup(53, 18);
+  pinMode(LED_PIN, OUTPUT);
+
+  bool canOK = can.setup(53, 18);
+  if (!canOK) {
+    digitalWrite(LED_PIN, HIGH);
+  } else {
+    digitalWrite(LED_PIN, LOW);
+  }
+
+  digitalWrite(LED_PIN, LOW);
   buzzer.setup();
   light.setup();
 
-  motor1.begin();
-  motor2.begin();
-  motor3.begin();
-  motor4.begin();
+  for (int i = 0; i < 4; i++) {
+    motors[i].begin();
+  }
 
   servo.attach(SERVO_PIN);
   servo.write(idleServo);
 
   inputString.reserve(50);
 }
+
 
 void loop() {
   while (Serial.available()) {
@@ -81,27 +92,25 @@ void parseAndExecute(String data) {
     speedValue = constrain(values[1], 0, 255);
     extraValue = values[2];
 
-    mappedDirection = constrain(direction, 0, 180);  
+    int mappedDirection = constrain(direction, 0, 180);  
     servo.write(mappedDirection); 
 
-    canMessage = can.readCanMessage();
-
-    if (canMessage == 'F') {
-      obstacleDetected = true;
-    } else {
-      obstacleDetected = false;
-    }
+    //canMessage = can.readCanMessage();
+    //obstacleDetected = (canMessage == 'F');
 
     if (obstacleDetected || speedValue == 0) {
-      motor1.stop();
-      motor2.stop();
-      motor3.stop();
-      motor4.stop();
+      digitalWrite(LED_PIN, HIGH);  
+      for (int i = 0; i < 4; i++) {
+        motors[i].stop();
+      }
       return;
+    }
+
+
+    digitalWrite(LED_PIN, LOW);
+
+    for (int i = 0; i < 4; i++) {
+      motors[i].turnFront(speedValue);
     }
   }
 }
-
-
-
-

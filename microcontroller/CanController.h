@@ -6,7 +6,7 @@
 
 class CanController {
   public:
-    void setup(int pin_1, int pin_2);
+    bool setup(int pin_1, int pin_2);
     void sendCanMessage(char message);
     char readCanMessage();
 };
