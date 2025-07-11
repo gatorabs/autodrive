@@ -19,16 +19,16 @@ def publish(frame_display,
     try:
         _, jpeg_display = cv.imencode('.jpg', frame_display)
         _, jpeg_edges   = cv.imencode('.jpg', edges)
-        shared_frames['display'] = jpeg_display.tobytes()
-        shared_frames['edges']   = jpeg_edges.tobytes()
+        shared_frames["NORMAL_FRAME"] = jpeg_display.tobytes()
+        shared_frames["EDGES_FRAME"]   = jpeg_edges.tobytes()
     except Exception as e:
         logger.error(f"Erro ao codificar frames: {e}")
 
     if not lane_queue.full():
         lane_queue.put(lane_data)
 
-    shared_controls['car_info']  = lane_data
-    shared_controls['time_info'] = {
+    shared_controls["CAR_INFO"]  = lane_data
+    shared_controls["TIME_INFO"] = {
         'fps': round(fps, 0),
         'total_processing_time': round(avg_time, 2)
     }

@@ -5,7 +5,6 @@ import numpy as np
 import cv2
 from tkinter.scrolledtext import ScrolledText
 from src.infrastructure.constants.video_constants import  FRAME_HEIGHT, FRAME_WIDTH
-from src.infrastructure.constants.flags_constants import track_flags
 from src.infrastructure.adapters.calibration.config_persistence import save_calibration, save_defaults, load_defaults
 
 def create_responsive_interface(tk_controls, shared_frames, shared_controls):
@@ -70,8 +69,6 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     def restore_defaults():
         try:
             defaults = load_defaults()
-            if defaults == dict(track_flags):
-                save_defaults(defaults)
             for k, v in defaults.items():
                 tk_controls[k] = v
                 if k in vars:
@@ -204,18 +201,18 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
 
         def update_display():
             try:
-                if "display" in shared_frames:
-                    img = cv2.imdecode(np.frombuffer(shared_frames["display"], np.uint8), cv2.IMREAD_COLOR)
+                if "NORMAL_FRAME" in shared_frames:
+                    img = cv2.imdecode(np.frombuffer(shared_frames["NORMAL_FRAME"], np.uint8), cv2.IMREAD_COLOR)
                     i = to_tk(img)
                     lbl_v.config(image=i)
                     lbl_v.image = i
-                if "edges" in shared_frames:
-                    img = cv2.imdecode(np.frombuffer(shared_frames["edges"], np.uint8), cv2.IMREAD_COLOR)
+                if "EDGES_FRAME" in shared_frames:
+                    img = cv2.imdecode(np.frombuffer(shared_frames["EDGES_FRAME"], np.uint8), cv2.IMREAD_COLOR)
                     j = to_tk(img)
                     lbl_e.config(image=j)
                     lbl_e.image = j
-                if "object" in shared_frames:
-                    img = cv2.imdecode(np.frombuffer(shared_frames["object"], np.uint8), cv2.IMREAD_COLOR)
+                if "OBJECT_FRAME" in shared_frames:
+                    img = cv2.imdecode(np.frombuffer(shared_frames["OBJECT_FRAME"], np.uint8), cv2.IMREAD_COLOR)
                     k = to_tk(img)
                     lbl_o.config(image=k)
                     lbl_o.image = k

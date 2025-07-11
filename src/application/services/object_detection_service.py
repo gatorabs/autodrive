@@ -52,4 +52,4 @@ def publish_results(shared_serial_data, shared_frames, person_detected, traffic_
 
     # converte o frame para JPEG e armazena como bytes
     _, jpeg_frame = cv2.imencode('.jpg', frame)
-    shared_frames["object"] = jpeg_frame.tobytes()
+    shared_frames["OBJECT_FRAME"] = jpeg_frame.tobytes()

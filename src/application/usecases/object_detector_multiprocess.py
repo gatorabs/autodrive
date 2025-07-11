@@ -8,7 +8,7 @@ def object_detection_process(object_queue,
                              camera_source="test_videos/people.mp4"):
 
     set_process_priority("high")
-    object_serial_data = shared_controls["object_serial_data"]
+    object_serial_data = shared_controls["OBJECT_SERIAL_DATA"]
     logger = Logger("ObjectDetection", verbose=verbose)
 
     object_detector = ObjectDetector(shared_serial_data=object_serial_data,
@@ -22,7 +22,7 @@ def object_detection_process(object_queue,
 
             object_detector.process_frame()
 
-            object_data = {"person": object_serial_data[2], "semaforo": object_serial_data[1]}
+            object_data = {"OBJECT_PERSON_DATA": object_serial_data[2], "TRAFFIC_LIGHT_DATA": object_serial_data[1]}
             if not object_queue.full():
                 object_queue.put(object_data)
 

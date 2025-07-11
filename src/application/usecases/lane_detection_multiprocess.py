@@ -73,8 +73,8 @@ def lane_detection_process(lane_queue,
             mapped_direction = map_direction(value=direction)
 
             lane_data = {
-                "speed": speed,
-                "direction": mapped_direction
+                "CAR_SPEED_DATA": speed,
+                "CAR_DIRECTION_DATA": mapped_direction
                          }
 
             frame_display = draw_overlays(

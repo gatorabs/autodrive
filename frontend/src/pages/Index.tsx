@@ -35,9 +35,9 @@ const Index = () => {
     fetch("http://192.168.15.12:5000/api/car_info")
       .then(res => res.json())
       .then(data => {
-        const speed = data.car_info.speed;
+        const speed = data.car_info.CAR_SPEED_DATA;
         const running = data.running;
-        const direction = data.car_info.direction;
+        const direction = data.car_info.CAR_DIRECTION_DATA;
 
         setServoAngle(direction);
         setSystemRunning(running);

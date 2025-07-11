@@ -15,8 +15,8 @@ def data_sender_process(lane_queue,
         logger=logger
     )
 
-    lane_data = {"speed": 255, "direction": 180}
-    obj_data  = {"person": 0, "semaforo": 0}
+    lane_data = {"CAR_SPEED_DATA": 255, "CAR_DIRECTION_DATA": 180}
+    obj_data  = {"OBJECT_PERSON_DATA": 0, "TRAFFIC_LIGHT_DATA": 0}
 
     send_interval = 0.01
     last_send = time.monotonic()
@@ -44,19 +44,19 @@ def data_sender_process(lane_queue,
                 pass
 
             if (
-                obj_data.get("person", 0) == 1
+                obj_data.get("OBJECT_PERSON_DATA", 0) == 1
                 or shared_controls.get("EMERGENCY_STOP", 0) == 1
-                or obj_data.get("semaforo", 0) == 0
+                or obj_data.get("TRAFFIC_LIGHT_DATA", 0) == 0
             ):
-                lane_data["speed"] = 0
-                car_info = shared_controls.get("car_info", {})
-                car_info["speed"] = 0
-                shared_controls["car_info"] = car_info
+                lane_data["CAR_SPEED_DATA"] = 0
+                car_info = shared_controls.get("CAR_INFO", {})
+                car_info["CAR_SPEED_DATA"] = 0
+                shared_controls["CAR_INFO"] = car_info
 
             payload = [
-                lane_data["direction"],
-                lane_data["speed"],
-                obj_data["semaforo"]
+                lane_data["CAR_DIRECTION_DATA"],
+                lane_data["CAR_SPEED_DATA"],
+                obj_data["TRAFFIC_LIGHT_DATA"]
             ]
 
             try:

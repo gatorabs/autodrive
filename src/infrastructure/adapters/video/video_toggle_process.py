@@ -1,4 +1,5 @@
 import cv2 as cv
+import numpy as np
 
 def toggle_named_window(is_enabled: bool, window_name: str, frame=None):
     if is_enabled and frame is not None:
@@ -9,3 +10,11 @@ def toggle_named_window(is_enabled: bool, window_name: str, frame=None):
                 cv.destroyWindow(window_name)
         except cv.error:
             pass
+
+
+def generate_placeholder_image():
+    img = np.zeros((270, 480, 3), dtype=np.uint8)
+    cv.putText(img, "Carregando Detector...", (50, 135),
+                cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    ret, jpeg = cv.imencode('.jpg', img)
+    return jpeg.tobytes()

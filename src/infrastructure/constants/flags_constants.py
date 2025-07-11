@@ -3,23 +3,3 @@ flags = {
         "WEBVIEW": False,
         "NEW_PID": False,
 }
-
-
-track_flags = {
-        "SHOW_ROI": True,
-        "F_Canny": 20,
-        "S_Canny": 152,
-        "Speed": 1,
-        "Side": 1,
-        "Distance": 80,
-        "Lines": 10,
-        "KP": 0.3,
-        "KI": 0.003,
-        "KD": 0.015,
-        "Person": 0,
-        "Traffic": 0,
-        "tl_x": 120, "tl_y": 180,
-        "tr_x": 381, "tr_y": 180,
-        "bl_x": 41, "bl_y": 220,
-        "br_x": 440, "br_y": 220,
-    }

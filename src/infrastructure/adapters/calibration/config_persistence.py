@@ -1,7 +1,5 @@
 import json
 import os
-from src.infrastructure.constants.colors_constants import YELLOW, RED, RESET
-from src.infrastructure.constants.flags_constants import track_flags
 from src.infrastructure.logging.logger import Logger
 
 CALIBRATION_FILE = os.path.join("config", "calibration_data.json")
@@ -35,5 +33,4 @@ def load_defaults():
             with open(DEFAULTS_FILE, 'r') as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            logger.warning(f"Nenhum padrão salvo. Usando track_flags originais.")
-    return dict(track_flags)
+            logger.warning(f"Nenhum padrão salvo.")

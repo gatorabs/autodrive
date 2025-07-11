@@ -5,7 +5,7 @@ def init_shared_controls(user_flags: dict, calibrated_data: dict) -> dict:
     controls = {
         **user_flags,
         "RUNNING": True,
-        "object_serial_data": [0, 0, 0],
+        "OBJECT_SERIAL_DATA": [0, 0, 0],
     }
     return controls
 

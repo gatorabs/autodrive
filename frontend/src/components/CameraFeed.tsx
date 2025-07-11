@@ -6,9 +6,9 @@ interface CameraFeedProps {
 }
 
 const keyMap: Record<string, string> = {
-  Fasor: "display",
-  Filtros: "edges",
-  "Detecção de Objetos": "object",
+  Fasor: "NORMAL_FRAME",
+  Filtros: "EDGES_FRAME",
+  "Detecção de Objetos": "OBJECT_FRAME",
 };
 
 const CameraFeed: React.FC<CameraFeedProps> = ({ label }) => {

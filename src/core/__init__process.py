@@ -3,7 +3,7 @@ from src.application.usecases.lane_detection_multiprocess import lane_detection_
 from src.application.usecases.object_detector_multiprocess import object_detection_process
 from src.application.usecases.security_multiprocess import security_process
 
-from src.infrastructure.adapters.web_server.flask_server import start_flask_server
+from src.infrastructure.adapters.web_server.app import start_flask_server
 from src.infrastructure.adapters.interface.ui import create_responsive_interface
 
 import multiprocessing as mp
