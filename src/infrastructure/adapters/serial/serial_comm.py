@@ -21,12 +21,15 @@ class SerialCommunicator:
 
         if send_data or open_for_receive:
             try:
-                self.serial_port = serial.Serial(com_port, baud_rate)
-                time.sleep(8)
+                self.start_com_port()
                 self.logger.info(f"Porta {self.com_port} aberta a {self.baud_rate} bps")
             except Exception as e:
                 self.logger.error(f"Erro ao abrir {com_port}: {e}")
                 self.serial_port = None
+
+    def start_com_port(self, interval=8):
+        self.serial_port = serial.Serial(self.com_port, self.baud_rate)
+        time.sleep(interval)
 
     @staticmethod
     def list_available_ports() -> List[str]:
@@ -83,9 +86,8 @@ class SerialCommunicator:
 
         # Tenta reabrir a porta
         try:
-            self.serial_port = serial.Serial(self.com_port, self.baud_rate)
-            time.sleep(8)
-            self.logger.info(f"Porta {self.com_port} reaberta com sucesso.")
+            self.start_com_port()
+            self.logger.info(f"Porta {self.com_port} reaberta com sucesso a {self.baud_rate} bps.")
         except Exception as e:
             self.logger.error(f"Erro ao reabrir {self.com_port}: {e}")
             self.serial_port = None
