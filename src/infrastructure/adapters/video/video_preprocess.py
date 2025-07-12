@@ -1,5 +1,5 @@
 import cv2 as cv
-from src.infrastructure.utils.warp_perspective_processor import get_warp_points_from_controls, bird_eye_full
+from src.application.services.lane_detection_service import get_warp_points_from_controls, bird_eye_full
 
 def preprocess(frame, tk_controls, morph_kernel):
     canny_1   = tk_controls.get("F_Canny")
