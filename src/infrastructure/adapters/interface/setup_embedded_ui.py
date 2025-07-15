@@ -3,7 +3,7 @@ import numpy as np
 import math
 
 def draw_overlays(frame, distances, warp_points=None, edges=None,
-                  has_ref=False, show_info=None, fps=0, mapped_direction=90):
+                  has_ref=False, show_info=None, fps=0, ms=0, mapped_direction=90):
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {
             "font": cv.QT_FONT_NORMAL,
@@ -71,6 +71,7 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
             debug_lines = [
                 f"Mapped Dir: {mapped_direction}",
                 f"FPS: {fps:.1f}",
+                f"MS: {ms:.1f}",
                 f"Ref Detected: {has_ref}"
             ]
 

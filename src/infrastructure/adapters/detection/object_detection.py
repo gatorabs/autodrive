@@ -1,7 +1,6 @@
 import cv2
 from ultralytics import YOLO
 import torch
-from src.infrastructure.constants.video_constants import FRAME_HEIGHT, FRAME_WIDTH
 from src.application.services.object_detection_service import process_traffic_light_roi, publish_results
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 
@@ -20,11 +19,7 @@ class ObjectDetector:
         self.tk_controls = tk_controls
         self.logger = logger
 
-        self.video_processor = VideoProcessor(
-            camera_source,
-            frame_width=FRAME_WIDTH,
-            frame_height=FRAME_HEIGHT
-        )
+        self.video_processor = VideoProcessor(video_source=camera_source)
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Usando dispositivo {self.device}")

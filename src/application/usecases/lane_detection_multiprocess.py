@@ -16,15 +16,14 @@ def lane_detection_process(lane_queue,
 
     pid = pid_setup(shared_controls.get("NEW_PID"), logger)
 
-    video_proc = VideoProcessor(video_source=current_source,
-                                frame_width=FRAME_WIDTH,
-                                frame_height=FRAME_HEIGHT)
+    video_proc = VideoProcessor(video_source=current_source)
 
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
 
     total_processing_time = 0
     frame_count = 0
     direction = 0
+    avg_time = 0
     fps = 0
 
     try:
@@ -94,7 +93,8 @@ def lane_detection_process(lane_queue,
                 has_ref=has_ref,
                 mapped_direction=mapped_direction,
                 show_info=tk_controls.get("SHOW_INFO"),
-                fps=fps
+                fps=fps,
+                ms=avg_time
             )
 
             toggle_named_window(is_enabled=tk_controls.get("SHOW_ROI"),

@@ -1,8 +1,9 @@
 import cv2
 import time
+from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 
 class VideoProcessor:
-    def __init__(self, video_source, frame_width, frame_height):
+    def __init__(self, video_source, frame_width=FRAME_WIDTH, frame_height=FRAME_HEIGHT):
         self.video_source = video_source
         self.frame_width = frame_width
         self.frame_height = frame_height
