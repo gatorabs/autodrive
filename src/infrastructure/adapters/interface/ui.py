@@ -5,12 +5,15 @@ from PIL import Image, ImageTk
 import numpy as np
 import cv2
 from tkinter.scrolledtext import ScrolledText
+
 from src.infrastructure.constants.video_constants import FRAME_HEIGHT, FRAME_WIDTH
 from src.infrastructure.adapters.calibration.config_persistence import save_data, load_data, filter_flags
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULTS_FILE, DEFAULT_UI_PATH
 from src.infrastructure.adapters.video.begin_the_video import get_video_files_from_folder
 from src.infrastructure.constants.ui_constants.flag_constants import FLAGS_TO_IGNORE
+from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 
+# --- Helpers já estavam OK, só deixei igual ---
 def create_trackbar_var(tk_controls, key, var_type="int"):
     if var_type == "float":
         var = tk.DoubleVar(value=tk_controls.get(key, 0.0))
@@ -41,7 +44,6 @@ def create_section(main_frame, title, row, col, colspan=1):
 def make_flag_command(tk_controls, vars, k, v):
     def cmd():
         tk_controls[k] = v.get()
-        # Toggle exclusivo entre SHOW_INFO e LANE_LOGS
         if k == "SHOW_INFO" and v.get():
             vars["LANE_LOGS"].set(False)
             tk_controls["LANE_LOGS"] = False
@@ -133,10 +135,17 @@ def build_log_section(main_frame):
     clear_btn.grid(row=1, column=0, sticky='e', pady=5)
     return log_message
 
-def build_video_sources_section(main_frame, tk_controls):
-    """Mutuamente exclusivas para as fontes de vídeo/câmera"""
-    source_frame = create_section(main_frame, "Fontes de Vídeo ou Câmera", 3, 0, colspan=5)
-    # carrega câmeras detectadas do arquivo de defaults
+def build_sources_and_serial_section(main_frame, tk_controls):
+    # Cria um container horizontal
+    sources_row = ttk.Frame(main_frame)
+    sources_row.grid(row=3, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
+    sources_row.columnconfigure(0, weight=1, uniform="half")
+    sources_row.columnconfigure(1, weight=1, uniform="half")
+    sources_row.rowconfigure(0, weight=1)
+
+    # --------- Fontes de Vídeo ou Câmera ----------
+    video_frame = ttk.LabelFrame(sources_row, text="Fontes de Vídeo ou Câmera", padding=(10, 5))
+    video_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
     defaults_ui = load_data(DEFAULT_UI_PATH)
     detected_cameras = defaults_ui.get("DETECTED_CAMERAS", [])
     raw_sources = get_video_files_from_folder("resources/test_videos") + detected_cameras
@@ -178,15 +187,15 @@ def build_video_sources_section(main_frame, tk_controls):
         if obj_var.get() not in obj_labels and obj_labels:
             obj_var.set(obj_labels[0])
 
-    row1 = ttk.Frame(source_frame)
+    row1 = ttk.Frame(video_frame)
     row1.pack(fill="x", pady=2)
     ttk.Label(row1, text="LANE_SOURCE:", width=16).pack(side="left")
-    lane_combo = ttk.Combobox(row1, textvariable=lane_var, width=40, state="readonly")
+    lane_combo = ttk.Combobox(row1, textvariable=lane_var, width=30, state="readonly")
     lane_combo.pack(side="left", fill="x", expand=True)
-    row2 = ttk.Frame(source_frame)
+    row2 = ttk.Frame(video_frame)
     row2.pack(fill="x", pady=2)
     ttk.Label(row2, text="OBJECT_SOURCE:", width=16).pack(side="left")
-    obj_combo = ttk.Combobox(row2, textvariable=obj_var, width=40, state="readonly")
+    obj_combo = ttk.Combobox(row2, textvariable=obj_var, width=30, state="readonly")
     obj_combo.pack(side="left", fill="x", expand=True)
 
     def on_lane_select(*_):
@@ -204,6 +213,55 @@ def build_video_sources_section(main_frame, tk_controls):
     lane_var.trace_add("write", on_lane_select)
     obj_var.trace_add("write", on_obj_select)
     atualizar_combos()
+
+    # --------- Portas Seriais ----------
+    serial_frame = ttk.LabelFrame(sources_row, text="Portas Seriais", padding=(10, 5))
+    serial_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+
+    def get_defaults():
+        defaults_ui = load_data(DEFAULT_UI_PATH)
+        return (
+            defaults_ui.get("SECURITY_COM", "COM1"),
+            defaults_ui.get("SENDER_COM", "COM8"),
+        )
+
+    def get_available():
+        return SerialCommunicator.list_available_ports()
+
+    def refresh_ports():
+        coms = get_available()
+        sec_combo["values"] = coms
+        send_combo["values"] = coms
+        if security_var.get() not in coms and coms:
+            security_var.set(coms[0])
+        if sender_var.get() not in coms and coms:
+            sender_var.set(coms[0])
+
+    default_security, default_sender = get_defaults()
+    available_coms = get_available()
+    security_var = tk.StringVar(value=default_security if default_security in available_coms else (available_coms[0] if available_coms else ""))
+    sender_var   = tk.StringVar(value=default_sender   if default_sender   in available_coms else (available_coms[0] if available_coms else ""))
+
+    row_sec = ttk.Frame(serial_frame)
+    row_sec.pack(fill="x", pady=2)
+    ttk.Label(row_sec, text="SECURITY_COM:", width=16).pack(side="left")
+    sec_combo = ttk.Combobox(row_sec, textvariable=security_var, values=available_coms, width=15, state="readonly")
+    sec_combo.pack(side="left", fill="x", expand=True)
+
+    row_send = ttk.Frame(serial_frame)
+    row_send.pack(fill="x", pady=2)
+    ttk.Label(row_send, text="SENDER_COM:", width=16).pack(side="left")
+    send_combo = ttk.Combobox(row_send, textvariable=sender_var, values=available_coms, width=15, state="readonly")
+    send_combo.pack(side="left", fill="x", expand=True)
+
+    def on_security_change(*_):
+        tk_controls["SECURITY_COM"] = security_var.get()
+    def on_sender_change(*_):
+        tk_controls["SENDER_COM"] = sender_var.get()
+    security_var.trace_add("write", on_security_change)
+    sender_var.trace_add("write", on_sender_change)
+    btn_refresh = ttk.Button(serial_frame, text="Atualizar portas", command=refresh_ports)
+    btn_refresh.pack(pady=5, anchor="e")
 
 def build_video_display(main_frame, shared_frames, webview, log_message):
     if webview:
@@ -253,7 +311,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     root = tk.Tk()
     root.title("Interface de Controle Unificada")
     webview = shared_controls.get("WEBVIEW")
-    root.geometry("1400x600" if webview else "1400x950")
+    root.geometry("1400x600" if webview else "1400x1000")
     style = ttk.Style()
     style.configure("TButton", font=("Arial", 10))
     style.configure("TScale", sliderthickness=12)
@@ -265,7 +323,6 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         main_frame.columnconfigure(i, weight=1)
         main_frame.rowconfigure(i, weight=1)
 
-    # Callbacks de persistência
     def save_calibration_data():
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
@@ -294,12 +351,11 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         except Exception as e:
             log_message(f"Erro ao salvar novo padrão: {e}")
 
-    # --- Montagem da interface por blocos ---
     build_flag_section(main_frame, tk_controls, shared_controls, vars)
     build_trackbar_sections(main_frame, tk_controls, vars)
     build_warp_section(main_frame, tk_controls, vars)
     build_calibration_section(main_frame, save_calibration_data, restore_defaults, save_as_new_defaults)
-    build_video_sources_section(main_frame, tk_controls)
+    build_sources_and_serial_section(main_frame, tk_controls)
     log_message = build_log_section(main_frame)
     build_video_display(main_frame, shared_frames, webview, log_message)
     root.mainloop()
