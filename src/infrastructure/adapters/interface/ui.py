@@ -175,40 +175,85 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         for item in raw_sources
     ]
 
-    def create_source_selector(name):
-        row = ttk.Frame(source_frame)
-        row.pack(fill="x", pady=2)
-        ttk.Label(row, text=f"{name}:", width=16).pack(side="left")
-        # monta mapas de label <-> path
-        path_to_label = {}
-        label_to_path = {}
-        labels = []
-        for item in combined:
-            label = f"Camera {item}" if (
-                        isinstance(item, int) or (isinstance(item, str) and item.isdigit())) else os.path.basename(item)
-            path_to_label[item] = label
-            label_to_path[label] = item
-            labels.append(label)
+    # --- NOVA LÓGICA DE COMBOBOXES MUTUAMENTE EXCLUSIVAS ---
+    # Mapeamento label <-> path para todos os devices/videos
+    path_to_label = {}
+    label_to_path = {}
+    labels = []
+    for item in combined:
+        label = f"Camera {item}" if (
+                    isinstance(item, int) or (isinstance(item, str) and item.isdigit())) else os.path.basename(item)
+        path_to_label[item] = label
+        label_to_path[label] = item
+        labels.append(label)
 
-        combo = ttk.Combobox(row, values=labels, width=40, state="readonly")
-        # valor padrão sem disparar evento
-        default = tk_controls.get(name, "")
-        norm = (default if (isinstance(default, int) or (isinstance(default, str) and default.isdigit()))
-                else os.path.normpath(str(default)))
-        default_label = path_to_label.get(norm, labels[0] if labels else "")
-        if default_label in labels:
-            combo.current(labels.index(default_label))
-        combo.pack(side="left", fill="x", expand=True)
+    # Pegando defaults
+    default_lane = tk_controls.get("LANE_SOURCE", "")
+    default_obj = tk_controls.get("OBJECT_SOURCE", "")
 
-        def on_select(event, n=name, ltp=label_to_path):
-            sel = combo.get()
-            val = ltp.get(sel)
-            tk_controls[n] = int(val) if isinstance(val, str) and val.isdigit() else val
+    norm_lane = (
+        default_lane if (isinstance(default_lane, int) or (isinstance(default_lane, str) and default_lane.isdigit()))
+        else os.path.normpath(str(default_lane)))
+    norm_obj = (
+        default_obj if (isinstance(default_obj, int) or (isinstance(default_obj, str) and default_obj.isdigit()))
+        else os.path.normpath(str(default_obj)))
 
-        combo.bind("<<ComboboxSelected>>", on_select)
+    lane_label = path_to_label.get(norm_lane, labels[0] if labels else "")
+    obj_label = path_to_label.get(norm_obj, labels[0] if labels else "")
 
-    create_source_selector("LANE_SOURCE")
-    create_source_selector("OBJECT_SOURCE")
+    # Vars para atualizar combos
+    lane_var = tk.StringVar(value=lane_label)
+    obj_var = tk.StringVar(
+        value=obj_label if obj_label != lane_label else (labels[1] if len(labels) > 1 else labels[0]))
+
+    # Função para atualizar values de cada combo
+    def atualizar_combos(*_):
+        lane_selected = lane_var.get()
+        obj_selected = obj_var.get()
+        lane_labels = [l for l in labels if l != obj_selected]
+        obj_labels = [l for l in labels if l != lane_selected]
+
+        lane_combo['values'] = lane_labels
+        obj_combo['values'] = obj_labels
+
+        # Atualiza seleção caso precise (por ex, se sumiu)
+        if lane_var.get() not in lane_labels and lane_labels:
+            lane_var.set(lane_labels[0])
+        if obj_var.get() not in obj_labels and obj_labels:
+            obj_var.set(obj_labels[0])
+
+    # Criar Lane Combo
+    row1 = ttk.Frame(source_frame)
+    row1.pack(fill="x", pady=2)
+    ttk.Label(row1, text="LANE_SOURCE:", width=16).pack(side="left")
+    lane_combo = ttk.Combobox(row1, textvariable=lane_var, width=40, state="readonly")
+    lane_combo.pack(side="left", fill="x", expand=True)
+
+    # Criar Object Combo
+    row2 = ttk.Frame(source_frame)
+    row2.pack(fill="x", pady=2)
+    ttk.Label(row2, text="OBJECT_SOURCE:", width=16).pack(side="left")
+    obj_combo = ttk.Combobox(row2, textvariable=obj_var, width=40, state="readonly")
+    obj_combo.pack(side="left", fill="x", expand=True)
+
+    # Callbacks para atualizar tk_controls e as combos
+    def on_lane_select(*_):
+        sel_label = lane_var.get()
+        val = label_to_path.get(sel_label)
+        tk_controls["LANE_SOURCE"] = int(val) if isinstance(val, str) and val.isdigit() else val
+        atualizar_combos()
+
+    def on_obj_select(*_):
+        sel_label = obj_var.get()
+        val = label_to_path.get(sel_label)
+        tk_controls["OBJECT_SOURCE"] = int(val) if isinstance(val, str) and val.isdigit() else val
+        atualizar_combos()
+
+    lane_var.trace_add("write", on_lane_select)
+    obj_var.trace_add("write", on_obj_select)
+
+    # Inicializa combos e remove conflitos iniciais
+    atualizar_combos()
 
     # Linha 4: Vídeos horizontal (se webview False)
     if not webview:
