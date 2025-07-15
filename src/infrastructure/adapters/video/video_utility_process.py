@@ -22,7 +22,7 @@ def generate_placeholder_image():
 
 def switch_video_source(video_processor, current_source, new_source, logger):
     if new_source != current_source:
-        logger.info(f"Trocando Lane Source de {current_source} para {new_source}")
+        logger.info(f"Trocando Source de {current_source} para {new_source}")
         video_processor.release()
         video_processor = VideoProcessor(video_source=new_source,
                                          frame_width=FRAME_WIDTH,
