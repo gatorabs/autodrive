@@ -9,13 +9,14 @@ def lane_detection_process(lane_queue,
                            video_source=None):
 
     set_process_priority("above_normal")
+    current_source = video_source
 
     logger = Logger("LaneDetection", verbose=verbose)
 
 
     pid = pid_setup(shared_controls.get("NEW_PID"), logger)
 
-    video_proc = VideoProcessor(video_source=video_source,
+    video_proc = VideoProcessor(video_source=current_source,
                                 frame_width=FRAME_WIDTH,
                                 frame_height=FRAME_HEIGHT)
 
@@ -29,7 +30,14 @@ def lane_detection_process(lane_queue,
     try:
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
-
+            new_source = tk_controls.get("LANE_SOURCE")
+            if new_source != current_source:
+                logger.info(f"Trocando Lane Source de {current_source} para {new_source}")
+                video_proc.release()
+                video_proc = VideoProcessor(video_source=new_source,
+                                            frame_width=FRAME_WIDTH,
+                                            frame_height=FRAME_HEIGHT)
+                current_source = new_source
             logger.verbose = tk_controls.get("LANE_LOGS")
 
             frame = video_proc.get_frame()

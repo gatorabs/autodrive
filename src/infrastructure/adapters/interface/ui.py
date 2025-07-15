@@ -1,12 +1,14 @@
+import os
 import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
 from tkinter.scrolledtext import ScrolledText
-from src.infrastructure.constants.video_constants import  FRAME_HEIGHT, FRAME_WIDTH
+from src.infrastructure.constants.video_constants import FRAME_HEIGHT, FRAME_WIDTH
 from src.infrastructure.adapters.calibration.config_persistence import save_data, load_data
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULTS_FILE
+from src.infrastructure.adapters.video.begin_the_video import detect_camera_indices, get_video_files_from_folder
 
 
 def create_responsive_interface(tk_controls, shared_frames, shared_controls):
@@ -64,7 +66,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
             save_data(data, CALIBRATION_FILE)
-            log_message(f"Calibração salva.")
+            log_message("Calibração salva.")
         except Exception as e:
             log_message(f"Erro ao salvar calibração: {e}")
 
@@ -75,7 +77,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
                 tk_controls[k] = v
                 if k in vars:
                     vars[k].set(v)
-            log_message(f"Defaults restaurados com sucesso.")
+            log_message("Defaults restaurados com sucesso.")
         except Exception as e:
             log_message(f"Erro ao restaurar padrão: {e}")
 
@@ -83,7 +85,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
             save_data(data, DEFAULTS_FILE)
-            log_message(f"Novo padrão salvo em defaults.json.")
+            log_message("Novo padrão salvo em defaults.json.")
         except Exception as e:
             log_message(f"Erro ao salvar novo padrão: {e}")
 
@@ -96,63 +98,45 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     def make_command(k, v):
         def cmd():
             tk_controls[k] = v.get()
-
-            if k == "SHOW_INFO" and v.get() is True:
+            if k == "SHOW_INFO" and v.get():
                 vars["LANE_LOGS"].set(False)
                 tk_controls["LANE_LOGS"] = False
-
-            elif k == "LANE_LOGS" and v.get() is True:
+            elif k == "LANE_LOGS" and v.get():
                 vars["SHOW_INFO"].set(False)
                 tk_controls["SHOW_INFO"] = False
-
         return cmd
 
-    # Linha 0: 5 seções lado a lado
-    # Toggles
+    # Linha 0: Toggles, Filtragem, PID, Extras, ROI
     flags_frame = create_section("Toggles", 0, 0)
-
-    checkboxes = [
-        ("SHOW_ROI", "Show ROI"),
-        ("SHOW_INFO", "SHOW Info"),
-        ("LANE_LOGS", "Show Lane-Logs")
-    ]
-
+    checkboxes = [("SHOW_ROI", "Show ROI"), ("SHOW_INFO", "SHOW Info"), ("LANE_LOGS", "Show Lane-Logs")]
     if shared_controls.get("SEND_DATA"):
         checkboxes.append(("SEND_LOGS", "Show Send-Logs"))
-
     for key, label in checkboxes:
         var = tk.BooleanVar(value=tk_controls.get(key, False))
         vars[key] = var
+        ttk.Checkbutton(flags_frame, text=label, variable=var, command=make_command(key, var)).pack(fill="x", pady=2)
 
-        ttk.Checkbutton(
-            flags_frame,
-            text=label,
-            variable=var,
-            command=make_command(key, var)
-        ).pack(fill="x", pady=2)
-
-    # Filtragem
     filter_frame = create_section("Parâmetros de Filtragem", 0, 1)
     for key in ["F_Canny", "S_Canny"]:
         vars[key] = create_trackbar_var(key, "int")
         create_trackbar_row(filter_frame, key, vars[key], 0, 400)
-    # PID
+
     pid_frame = create_section("Parâmetros de Controle (PID)", 0, 2)
     for key, (mn, mx) in {"KP": (0.0, 1.0), "KI": (0.0, 0.1), "KD": (0.0, 0.5)}.items():
         vars[key] = create_trackbar_var(key, "float")
         create_trackbar_row(pid_frame, key, vars[key], mn, mx)
-    # Extras
+
     extras_frame = create_section("Extras", 0, 3)
     for key, lim in [("Speed", 255), ("Side", 1), ("Distance", 250), ("Lines", FRAME_HEIGHT)]:
         vars[key] = create_trackbar_var(key, "int")
         create_trackbar_row(extras_frame, key, vars[key], 0, lim)
-    # ROI para Objetos
+
     roi_frame = create_section("ROI para Objetos", 0, 4)
     for key in ["Person", "Traffic"]:
         vars[key] = create_trackbar_var(key, "int")
         create_trackbar_row(roi_frame, key, vars[key], 0, 240)
 
-    # Linha 1: Warp Top e Bottom lado a lado em container
+    # Linha 1: Warp Top e Bottom lado a lado
     warp_container = ttk.Frame(main_frame)
     warp_container.grid(row=1, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
     warp_container.columnconfigure(0, weight=1)
@@ -164,13 +148,13 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     for pt, frame in [("tl", warp_top), ("tr", warp_top)]:
         for ax in ["x", "y"]:
             key = f"{pt}_{ax}"
-            mv = FRAME_WIDTH if ax == 'x' else FRAME_HEIGHT
+            mv = FRAME_WIDTH if ax=='x' else FRAME_HEIGHT
             vars[key] = create_trackbar_var(key, "int")
             create_trackbar_row(frame, key, vars[key], 0, mv)
     for pt, frame in [("bl", warp_bot), ("br", warp_bot)]:
         for ax in ["x", "y"]:
             key = f"{pt}_{ax}"
-            mv = FRAME_WIDTH if ax == 'x' else FRAME_HEIGHT
+            mv = FRAME_WIDTH if ax=='x' else FRAME_HEIGHT
             vars[key] = create_trackbar_var(key, "int")
             create_trackbar_row(frame, key, vars[key], 0, mv)
 
@@ -178,14 +162,37 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     calib_frame = create_section("Gerenciar Calibração", 2, 0, colspan=5)
     ttk.Button(calib_frame, text="Salvar Calibração", command=save_calibration_data).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
     ttk.Button(calib_frame, text="Restaurar Padrão", command=restore_defaults).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
-    ttk.Button(calib_frame, text="Salvar Novo Padrão", command=save_as_new_defaults).pack(
-        side="left", expand=True, fill="x", padx=5, ipady=10
-    )
-    
-    # Linha 3: Vídeos horizontal (se webview False)
+    ttk.Button(calib_frame, text="Salvar Novo Padrão", command=save_as_new_defaults).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
+
+    # Linha 3: Fontes de Vídeo ou Câmera (seletor)
+    source_frame = create_section("Fontes de Vídeo ou Câmera", 3, 0, colspan=5)
+    raw_sources = get_video_files_from_folder("resources/test_videos") + detect_camera_indices()
+    combined = [os.path.normpath(s) if isinstance(s, str) and not s.isdigit() else s for s in raw_sources]
+
+    def create_source_selector(name):
+        row = ttk.Frame(source_frame)
+        row.pack(fill="x", pady=2)
+        ttk.Label(row, text=name, width=16).pack(side="left")
+        path_to_label = {}
+        label_to_path = {}
+        for item in combined:
+            label = f"Camera {item}" if isinstance(item, int) or (isinstance(item, str) and item.isdigit()) else os.path.basename(item)
+            path_to_label[item] = label
+            label_to_path[label] = item
+        combo = ttk.Combobox(row, values=list(label_to_path.keys()), width=40)
+        default = tk_controls.get(name, "")
+        norm = default if isinstance(default, int) or (isinstance(default, str) and default.isdigit()) else os.path.normpath(str(default))
+        combo.set(path_to_label.get(norm, next(iter(path_to_label.values()))))
+        combo.pack(side="left", fill="x", expand=True)
+        combo.bind("<<ComboboxSelected>>", lambda e, n=name: tk_controls.__setitem__(n, int(label_to_path[combo.get()]) if isinstance(label_to_path[combo.get()], str) and label_to_path[combo.get()].isdigit() else label_to_path[combo.get()]))
+
+    create_source_selector("LANE_SOURCE")
+    create_source_selector("OBJECT_SOURCE")
+
+    # Linha 4: Vídeos horizontal (se webview False)
     if not webview:
         video_sec = ttk.LabelFrame(main_frame, text="Exibição de Vídeo / Edges / Object")
-        video_sec.grid(row=3, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
+        video_sec.grid(row=4, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
         video_sec.columnconfigure((0,1,2), weight=1)
         lbl_v = ttk.Label(video_sec)
         lbl_e = ttk.Label(video_sec)
@@ -224,13 +231,13 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
 
         update_display()
 
-    # ---- Seção de Logs ----
+    # Linha 5: Logs de Calibração
     logs_frame = ttk.LabelFrame(main_frame, text="Logs de Calibração", padding=(10, 5))
-    logs_frame.grid(row=4, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
+    logs_frame.grid(row=5, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
     logs_frame.rowconfigure(0, weight=1)
     logs_frame.columnconfigure(0, weight=1)
     log_text = ScrolledText(logs_frame, height=4, state='disabled', wrap='word')
-    log_text.grid(row=0, column=0, sticky="nsew")
+    log_text.grid(row=0, column=0, sticky='nsew')
 
     def log_message(message):
         log_text['state'] = 'normal'
@@ -243,7 +250,6 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         log_text.delete('1.0', 'end')
         log_text['state'] = 'disabled'
 
-    # Botão para limpar logs
     clear_btn = ttk.Button(logs_frame, text="Limpar Logs", command=clear_logs)
     clear_btn.grid(row=1, column=0, sticky='e', pady=5)
 
