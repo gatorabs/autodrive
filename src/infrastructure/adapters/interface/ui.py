@@ -135,7 +135,7 @@ def build_log_section(main_frame):
     clear_btn.grid(row=1, column=0, sticky='e', pady=5)
     return log_message
 
-def build_sources_and_serial_section(main_frame, tk_controls):
+def build_sources_and_serial_section(main_frame, tk_controls, shared_controls):
     # Cria um container horizontal
     sources_row = ttk.Frame(main_frame)
     sources_row.grid(row=3, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
@@ -258,10 +258,9 @@ def build_sources_and_serial_section(main_frame, tk_controls):
         tk_controls["SECURITY_COM"] = security_var.get()
     def on_sender_change(*_):
         tk_controls["SENDER_COM"] = sender_var.get()
+        shared_controls["SENDER_COM"] = sender_var.get()
     security_var.trace_add("write", on_security_change)
     sender_var.trace_add("write", on_sender_change)
-    btn_refresh = ttk.Button(serial_frame, text="Atualizar portas", command=refresh_ports)
-    btn_refresh.pack(pady=5, anchor="e")
 
 def build_video_display(main_frame, shared_frames, webview, log_message):
     if webview:
@@ -311,7 +310,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     root = tk.Tk()
     root.title("Interface de Controle Unificada")
     webview = shared_controls.get("WEBVIEW")
-    root.geometry("1400x600" if webview else "1400x1000")
+    root.geometry("1400x800" if webview else "1400x980")
     style = ttk.Style()
     style.configure("TButton", font=("Arial", 10))
     style.configure("TScale", sliderthickness=12)
@@ -355,7 +354,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     build_trackbar_sections(main_frame, tk_controls, vars)
     build_warp_section(main_frame, tk_controls, vars)
     build_calibration_section(main_frame, save_calibration_data, restore_defaults, save_as_new_defaults)
-    build_sources_and_serial_section(main_frame, tk_controls)
+    build_sources_and_serial_section(main_frame, tk_controls, shared_controls)
     log_message = build_log_section(main_frame)
     build_video_display(main_frame, shared_frames, webview, log_message)
     root.mainloop()
