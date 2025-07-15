@@ -7,6 +7,11 @@ from src.infrastructure.adapters.video.begin_the_video import (
     get_video_files_from_folder,
 )
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
+from src.infrastructure.logging.logger import Logger
+from src.infrastructure.constants.ui_constants.file_constants import DEFAULT_UI_PATH
+from src.infrastructure.adapters.calibration.config_persistence import save_data, load_data
+
+logger = Logger("CalibrationUI", verbose=True)
 
 def setup_flag_interface():
     root = tk.Tk()
@@ -21,15 +26,16 @@ def setup_flag_interface():
     main_frame = ttk.Frame(root, padding=10)
     main_frame.pack(fill="both", expand=True)
 
-    # === Valores padrão ===
+    saved_defaults = load_data(DEFAULT_UI_PATH)
+
     com_defaults = {
-        "SECURITY_COM": "COM5",
-        "SENDER_COM": "COM3"
+        "SECURITY_COM": saved_defaults.get("SECURITY_COM"),
+        "SENDER_COM": saved_defaults.get("SENDER_COM")
     }
 
     video_defaults = {
-        "LANE_SOURCE": "resources/test_videos/road_video_test_1.mp4",
-        "OBJECT_SOURCE": "resources/test_videos/people_video_test_1.mp4"
+        "LANE_SOURCE": saved_defaults.get("LANE_SOURCE"),
+        "OBJECT_SOURCE": saved_defaults.get("OBJECT_SOURCE")
     }
 
     bool_vars = {}
@@ -41,11 +47,11 @@ def setup_flag_interface():
     flags_frame.pack(fill="x", padx=5, pady=10)
 
     for name, default in flags.items():
-        var = tk.BooleanVar(value=default)
+        var = tk.BooleanVar(value=saved_defaults.get(name, default))
         ttk.Checkbutton(flags_frame, text=name, variable=var).pack(anchor="w", pady=2)
         bool_vars[name] = var
 
-    # === Comunicação (COM ports) ===
+    # === COM Ports ===
     com_frame = ttk.LabelFrame(main_frame, text="Portas de Comunicação", padding=10)
     com_frame.pack(fill="x", padx=5, pady=10)
 
@@ -57,12 +63,7 @@ def setup_flag_interface():
         ttk.Label(row, text=name, width=16).pack(side="left")
 
         combo = ttk.Combobox(row, values=available_coms, width=30)
-        if default in available_coms:
-            combo.set(default)
-        elif available_coms:
-            combo.set(available_coms[0])
-        else:
-            combo.set(default)
+        combo.set(default if default in available_coms else (available_coms[0] if available_coms else default))
         combo.pack(side="left", fill="x", expand=True)
         com_vars[name] = combo
 
@@ -78,27 +79,20 @@ def setup_flag_interface():
         row.pack(fill="x", pady=2)
         ttk.Label(row, text=name, width=16).pack(side="left")
 
-        # Cria dicionários de mapeamento para exibição e valor real
         path_to_label = {}
         label_to_path = {}
 
         for item in combined_sources:
-            if isinstance(item, int):
-                label = f"Camera {item}"
-                path = item
-            else:
-                label = os.path.basename(item)
-                path = item
+            label = f"Camera {item}" if isinstance(item, int) else os.path.basename(item)
+            path = item
             path_to_label[path] = label
             label_to_path[label] = path
 
         labels = list(label_to_path.keys())
 
         combo = ttk.Combobox(row, values=labels, width=40)
-
         default_norm = os.path.normpath(default)
-        default_label = path_to_label.get(default_norm, labels[0])
-
+        default_label = path_to_label.get(default_norm, labels[0] if labels else "")
         combo.set(default_label)
         combo.pack(side="left", fill="x", expand=True)
 
@@ -118,6 +112,8 @@ def setup_flag_interface():
             selected_label = widget.get()
             val = label_to_path.get(selected_label, selected_label)
             result[name] = int(val) if isinstance(val, str) and val.isdigit() else val
+
+        save_data(result, DEFAULT_UI_PATH)
         root.quit()
 
     ttk.Button(main_frame, text="Aplicar e Iniciar", command=submit).pack(pady=15, fill="x")
