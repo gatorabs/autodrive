@@ -8,18 +8,24 @@ def object_detection_process(object_queue,
                              camera_source=None):
 
     set_process_priority("high")
+    current_source = camera_source
     object_serial_data = shared_controls["OBJECT_SERIAL_DATA"]
     logger = Logger("ObjectDetection", verbose=verbose)
 
     object_detector = ObjectDetector(shared_serial_data=object_serial_data,
                                      shared_frames=shared_frames,
                                      tk_controls=tk_controls,
-                                     camera_source=camera_source,
+                                     camera_source=current_source,
                                      logger=logger)
 
     try:
         while shared_controls.get("RUNNING", True):
-
+            new_cam = tk_controls.get("OBJECT_SOURCE")
+            if new_cam != current_source:
+                logger.info(f"Trocando Object Source de {current_source} para {new_cam}")
+                object_detector.video_processor.release()
+                object_detector.video_processor.video_source = new_cam
+                current_source = new_cam
             object_detector.process_frame()
 
             object_data = {"OBJECT_PERSON_DATA": object_serial_data[2], "TRAFFIC_LIGHT_DATA": object_serial_data[1]}

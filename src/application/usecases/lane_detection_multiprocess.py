@@ -31,6 +31,7 @@ def lane_detection_process(lane_queue,
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
             new_source = tk_controls.get("LANE_SOURCE")
+
             if new_source != current_source:
                 logger.info(f"Trocando Lane Source de {current_source} para {new_source}")
                 video_proc.release()

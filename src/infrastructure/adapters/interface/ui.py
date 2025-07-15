@@ -7,7 +7,7 @@ import cv2
 from tkinter.scrolledtext import ScrolledText
 from src.infrastructure.constants.video_constants import FRAME_HEIGHT, FRAME_WIDTH
 from src.infrastructure.adapters.calibration.config_persistence import save_data, load_data
-from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULTS_FILE
+from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULTS_FILE, DEFAULT_UI_PATH
 from src.infrastructure.adapters.video.begin_the_video import detect_camera_indices, get_video_files_from_folder
 
 
@@ -166,25 +166,46 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
 
     # Linha 3: Fontes de Vídeo ou Câmera (seletor)
     source_frame = create_section("Fontes de Vídeo ou Câmera", 3, 0, colspan=5)
-    raw_sources = get_video_files_from_folder("resources/test_videos") + detect_camera_indices()
-    combined = [os.path.normpath(s) if isinstance(s, str) and not s.isdigit() else s for s in raw_sources]
+    # carrega câmeras detectadas do arquivo de defaults
+    defaults_ui = load_data(DEFAULT_UI_PATH)
+    detected_cameras = defaults_ui.get("DETECTED_CAMERAS", [])
+    raw_sources = get_video_files_from_folder("resources/test_videos") + detected_cameras
+    combined = [
+        os.path.normpath(item) if isinstance(item, str) and not item.isdigit() else item
+        for item in raw_sources
+    ]
 
     def create_source_selector(name):
         row = ttk.Frame(source_frame)
         row.pack(fill="x", pady=2)
-        ttk.Label(row, text=name, width=16).pack(side="left")
+        ttk.Label(row, text=f"{name}:", width=16).pack(side="left")
+        # monta mapas de label <-> path
         path_to_label = {}
         label_to_path = {}
+        labels = []
         for item in combined:
-            label = f"Camera {item}" if isinstance(item, int) or (isinstance(item, str) and item.isdigit()) else os.path.basename(item)
+            label = f"Camera {item}" if (
+                        isinstance(item, int) or (isinstance(item, str) and item.isdigit())) else os.path.basename(item)
             path_to_label[item] = label
             label_to_path[label] = item
-        combo = ttk.Combobox(row, values=list(label_to_path.keys()), width=40)
+            labels.append(label)
+
+        combo = ttk.Combobox(row, values=labels, width=40, state="readonly")
+        # valor padrão sem disparar evento
         default = tk_controls.get(name, "")
-        norm = default if isinstance(default, int) or (isinstance(default, str) and default.isdigit()) else os.path.normpath(str(default))
-        combo.set(path_to_label.get(norm, next(iter(path_to_label.values()))))
+        norm = (default if (isinstance(default, int) or (isinstance(default, str) and default.isdigit()))
+                else os.path.normpath(str(default)))
+        default_label = path_to_label.get(norm, labels[0] if labels else "")
+        if default_label in labels:
+            combo.current(labels.index(default_label))
         combo.pack(side="left", fill="x", expand=True)
-        combo.bind("<<ComboboxSelected>>", lambda e, n=name: tk_controls.__setitem__(n, int(label_to_path[combo.get()]) if isinstance(label_to_path[combo.get()], str) and label_to_path[combo.get()].isdigit() else label_to_path[combo.get()]))
+
+        def on_select(event, n=name, ltp=label_to_path):
+            sel = combo.get()
+            val = ltp.get(sel)
+            tk_controls[n] = int(val) if isinstance(val, str) and val.isdigit() else val
+
+        combo.bind("<<ComboboxSelected>>", on_select)
 
     create_source_selector("LANE_SOURCE")
     create_source_selector("OBJECT_SOURCE")

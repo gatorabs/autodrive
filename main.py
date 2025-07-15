@@ -5,13 +5,14 @@ def main():
 
     user_flags = setup_flag_interface()
     calibrated_data = load_data(CALIBRATION_FILE)
+    initial_tk = {**calibrated_data, **user_flags}
 
     with mp.Manager() as manager:
         shared_controls = manager.dict(
             init_shared_controls(user_flags, calibrated_data)
         )
 
-        tk_controls = manager.dict(calibrated_data)
+        tk_controls   = manager.dict(initial_tk)
         shared_frames = manager.dict()
 
         print_initial_flags(shared_controls)
