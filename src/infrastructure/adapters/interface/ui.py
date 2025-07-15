@@ -5,7 +5,9 @@ import numpy as np
 import cv2
 from tkinter.scrolledtext import ScrolledText
 from src.infrastructure.constants.video_constants import  FRAME_HEIGHT, FRAME_WIDTH
-from src.infrastructure.adapters.calibration.config_persistence import save_calibration, save_defaults, load_defaults
+from src.infrastructure.adapters.calibration.config_persistence import save_data, load_data
+from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULTS_FILE
+
 
 def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     root = tk.Tk()
@@ -61,14 +63,14 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     def save_calibration_data():
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
-            save_calibration(data)
+            save_data(data, CALIBRATION_FILE)
             log_message(f"Calibração salva.")
         except Exception as e:
             log_message(f"Erro ao salvar calibração: {e}")
 
     def restore_defaults():
         try:
-            defaults = load_defaults()
+            defaults = load_data(DEFAULTS_FILE)
             for k, v in defaults.items():
                 tk_controls[k] = v
                 if k in vars:
@@ -80,7 +82,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     def save_as_new_defaults():
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
-            save_defaults(data)
+            save_data(data, DEFAULTS_FILE)
             log_message(f"Novo padrão salvo em defaults.json.")
         except Exception as e:
             log_message(f"Erro ao salvar novo padrão: {e}")

@@ -75,8 +75,6 @@ class SerialCommunicator:
                 self.last_send_time = None
 
     def reconnect(self):
-        self.logger.info(f"Tentando reconectar na porta {self.com_port}...")
-
         if self.com_port not in self.list_available_ports():
             self.logger.warning(f"Porta {self.com_port} não está disponível no sistema.")
             self.serial_port = None
@@ -86,6 +84,7 @@ class SerialCommunicator:
 
         # Tenta reabrir a porta
         try:
+            self.logger.info(f"Tentando reconectar na porta {self.com_port}...")
             self.start_com_port()
             self.logger.info(f"Porta {self.com_port} reaberta com sucesso a {self.baud_rate} bps.")
         except Exception as e:

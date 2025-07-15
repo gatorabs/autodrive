@@ -4,7 +4,7 @@ def main():
     mp.set_start_method('spawn')
 
     user_flags = setup_flag_interface()
-    calibrated_data = load_calibration()
+    calibrated_data = load_data(CALIBRATION_FILE)
 
     with mp.Manager() as manager:
         shared_controls = manager.dict(
