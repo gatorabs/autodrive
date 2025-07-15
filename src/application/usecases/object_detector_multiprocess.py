@@ -20,17 +20,14 @@ def object_detection_process(object_queue,
 
     try:
         while shared_controls.get("RUNNING", True):
-            new_cam = tk_controls.get("OBJECT_SOURCE")
-            if new_cam != current_source:
-                logger.info(f"Trocando Object Source de {current_source} para {new_cam}")
-                object_detector.video_processor.release()
 
-                object_detector.video_processor = VideoProcessor(
-                    video_source=new_cam,
-                    frame_width=FRAME_WIDTH,
-                    frame_height=FRAME_HEIGHT
-                )
-                current_source = new_cam
+            new_source = tk_controls.get("OBJECT_SOURCE")
+            object_detector.video_processor, current_source = switch_video_source(
+                video_processor=object_detector.video_processor,
+                current_source=current_source,
+                new_source=new_source,
+                logger=logger
+            )
 
             object_detector.process_frame()
 

@@ -30,15 +30,15 @@ def lane_detection_process(lane_queue,
     try:
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
-            new_source = tk_controls.get("LANE_SOURCE")
 
-            if new_source != current_source:
-                logger.info(f"Trocando Lane Source de {current_source} para {new_source}")
-                video_proc.release()
-                video_proc = VideoProcessor(video_source=new_source,
-                                            frame_width=FRAME_WIDTH,
-                                            frame_height=FRAME_HEIGHT)
-                current_source = new_source
+            new_source = tk_controls.get("LANE_SOURCE")
+            video_proc, current_source = switch_video_source(
+                video_processor=video_proc,
+                current_source=current_source,
+                new_source=new_source,
+                logger=logger
+            )
+
             logger.verbose = tk_controls.get("LANE_LOGS")
 
             frame = video_proc.get_frame()
