@@ -21,9 +21,5 @@
     "br_x": 440,
     "br_y": 220,
     "Distance": 80,
-    "Lines": 10,
-    "LANE_SOURCE": 0,
-    "SEND_DATA": true,
-    "WEBVIEW": false,
-    "NEW_PID": false
+    "Lines": 10
 }

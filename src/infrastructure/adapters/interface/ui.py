@@ -6,10 +6,10 @@ import numpy as np
 import cv2
 from tkinter.scrolledtext import ScrolledText
 from src.infrastructure.constants.video_constants import FRAME_HEIGHT, FRAME_WIDTH
-from src.infrastructure.adapters.calibration.config_persistence import save_data, load_data
+from src.infrastructure.adapters.calibration.config_persistence import save_data, load_data, filter_flags
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULTS_FILE, DEFAULT_UI_PATH
-from src.infrastructure.adapters.video.begin_the_video import detect_camera_indices, get_video_files_from_folder
-
+from src.infrastructure.adapters.video.begin_the_video import get_video_files_from_folder
+from src.infrastructure.constants.ui_constants.flag_constants import FLAGS_TO_IGNORE
 
 def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     root = tk.Tk()
@@ -65,7 +65,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     def save_calibration_data():
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
-            save_data(data, CALIBRATION_FILE)
+            save_data(filter_flags(data=data, flags_to_ignore=FLAGS_TO_IGNORE), file_path=CALIBRATION_FILE)
             log_message("Calibração salva.")
         except Exception as e:
             log_message(f"Erro ao salvar calibração: {e}")
@@ -84,7 +84,10 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     def save_as_new_defaults():
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
-            save_data(data, DEFAULTS_FILE)
+            save_data(
+                filter_flags(data=data, flags_to_ignore=FLAGS_TO_IGNORE),
+                      file_path=DEFAULTS_FILE
+            )
             log_message("Novo padrão salvo em defaults.json.")
         except Exception as e:
             log_message(f"Erro ao salvar novo padrão: {e}")
