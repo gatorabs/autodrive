@@ -5,5 +5,8 @@ from src.application.usecases.security_multiprocess import security_process
 
 from src.infrastructure.adapters.web_server.app import start_flask_server
 from src.infrastructure.adapters.interface.ui import create_responsive_interface
+from src.infrastructure.logging.logger import Logger
+from src.infrastructure.constants.services_constants.process_constants import shutdown_endpoint
 
+import requests
 import multiprocessing as mp

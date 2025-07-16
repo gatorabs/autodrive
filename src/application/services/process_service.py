@@ -59,13 +59,39 @@ def create_processes(shared_controls, shared_frames, tk_controls, user_flags):
             )
         )
 
-    if shared_controls.get("WEBVIEW"):
-        processes.append(
-            mp.Process(
-                name="flask",
-                target=start_flask_server,
-                args=(shared_frames, shared_controls),
-            )
-        )
-
     return processes
+
+def handle_flask_process(current_webview,
+                         last_webview,
+                         flask_proc,
+                         shared_frames,
+                         shared_controls,
+                         logger = Logger("ProcessService")):
+    if current_webview != last_webview:
+        if current_webview:
+            if flask_proc is None or not flask_proc.is_alive():
+                flask_proc = mp.Process(
+                    name="flask",
+                    target=start_flask_server,
+                    args=(shared_frames, shared_controls)
+                )
+                flask_proc.start()
+        else:
+            if flask_proc is not None and flask_proc.is_alive():
+                logger.warning("Encerrando Server Flask via /shutdown.")
+
+                try:
+                    requests.post(url=shutdown_endpoint, timeout=2)
+                except Exception as e:
+                    logger.error(f"Erro ao chamar shutdown: {e}")
+
+                flask_proc.join(timeout=5)
+                if flask_proc.is_alive():
+                    logger.info("Matando processo flask.")
+                    flask_proc.terminate()
+                    flask_proc.join(timeout=3)
+                else:
+                    logger.info("Flask desligado com sucesso.")
+                flask_proc = None
+    return flask_proc, current_webview
+

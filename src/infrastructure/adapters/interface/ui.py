@@ -39,9 +39,11 @@ def create_section(main_frame, title, row, col, colspan=1):
     frame.grid(row=row, column=col, columnspan=colspan, padx=5, pady=5, sticky="nsew")
     return frame
 
-def make_flag_command(tk_controls, vars, k, v):
+def make_flag_command(tk_controls, vars, k, v, shared_controls=None):
     def cmd():
         tk_controls[k] = v.get()
+        if k == "WEBVIEW":
+            shared_controls["WEBVIEW"] = v.get()
         if k == "SHOW_INFO" and v.get():
             vars["LANE_LOGS"].set(False)
             tk_controls["LANE_LOGS"] = False
@@ -52,13 +54,13 @@ def make_flag_command(tk_controls, vars, k, v):
 
 def build_flag_section(main_frame, tk_controls, shared_controls, vars):
     flags_frame = create_section(main_frame, "Toggles", 0, 0)
-    checkboxes = [("SHOW_ROI", "Show ROI"), ("SHOW_INFO", "SHOW Info"), ("LANE_LOGS", "Show Lane-Logs")]
+    checkboxes = [("SHOW_ROI", "Show ROI"), ("SHOW_INFO", "SHOW Info"), ("LANE_LOGS", "Show Lane-Logs"), ("WEBVIEW", "Toggle Webview")]
     if shared_controls.get("SEND_DATA"):
         checkboxes.append(("SEND_LOGS", "Show Send-Logs"))
     for key, label in checkboxes:
         var = tk.BooleanVar(value=tk_controls.get(key, False))
         vars[key] = var
-        ttk.Checkbutton(flags_frame, text=label, variable=var, command=make_flag_command(tk_controls, vars, key, var)).pack(fill="x", pady=2)
+        ttk.Checkbutton(flags_frame, text=label, variable=var, command=make_flag_command(tk_controls, vars, key, var, shared_controls=shared_controls)).pack(fill="x", pady=2)
 
 def build_trackbar_sections(main_frame, tk_controls, vars):
     # Filtragem
@@ -306,8 +308,6 @@ def build_sources_and_serial_section(main_frame, tk_controls, shared_controls):
 
 
 def build_video_display(main_frame, shared_frames, webview, log_message):
-    if webview:
-        return
     video_sec = ttk.LabelFrame(main_frame, text="Exibição de Vídeo / Edges / Object")
     video_sec.grid(row=4, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
     video_sec.columnconfigure((0,1,2), weight=1)
@@ -346,14 +346,13 @@ def build_video_display(main_frame, shared_frames, webview, log_message):
             log_message(f"Erro ao atualizar imagens: {e}")
         video_sec.after(50, update_display)
     update_display()
-
-# ---- Função principal de interface ----
+    return video_sec
 
 def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     root = tk.Tk()
     root.title("Interface de Controle Unificada")
     webview = shared_controls.get("WEBVIEW")
-    root.geometry("1400x800" if webview else "1400x980")
+    root.geometry("1400x800" if webview else "1400x1000")
     style = ttk.Style()
     style.configure("TButton", font=("Arial", 10))
     style.configure("TScale", sliderthickness=12)
@@ -372,6 +371,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
             log_message("Calibração salva.")
         except Exception as e:
             log_message(f"Erro ao salvar calibração: {e}")
+
     def restore_defaults():
         try:
             defaults = load_data(DEFAULTS_FILE)
@@ -382,6 +382,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
             log_message("Defaults restaurados com sucesso.")
         except Exception as e:
             log_message(f"Erro ao restaurar padrão: {e}")
+
     def save_as_new_defaults():
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
@@ -393,11 +394,28 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         except Exception as e:
             log_message(f"Erro ao salvar novo padrão: {e}")
 
+    def update_ui_on_webview_change():
+        nonlocal webview, video_section
+        current_webview = shared_controls.get("WEBVIEW")
+        if current_webview != webview:
+            webview = current_webview
+            root.geometry("1400x800" if webview else "1400x1000")
+            if webview:
+                video_section.grid_remove()
+            else:
+                video_section.grid()
+        root.after(200, update_ui_on_webview_change)
+
     build_flag_section(main_frame, tk_controls, shared_controls, vars)
     build_trackbar_sections(main_frame, tk_controls, vars)
     build_warp_section(main_frame, tk_controls, vars)
     build_calibration_section(main_frame, save_calibration_data, restore_defaults, save_as_new_defaults)
     build_sources_and_serial_section(main_frame, tk_controls, shared_controls)
     log_message = build_log_section(main_frame)
-    build_video_display(main_frame, shared_frames, webview, log_message)
+    video_section = build_video_display(main_frame, shared_frames, webview, log_message)
+
+    if webview:
+        video_section.grid_remove()
+    update_ui_on_webview_change()
+
     root.mainloop()
