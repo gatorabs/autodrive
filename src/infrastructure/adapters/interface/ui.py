@@ -11,7 +11,8 @@ from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION
 from src.infrastructure.adapters.video.begin_the_video import get_video_files_from_folder, detect_camera_indices
 from src.infrastructure.constants.ui_constants.flag_constants import FLAGS_TO_IGNORE, UI_PERSIST_FLAGS
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
-
+from datetime import datetime
+ts = lambda: f"[{datetime.now():%H:%M:%S}] "
 def create_trackbar_var(tk_controls, key, var_type="int"):
     if var_type == "float":
         var = tk.DoubleVar(value=tk_controls.get(key, 0.0))
@@ -119,16 +120,32 @@ def build_calibration_section(main_frame, save_fn, restore_fn, save_default_fn):
     ttk.Button(calib_frame, text="Salvar Novo Padrão", command=save_default_fn).pack(side="left", expand=True, fill="x", padx=5, ipady=10)
 
 def build_log_section(main_frame):
-    logs_frame = ttk.LabelFrame(main_frame, text="Logs de Calibração", padding=(10, 5))
+    logs_frame = ttk.LabelFrame(main_frame, text="Logs", padding=(10, 5))
     logs_frame.grid(row=5, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
     logs_frame.rowconfigure(0, weight=1)
     logs_frame.columnconfigure(0, weight=1)
-    log_text = ScrolledText(logs_frame, height=4, state='disabled', wrap='word')
+    log_text = ScrolledText(logs_frame, height=4, state='disabled', wrap='word', font=("Consolas", 11))
     log_text.grid(row=0, column=0, sticky='nsew')
 
-    def log_message(message):
+    log_text.tag_configure('WORD_INFO', foreground='green', font=('Consolas', 11, 'bold'))
+    log_text.tag_configure('WORD_ERR', background='#FFD6D6', foreground='#B20000', font=('Consolas', 11, 'bold'))
+    log_text.tag_configure('WORD_WARN', background='#FFFACD', foreground='#B38F00', font=('Consolas', 11, 'bold'))
+
+    def log_message(message, level="INFO", prefix=""):
         log_text['state'] = 'normal'
-        log_text.insert('end', message + '\n')
+        # Insere o prefixo normal
+        if prefix:
+            log_text.insert('end', prefix)
+
+        start = log_text.index('end-1c')
+        log_text.insert('end', message)
+        end = log_text.index('end-1c')
+
+        if level == "ERROR" or level == "WARNING":
+            log_text.tag_add('WORD_ERR', start, end)
+        elif level == "INFO":
+            log_text.tag_add('WORD_INFO', start, end)
+        log_text.insert('end', '\n')
         log_text['state'] = 'disabled'
         log_text.see('end')
 
@@ -140,6 +157,7 @@ def build_log_section(main_frame):
     clear_btn = ttk.Button(logs_frame, text="Limpar Logs", command=clear_logs)
     clear_btn.grid(row=1, column=0, sticky='e', pady=5)
     return log_message
+
 
 def build_sources_and_serial_section(main_frame, tk_controls, shared_controls):
     sources_row = ttk.Frame(main_frame)
@@ -334,6 +352,8 @@ def build_video_display(main_frame, shared_frames, webview, log_message):
         return ImageTk.PhotoImage(Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
 
     def update_display():
+        if not lbl_v.winfo_exists():
+            return
         try:
             if "NORMAL_FRAME" in shared_frames:
                 img = cv2.imdecode(np.frombuffer(shared_frames["NORMAL_FRAME"], np.uint8), cv2.IMREAD_COLOR)
@@ -351,7 +371,7 @@ def build_video_display(main_frame, shared_frames, webview, log_message):
                 lbl_o.config(image=k)
                 lbl_o.image = k
         except Exception as e:
-            log_message(f"Erro ao atualizar imagens: {e}")
+            log_message(f"Erro ao atualizar imagens: {e}", level="ERROR", prefix=ts())
         video_sec.after(50, update_display)
     update_display()
     return video_sec
@@ -376,9 +396,9 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         try:
             data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
             save_data(filter_flags(data=data, flags_to_ignore=FLAGS_TO_IGNORE), file_path=CALIBRATION_FILE)
-            log_message("Calibração salva.")
+            log_message("Calibração salva.", prefix=ts())
         except Exception as e:
-            log_message(f"Erro ao salvar calibração: {e}")
+            log_message(f"Erro ao salvar calibração: {e}", "ERROR", prefix=ts())
 
     def restore_defaults():
         try:
@@ -387,9 +407,9 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
                 tk_controls[k] = v
                 if k in vars:
                     vars[k].set(v)
-            log_message("Defaults restaurados com sucesso.")
+            log_message("Defaults restaurados com sucesso.", prefix=ts())
         except Exception as e:
-            log_message(f"Erro ao restaurar padrão: {e}")
+            log_message(f"Erro ao restaurar padrão: {e}", "ERROR", prefix=ts())
 
     def save_as_new_defaults():
         try:
@@ -398,9 +418,36 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
                 filter_flags(data=data, flags_to_ignore=FLAGS_TO_IGNORE),
                 file_path=DEFAULTS_FILE
             )
-            log_message("Novo padrão salvo em defaults.json.")
+            log_message("Novo padrão salvo em defaults.json.", prefix=ts())
         except Exception as e:
-            log_message(f"Erro ao salvar novo padrão: {e}")
+            log_message(f"Erro ao salvar novo padrão: {e}", "ERROR", prefix=ts())
+
+    # ---- Inicializações de layout ----
+    build_flag_section(main_frame, tk_controls, shared_controls, vars)
+    build_trackbar_sections(main_frame, tk_controls, vars)
+    build_warp_section(main_frame, tk_controls, vars)
+    build_calibration_section(main_frame, save_calibration_data, restore_defaults, save_as_new_defaults)
+    build_sources_and_serial_section(main_frame, tk_controls, shared_controls)
+    log_message = build_log_section(main_frame)
+
+    video_section = None
+
+    def create_video_section():
+        nonlocal video_section
+        if video_section is None:
+            log_message("Criando exibição embarcada.", prefix=ts())
+            video_section = build_video_display(main_frame, shared_frames, shared_controls.get("WEBVIEW"), log_message)
+
+    def destroy_video_section():
+        nonlocal video_section
+        if video_section is not None:
+            log_message("Destruindo exibição embarcada.", "WARNING", prefix=ts())
+            log_message("Inicializando WEBVIEW.", prefix=ts())
+            video_section.destroy()
+            video_section = None
+
+    if not webview:
+        create_video_section()
 
     def update_ui_on_webview_change():
         nonlocal webview, video_section
@@ -409,21 +456,11 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
             webview = current_webview
             root.geometry("1400x800" if webview else "1400x1020")
             if webview:
-                video_section.grid_remove()
+                destroy_video_section()
             else:
-                video_section.grid()
+                log_message("Encerrando WEBVIEW","WARNING", prefix=ts())
+                create_video_section()
         root.after(200, update_ui_on_webview_change)
 
-    build_flag_section(main_frame, tk_controls, shared_controls, vars)
-    build_trackbar_sections(main_frame, tk_controls, vars)
-    build_warp_section(main_frame, tk_controls, vars)
-    build_calibration_section(main_frame, save_calibration_data, restore_defaults, save_as_new_defaults)
-    build_sources_and_serial_section(main_frame, tk_controls, shared_controls)
-    log_message = build_log_section(main_frame)
-    video_section = build_video_display(main_frame, shared_frames, webview, log_message)
-
-    if webview:
-        video_section.grid_remove()
     update_ui_on_webview_change()
-
     root.mainloop()

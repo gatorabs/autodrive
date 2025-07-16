@@ -25,7 +25,7 @@ def main():
         )
 
         flask_proc = None
-        last_webview = shared_controls.get("WEBVIEW")
+        last_webview = None
 
         for p in processes:
             p.start()

@@ -33,7 +33,7 @@ def process_traffic_light_roi(roi):
 
         active_color = max(means, key=means.get)
 
-        # 6) mapeia o resultado para BGR e estado
+        # 5) mapeia o resultado para BGR e estado
         if active_color == "Red":
             color_bgr = (0, 0, 255)
             traffic_light_state = 0
