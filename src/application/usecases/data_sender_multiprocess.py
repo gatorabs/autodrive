@@ -8,9 +8,10 @@ def data_sender_process(lane_queue,
 
     set_process_priority("high")
     logger = Logger("SerialCommunicator", verbose=verbose)
+    current_com = shared_controls.get("SENDER_COM")
 
     serial_comm = SerialCommunicator(
-        com_port=shared_controls.get("SENDER_COM"),
+        com_port=current_com,
         send_data=shared_controls.get("SEND_DATA", False),
         logger=logger
     )
@@ -24,6 +25,15 @@ def data_sender_process(lane_queue,
     try:
         while shared_controls.get("RUNNING", True):
             logger.verbose = tk_controls.get("SEND_LOGS")
+
+            new_com = shared_controls.get("SENDER_COM")
+            serial_comm, current_com = switch_serial_com(
+                serial_comm=serial_comm,
+                new_com=new_com,
+                current_com=current_com,
+                shared_controls=shared_controls,
+                logger=logger
+            )
 
             now = time.monotonic()
             remaining = send_interval - (now - last_send)

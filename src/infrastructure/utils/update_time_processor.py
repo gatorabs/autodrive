@@ -1,6 +1,6 @@
 import time
 
-def update_processing_time(logger, start_time, total_time, frame_count, log_interval=100):
+def update_processing_time(logger, start_time, total_time, frame_count, log_interval=10000):
     end_time = time.time()
     frame_time = (end_time - start_time) * 1000  # em milissegundos
     total_time += frame_time

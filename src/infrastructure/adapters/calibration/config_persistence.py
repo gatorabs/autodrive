@@ -21,3 +21,6 @@ def load_data(file_path):
             pass
     return {}
 
+def filter_flags(data, flags_to_ignore):
+    return {k: v for k, v in data.items() if k not in flags_to_ignore}
+

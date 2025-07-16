@@ -9,26 +9,34 @@ def lane_detection_process(lane_queue,
                            video_source=None):
 
     set_process_priority("above_normal")
+    current_source = video_source
 
     logger = Logger("LaneDetection", verbose=verbose)
 
 
     pid = pid_setup(shared_controls.get("NEW_PID"), logger)
 
-    video_proc = VideoProcessor(video_source=video_source,
-                                frame_width=FRAME_WIDTH,
-                                frame_height=FRAME_HEIGHT)
+    video_proc = VideoProcessor(video_source=current_source)
 
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
 
     total_processing_time = 0
     frame_count = 0
     direction = 0
+    avg_time = 0
     fps = 0
 
     try:
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
+
+            new_source = tk_controls.get("LANE_SOURCE")
+            video_proc, current_source = switch_video_source(
+                video_processor=video_proc,
+                current_source=current_source,
+                new_source=new_source,
+                logger=logger
+            )
 
             logger.verbose = tk_controls.get("LANE_LOGS")
 
@@ -85,7 +93,8 @@ def lane_detection_process(lane_queue,
                 has_ref=has_ref,
                 mapped_direction=mapped_direction,
                 show_info=tk_controls.get("SHOW_INFO"),
-                fps=fps
+                fps=fps,
+                ms=avg_time
             )
 
             toggle_named_window(is_enabled=tk_controls.get("SHOW_ROI"),

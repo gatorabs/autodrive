@@ -71,7 +71,9 @@ def setup_flag_interface():
     video_frame = ttk.LabelFrame(main_frame, text="Fontes de Vídeo ou Câmera", padding=10)
     video_frame.pack(fill="x", padx=5, pady=10)
 
-    raw_sources = get_video_files_from_folder() + detect_camera_indices()
+    detected_cameras = detect_camera_indices()
+
+    raw_sources = get_video_files_from_folder() + detected_cameras
     combined_sources = [os.path.normpath(s) if isinstance(s, str) else s for s in raw_sources]
 
     def create_source_selector(name, default):
@@ -113,6 +115,7 @@ def setup_flag_interface():
             val = label_to_path.get(selected_label, selected_label)
             result[name] = int(val) if isinstance(val, str) and val.isdigit() else val
 
+        result["DETECTED_CAMERAS"] = detected_cameras
         save_data(result, DEFAULT_UI_PATH)
         root.quit()
 
