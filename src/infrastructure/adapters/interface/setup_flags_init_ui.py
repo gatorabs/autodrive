@@ -9,7 +9,7 @@ from src.infrastructure.adapters.video.begin_the_video import (
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.constants.ui_constants.file_constants import DEFAULT_UI_PATH
-from src.infrastructure.adapters.calibration.config_persistence import save_data, load_data
+from src.infrastructure.adapters.calibration.calibration_repository import save_data, load_data
 
 logger = Logger("CalibrationUI", verbose=True)
 

@@ -1,4 +1,4 @@
-from src.infrastructure.adapters.calibration.config_persistence import load_data
+from src.infrastructure.adapters.calibration.calibration_repository import load_data
 from src.infrastructure.adapters.interface.setup_flags_init_ui import setup_flag_interface
 
 import multiprocessing as mp

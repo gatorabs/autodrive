@@ -1,5 +1,5 @@
-from src.domain.services.pid.controllers.pid_controller import PIDController
-from src.domain.services.pid.controllers.pid_v2_controller import PIDV2Controller
+from src.domain.models.pid.pid import PIDController
+from src.domain.models.pid.pid_v2 import PIDV2Controller
 from src.infrastructure.constants.usecases_constants.lane_process_constants import TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT
 
 def pid_setup(use_new: bool, logger):

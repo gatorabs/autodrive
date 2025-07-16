@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from tkinter.scrolledtext import ScrolledText
 from src.infrastructure.constants.video_constants import FRAME_HEIGHT, FRAME_WIDTH
-from src.infrastructure.adapters.calibration.config_persistence import save_data, load_data, filter_flags
+from src.infrastructure.adapters.calibration.calibration_repository import save_data, load_data, filter_flags
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULTS_FILE, DEFAULT_UI_PATH
 from src.infrastructure.adapters.video.begin_the_video import get_video_files_from_folder, detect_camera_indices
 from src.infrastructure.constants.ui_constants.flag_constants import FLAGS_TO_IGNORE
