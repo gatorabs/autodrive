@@ -35,7 +35,11 @@ def publish(frame_display,
     }
 
 def compute_distances(warped_roi, side, num_lines):
-    interval = max(1, round(warped_roi.shape[0] / num_lines))
+    # guard against zero or negative number of lines to avoid division by zero
+    if num_lines <= 0:
+        interval = 1
+    else:
+        interval = max(1, round(warped_roi.shape[0] / num_lines))
     avg_left, avg_right = calculate_center_distance(warped_roi, interval)
 
     lost_ref = ((side == 1 and avg_right == float('inf')) or
