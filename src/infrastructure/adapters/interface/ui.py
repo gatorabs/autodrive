@@ -12,7 +12,6 @@ from src.infrastructure.adapters.video.begin_the_video import get_video_files_fr
 from src.infrastructure.constants.ui_constants.flag_constants import FLAGS_TO_IGNORE
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 
-# --- Helpers já estavam OK, só deixei igual ---
 def create_trackbar_var(tk_controls, key, var_type="int"):
     if var_type == "float":
         var = tk.DoubleVar(value=tk_controls.get(key, 0.0))
