@@ -9,7 +9,7 @@ def main():
 
     with mp.Manager() as manager:
         shared_controls = manager.dict(
-            init_shared_controls(user_flags, calibrated_data)
+            init_shared_controls(user_flags)
         )
 
         tk_controls   = manager.dict(initial_tk)
