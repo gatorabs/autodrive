@@ -9,7 +9,7 @@ from src.infrastructure.constants.video_constants import FRAME_HEIGHT, FRAME_WID
 from src.infrastructure.adapters.calibration.calibration_repository import save_data, load_data, filter_flags
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULTS_FILE, DEFAULT_UI_PATH
 from src.infrastructure.adapters.video.begin_the_video import get_video_files_from_folder, detect_camera_indices
-from src.infrastructure.constants.ui_constants.flag_constants import FLAGS_TO_IGNORE
+from src.infrastructure.constants.ui_constants.flag_constants import FLAGS_TO_IGNORE, UI_PERSIST_FLAGS
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 
 def create_trackbar_var(tk_controls, key, var_type="int"):
@@ -44,6 +44,7 @@ def make_flag_command(tk_controls, vars, k, v, shared_controls=None):
         tk_controls[k] = v.get()
         if k == "WEBVIEW":
             shared_controls["WEBVIEW"] = v.get()
+            save_ui_state(tk_controls, DEFAULT_UI_PATH)
         if k == "SHOW_INFO" and v.get():
             vars["LANE_LOGS"].set(False)
             tk_controls["LANE_LOGS"] = False
@@ -83,6 +84,10 @@ def build_trackbar_sections(main_frame, tk_controls, vars):
     for key in ["Person", "Traffic"]:
         vars[key] = create_trackbar_var(tk_controls, key, "int")
         create_trackbar_row(roi_frame, key, vars[key], 0, 240)
+
+def save_ui_state(tk_controls, path):
+    data = {k: tk_controls.get(k) for k in UI_PERSIST_FLAGS}
+    save_data(data, path)
 
 def build_warp_section(main_frame, tk_controls, vars):
     warp_container = ttk.Frame(main_frame)
@@ -238,7 +243,8 @@ def build_sources_and_serial_section(main_frame, tk_controls, shared_controls):
     refresh_vid_btn = ttk.Button(video_btns_row, text="Atualizar Lista de Vídeos", command=refresh_videos)
     aplicar_vid_btn = ttk.Button(video_btns_row, text="Aplicar Alterações", command=lambda: (
         tk_controls.__setitem__("LANE_SOURCE", int(label_to_path.get(lane_var.get())) if isinstance(label_to_path.get(lane_var.get()), str) and label_to_path.get(lane_var.get()).isdigit() else label_to_path.get(lane_var.get())),
-        tk_controls.__setitem__("OBJECT_SOURCE", int(label_to_path.get(obj_var.get())) if isinstance(label_to_path.get(obj_var.get()), str) and label_to_path.get(obj_var.get()).isdigit() else label_to_path.get(obj_var.get()))
+        tk_controls.__setitem__("OBJECT_SOURCE", int(label_to_path.get(obj_var.get())) if isinstance(label_to_path.get(obj_var.get()), str) and label_to_path.get(obj_var.get()).isdigit() else label_to_path.get(obj_var.get())),
+        save_ui_state(tk_controls, DEFAULT_UI_PATH)
     ))
     # Ajusta altura dos botões
     refresh_vid_btn.pack(side="left", fill="x", expand=True, padx=(0, 2), ipady=6)
@@ -301,7 +307,8 @@ def build_sources_and_serial_section(main_frame, tk_controls, shared_controls):
     aplicar_ports_btn = ttk.Button(ports_btns_row, text="Aplicar Alterações", command=lambda: (
         tk_controls.__setitem__("SECURITY_COM", security_var.get()),
         tk_controls.__setitem__("SENDER_COM", sender_var.get()),
-        shared_controls.__setitem__("SENDER_COM", sender_var.get())
+        shared_controls.__setitem__("SENDER_COM", sender_var.get()),
+        save_ui_state(tk_controls, DEFAULT_UI_PATH)
     ))
     refresh_ports_btn.pack(side="left", fill="x", expand=True, padx=(0,2), ipady=6)
     aplicar_ports_btn.pack(side="left", fill="x", expand=True, padx=(2,0), ipady=6)

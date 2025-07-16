@@ -1,5 +1,5 @@
 from src.infrastructure.adapters.calibration.calibration_repository import load_data
-from src.infrastructure.adapters.interface.setup_flags_init_ui import setup_flag_interface
+from src.infrastructure.adapters.interface.setup_flags_init_ui import prepare_initial_flags
 
 import multiprocessing as mp
 import time

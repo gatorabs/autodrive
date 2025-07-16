@@ -3,7 +3,7 @@ from src.core import *
 def main():
     mp.set_start_method('spawn')
 
-    user_flags = setup_flag_interface()
+    user_flags = prepare_initial_flags()
     calibrated_data = load_data(CALIBRATION_FILE)
     initial_tk = {**calibrated_data, **user_flags}
 
