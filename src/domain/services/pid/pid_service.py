@@ -19,3 +19,10 @@ def update_pid_from_controls(pid, controls,
     pid.ki        = controls.get("KI",       default_ki)
     pid.kd        = controls.get("KD",       default_kd)
 
+def check_and_update_pid(pid, last_pid_flag, shared_controls, logger):
+    current_pid_flag = shared_controls.get("NEW_PID")
+    if current_pid_flag != last_pid_flag:
+        pid = pid_setup(current_pid_flag, logger)
+        logger.info(f"PID Controller atualizado para {'PID V2' if current_pid_flag else 'PID V1'}.")
+        last_pid_flag = current_pid_flag
+    return pid, last_pid_flag

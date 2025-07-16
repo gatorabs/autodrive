@@ -13,8 +13,8 @@ def lane_detection_process(lane_queue,
 
     logger = Logger("LaneDetection", verbose=verbose)
 
-
-    pid = pid_setup(shared_controls.get("NEW_PID"), logger)
+    last_pid_flag = shared_controls.get("NEW_PID")
+    pid = pid_setup(last_pid_flag, logger)
 
     video_proc = VideoProcessor(video_source=current_source)
 
@@ -56,6 +56,11 @@ def lane_detection_process(lane_queue,
             except cv.error as e:
                 logger.error(f"Erro no preprocess: {e}")
                 continue
+
+            pid, last_pid_flag = check_and_update_pid(pid=pid,
+                                                      last_pid_flag=last_pid_flag,
+                                                      shared_controls=shared_controls,
+                                                      logger=logger)
 
             avg_left, avg_right, has_ref = compute_distances(warped_roi=warped_roi,
                                                              side=side,
