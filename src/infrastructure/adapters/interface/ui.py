@@ -45,19 +45,20 @@ def make_flag_command(tk_controls, vars, k, v, shared_controls=None):
         if k == "WEBVIEW":
             shared_controls["WEBVIEW"] = v.get()
             save_ui_state(tk_controls, DEFAULT_UI_PATH)
-        if k == "SHOW_INFO" and v.get():
-            vars["LANE_LOGS"].set(False)
-            tk_controls["LANE_LOGS"] = False
-        elif k == "LANE_LOGS" and v.get():
-            vars["SHOW_INFO"].set(False)
-            tk_controls["SHOW_INFO"] = False
+        if k == "NEW_PID":
+            shared_controls["NEW_PID"] = v.get()
+            save_ui_state(tk_controls, DEFAULT_UI_PATH)
     return cmd
 
 def build_flag_section(main_frame, tk_controls, shared_controls, vars):
     flags_frame = create_section(main_frame, "Toggles", 0, 0)
-    checkboxes = [("SHOW_ROI", "Show ROI"), ("SHOW_INFO", "SHOW Info"), ("LANE_LOGS", "Show Lane-Logs"), ("WEBVIEW", "Toggle Webview")]
-    if shared_controls.get("SEND_DATA"):
-        checkboxes.append(("SEND_LOGS", "Show Send-Logs"))
+    checkboxes = [("SHOW_ROI", "Toggle ROI"),
+                  ("SHOW_INFO", "Toggle Info"),
+                  ("LANE_LOGS", "Toggle Lane-Logs"),
+                  ("WEBVIEW", "Toggle Webview"),
+                  ("NEW_PID", "Toggle PID V2"),
+                  ("SEND_LOGS", "Show Send-Logs")]
+
     for key, label in checkboxes:
         var = tk.BooleanVar(value=tk_controls.get(key, False))
         vars[key] = var
@@ -359,7 +360,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
     root = tk.Tk()
     root.title("Interface de Controle Unificada")
     webview = shared_controls.get("WEBVIEW")
-    root.geometry("1400x800" if webview else "1400x1000")
+    root.geometry("1400x800" if webview else "1400x1020")
     style = ttk.Style()
     style.configure("TButton", font=("Arial", 10))
     style.configure("TScale", sliderthickness=12)
@@ -406,7 +407,7 @@ def create_responsive_interface(tk_controls, shared_frames, shared_controls):
         current_webview = shared_controls.get("WEBVIEW")
         if current_webview != webview:
             webview = current_webview
-            root.geometry("1400x800" if webview else "1400x1000")
+            root.geometry("1400x800" if webview else "1400x1020")
             if webview:
                 video_section.grid_remove()
             else:
