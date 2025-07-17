@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import ttk
 from src.infrastructure.adapters.calibration.calibration_repository import save_data, load_data, filter_flags

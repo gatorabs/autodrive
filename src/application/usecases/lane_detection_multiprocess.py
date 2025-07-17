@@ -38,8 +38,6 @@ def lane_detection_process(lane_queue,
                 logger=logger
             )
 
-            logger.verbose = tk_controls.get("LANE_LOGS")
-
             frame = video_proc.get_frame()
             if frame is None:
                 logger.error(f"Frame não capturado. Cheque o vídeo ou câmera.")
