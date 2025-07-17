@@ -1,7 +1,6 @@
 {
     "SHOW_ROI": true,
     "SHOW_INFO": true,
-    "LANE_LOGS": true,
     "SEND_LOGS": false,
     "F_Canny": 20,
     "S_Canny": 152,

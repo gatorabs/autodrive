@@ -6,7 +6,7 @@ from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.adapters.video.video_preprocess import preprocess
 from src.infrastructure.adapters.video.video_utility_process import toggle_named_window, switch_video_source
 from src.infrastructure.utils.priorities_processor import set_process_priority
-from src.infrastructure.adapters.interface.setup_embedded_ui import draw_overlays
+from src.infrastructure.adapters.display.setup_embedded_ui import draw_overlays
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 from src.infrastructure.utils.update_time_processor import update_processing_time
 from src.infrastructure.logging.logger import Logger
