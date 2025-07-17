@@ -35,7 +35,7 @@ class SerialCommunicator:
     def list_available_ports() -> List[str]:
         return [p.device for p in list_ports.comports()]
 
-    def send(self, data):
+    def send(self, data, verbose=False):
         if not self.send_data:
             return
 
@@ -48,7 +48,8 @@ class SerialCommunicator:
         if self.serial_port and self.serial_port.is_open:
             try:
                 self.serial_port.write(data_string.encode())
-                self.logger.info(f"{data_string}")
+                if verbose:
+                    self.logger.info(f"{data_string}")
                 self.serial_port.flush()
                 self.last_send_time = now
             except Exception as e:

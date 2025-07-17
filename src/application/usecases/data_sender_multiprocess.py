@@ -24,8 +24,6 @@ def data_sender_process(lane_queue,
 
     try:
         while shared_controls.get("RUNNING", True):
-            logger.verbose = tk_controls.get("SEND_LOGS")
-
             new_com = shared_controls.get("SENDER_COM")
             serial_comm, current_com = switch_serial_com(
                 serial_comm=serial_comm,
@@ -60,7 +58,8 @@ def data_sender_process(lane_queue,
             publish(obj_data=obj_data,
                     lane_data=lane_data,
                     serial_comm=serial_comm,
-                    logger=logger)
+                    logger=logger,
+                    verbose=tk_controls.get("SEND_LOGS"))
 
             last_send = now
 

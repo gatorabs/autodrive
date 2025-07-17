@@ -13,8 +13,12 @@ def prepare_initial_flags():
     defaults_ui["DETECTED_CAMERAS"] = detected_cameras
 
     available_ports = SerialCommunicator.list_available_ports()
-    if available_ports is not None:
-        defaults_ui["SEND_DATA"] = True
+    defaults_ui["SEND_DATA"] = bool(available_ports)
+
+    defaults_ui["SENDER_COM"] = next(
+        (port for port in ["COM8", "COM4"] if port in available_ports),
+        available_ports[0]
+    )
     save_data(defaults_ui, DEFAULT_UI_PATH)
     return defaults_ui
 

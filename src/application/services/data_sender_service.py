@@ -23,7 +23,7 @@ def switch_serial_com(serial_comm, new_com, current_com, shared_controls, logger
         return serial_comm, new_com
     return serial_comm, current_com
 
-def publish(lane_data, obj_data, serial_comm, logger):
+def publish(lane_data, obj_data, serial_comm, logger, verbose):
     payload = [
         lane_data["CAR_DIRECTION_DATA"],
         lane_data["CAR_SPEED_DATA"],
@@ -31,7 +31,7 @@ def publish(lane_data, obj_data, serial_comm, logger):
     ]
 
     try:
-        serial_comm.send(payload)
+        serial_comm.send(payload, verbose)
     except Exception as e:
         logger.error(f"Falha ao enviar dados: {e}")
         try:
