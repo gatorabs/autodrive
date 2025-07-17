@@ -1,3 +1,5 @@
+import time
+
 from src.core.__init__process import *
 
 def create_processes(shared_controls, shared_frames, tk_controls, user_flags):
@@ -81,17 +83,14 @@ def handle_flask_process(current_webview,
                 logger.warning("Encerrando Server Flask via /shutdown.")
 
                 try:
-                    requests.post(url=shutdown_endpoint, timeout=2)
+                    requests.post(url=shutdown_endpoint, timeout=3)
                 except Exception as e:
                     logger.error(f"Erro ao chamar shutdown: {e}")
-
-                flask_proc.join(timeout=5)
                 if flask_proc.is_alive():
-                    logger.info("Matando processo flask.")
+                    logger.info("Flask Server desligado com sucesso.")
+                    logger.info("Matando Flask Process.")
                     flask_proc.terminate()
                     flask_proc.join(timeout=3)
-                else:
-                    logger.info("Flask desligado com sucesso.")
                 flask_proc = None
     return flask_proc, current_webview
 

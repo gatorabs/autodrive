@@ -32,7 +32,7 @@ const Index = () => {
 
   useEffect(() => {
   const interval = setInterval(() => {
-    fetch("http://192.168.15.12:5000/api/car_info")
+    fetch("http://192.168.15.12:5000/api/car-info")
       .then(res => res.json())
       .then(data => {
         const speed = data.car_info.CAR_SPEED_DATA;

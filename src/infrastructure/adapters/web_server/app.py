@@ -1,12 +1,16 @@
 from flask import Flask
 from flask_cors import CORS
 from src.infrastructure.adapters.web_server.routes.V1.dashboard_controller_v1 import car_api_info, video_api_info
-from src.infrastructure.adapters.web_server.routes.V2.app_controller import shutdown_server
+from src.infrastructure.adapters.web_server.routes.V1.app_controller import shutdown_server
 from src.infrastructure.logging.logger import Logger
+from src.infrastructure.logging.werkzeug_filters import SuppressCodesFilter
+import logging
 shared_frames = {}
 shared_controls = {}
 
 logger = Logger("FlaskServer")
+
+logging.getLogger('werkzeug').addFilter(SuppressCodesFilter())
 
 def create_app(frames_dict, controls_dict):
     global shared_frames, shared_controls
