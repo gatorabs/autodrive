@@ -3,7 +3,7 @@ from src.core import *
 def main():
     mp.set_start_method('spawn')
 
-    user_flags = prepare_initial_flags()
+    user_flags = init_system()
     calibrated_data = load_data(CALIBRATION_FILE)
     initial_tk = {**calibrated_data, **user_flags}
 
@@ -14,8 +14,6 @@ def main():
 
         tk_controls   = manager.dict(initial_tk)
         shared_frames = manager.dict()
-
-        print_initial_flags(shared_controls)
 
         processes = create_processes(
             shared_controls,
