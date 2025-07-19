@@ -161,7 +161,7 @@ class MainApp(ctk.CTk):
 
         # Seção de Filtros
         self.filters_container = ctk.CTkFrame(self)
-        self.filters_container.grid(row=1, column=1, pady=(2, 5))
+        self.filters_container.grid(row=1, column=1, pady=(2, 5), sticky="n")
         self.filters_container.configure(width=self.VIDEO_WIDTH, height=110)
         self.filters_container.pack_propagate(False)
 
