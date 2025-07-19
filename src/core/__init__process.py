@@ -4,7 +4,7 @@ from src.application.usecases.object_detector_multiprocess import object_detecti
 from src.application.usecases.security_multiprocess import security_process
 
 from src.infrastructure.adapters.web_server.app import start_flask_server
-from src.infrastructure.adapters.display.ui.main_section import create_responsive_interface
+from src.infrastructure.adapters.display.ui.main_section import MainApp
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.constants.services_constants.process_constants import shutdown_endpoint
 

@@ -1,6 +1,8 @@
 import time
 
 from src.core.__init__process import *
+from src.infrastructure.adapters.display.ui.main_section import launch_homepage
+
 
 def create_processes(shared_controls, shared_frames, tk_controls, user_flags):
     processes = []
@@ -38,11 +40,10 @@ def create_processes(shared_controls, shared_frames, tk_controls, user_flags):
     processes.append(
         mp.Process(
             name="tk",
-            target=create_responsive_interface,
+            target=launch_homepage,
             kwargs={
-                "tk_controls": tk_controls,
                 "shared_frames": shared_frames,
-                "shared_controls": shared_controls,
+                "tk_controls": tk_controls
             },
         )
     )

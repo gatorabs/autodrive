@@ -1,144 +1,114 @@
-import tkinter as tk
-from tkinter import ttk
-from src.infrastructure.adapters.calibration.calibration_repository import save_data, load_data, filter_flags
-from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULTS_FILE
-from src.infrastructure.constants.ui_constants.flag_constants import FLAGS_TO_IGNORE
-from src.infrastructure.adapters.display.ui.build_sections.trackbars import build_warp_section
-from src.infrastructure.adapters.display.ui.build_sections.contents.ui_contents import build_filter_section_content, build_pid_section_content, build_extras_section_content, build_roi_section_content, build_flag_section_content
-from src.infrastructure.adapters.display.ui.helpers.ui_helper import ts
-from src.infrastructure.adapters.display.ui.build_sections.buttons import build_calibration_section
-from src.infrastructure.adapters.display.ui.build_sections.combobox import build_sources_and_serial_section
-from src.infrastructure.adapters.display.ui.build_sections.video import build_video_display
-from src.infrastructure.adapters.display.ui.build_sections.logging import build_log_section
+import customtkinter as ctk
+from PIL import Image
+from customtkinter import CTkImage
+import multiprocessing as mp
+import io
 
-def create_responsive_interface(tk_controls, shared_frames, shared_controls):
-    root = tk.Tk()
-    root.title("Interface de Controle Unificada")
-    webview = shared_controls.get("WEBVIEW")
-    root.geometry("1400x700" if webview else "1400x1020")
+FRAME_WIDTH = 240
+FRAME_HEIGHT = 135
 
-    # Configuração de estilo
-    style = ttk.Style()
-    style.configure("TButton", font=("Arial", 10))
-    style.configure("TScale", sliderthickness=12)
-    style.configure("TFrame", background="#f0f0f0")
+class VideoFrame(ctk.CTkFrame):
+    def __init__(self, master, title="Frame", **kwargs):
+        super().__init__(master, **kwargs)
+        self.label = ctk.CTkLabel(self, text=title)
+        self.label.pack()
+        self.image_label = ctk.CTkLabel(self, text="")
+        self.image_label.pack()
 
-    vars = {}
-    main_frame = ttk.Frame(root)
-    main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+    def update_image(self, image_bytes):
+        if image_bytes:
+            image = Image.open(io.BytesIO(image_bytes)).resize((FRAME_WIDTH, FRAME_HEIGHT))
+            ctk_image = CTkImage(light_image=image, size=(FRAME_WIDTH, FRAME_HEIGHT))
+            self.image_label.configure(image=ctk_image)
+            self.image_label.image = ctk_image
 
-    # Configuração do grid principal
-    for i in range(5):  # 5 colunas
-        main_frame.columnconfigure(i, weight=1)
-    for i in range(6):  # 6 linhas
-        main_frame.rowconfigure(i, weight=1 if i == 4 else 0)  # Apenas a linha 4 (vídeo) é expansível
 
-    # ========== SEÇÕES SUPERIORES ==========
-    # Parâmetros para as seções uniformes
-    SECTION_PADX = 5  # Espaçamento horizontal entre seções
-    SECTION_PADY = 5  # Espaçamento vertical
+class FilterControls(ctk.CTkFrame):
+    def __init__(self, master, tk_controls, **kwargs):
+        super().__init__(master, **kwargs)
+        self.tk_controls = tk_controls
 
-    # 1. Seção de Toggles
-    flags_frame = ttk.LabelFrame(main_frame, text="Toggles", padding=(10, 5))
-    flags_frame.grid(row=0, column=0, sticky="nsew", padx=SECTION_PADX, pady=SECTION_PADY)
-    build_flag_section_content(flags_frame, tk_controls, shared_controls, vars)
+        ctk.CTkLabel(self, text="Filtros", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
-    # 2. Seção de Filtragem
-    filter_frame = ttk.LabelFrame(main_frame, text="Parâmetros de Filtragem", padding=(10, 5))
-    filter_frame.grid(row=0, column=1, sticky="nsew", padx=SECTION_PADX, pady=SECTION_PADY)
-    build_filter_section_content(filter_frame, tk_controls, vars)
+        # F_Canny
+        self.f_canny_frame = ctk.CTkFrame(self)
+        self.f_canny_frame.pack(fill="x", padx=20, pady=5)
 
-    # 3. Seção de PID
-    pid_frame = ttk.LabelFrame(main_frame, text="Parâmetros de Controle (PID)", padding=(10, 5))
-    pid_frame.grid(row=0, column=2, sticky="nsew", padx=SECTION_PADX, pady=SECTION_PADY)
-    build_pid_section_content(pid_frame, tk_controls, vars)
+        ctk.CTkLabel(self.f_canny_frame, text="F_Canny").pack(side="left")
+        self.f_canny_slider = ctk.CTkSlider(
+            self.f_canny_frame, from_=0, to=255, number_of_steps=255,
+            command=self.update_f_canny
+        )
+        self.f_canny_slider.set(self.tk_controls.get("F_Canny", 20))
+        self.f_canny_slider.pack(side="left", fill="x", expand=True, padx=(10, 10))
 
-    # 4. Seção de Extras
-    extras_frame = ttk.LabelFrame(main_frame, text="Extras", padding=(10, 5))
-    extras_frame.grid(row=0, column=3, sticky="nsew", padx=SECTION_PADX, pady=SECTION_PADY)
-    build_extras_section_content(extras_frame, tk_controls, vars)
+        self.f_canny_value = ctk.CTkLabel(self.f_canny_frame, text=str(self.f_canny_slider.get()))
+        self.f_canny_value.pack(side="left")
 
-    # 5. Seção de ROI
-    roi_frame = ttk.LabelFrame(main_frame, text="ROI para Objetos", padding=(10, 5))
-    roi_frame.grid(row=0, column=4, sticky="nsew", padx=SECTION_PADX, pady=SECTION_PADY)
-    build_roi_section_content(roi_frame, tk_controls, vars)
+        # S_Canny
+        self.s_canny_frame = ctk.CTkFrame(self)
+        self.s_canny_frame.pack(fill="x", padx=20, pady=5)
 
-    # ========== SEÇÕES INFERIORES ==========
-    # Seção Warp
-    build_warp_section(main_frame, tk_controls, vars)
+        ctk.CTkLabel(self.s_canny_frame, text="S_Canny").pack(side="left")
+        self.s_canny_slider = ctk.CTkSlider(
+            self.s_canny_frame, from_=0, to=255, number_of_steps=255,
+            command=self.update_s_canny
+        )
+        self.s_canny_slider.set(self.tk_controls.get("S_Canny", 152))
+        self.s_canny_slider.pack(side="left", fill="x", expand=True, padx=(10, 10))
 
-    # Seção de Calibração
-    def save_calibration_data():
+        self.s_canny_value = ctk.CTkLabel(self.s_canny_frame, text=str(self.s_canny_slider.get()))
+        self.s_canny_value.pack(side="left")
+
+    def update_f_canny(self, value):
+        value = int(value)
+        self.tk_controls["F_Canny"] = value
+        self.f_canny_value.configure(text=str(value))
+
+    def update_s_canny(self, value):
+        value = int(value)
+        self.tk_controls["S_Canny"] = value
+        self.s_canny_value.configure(text=str(value))
+
+class MainApp(ctk.CTk):
+    def __init__(self, shared_frames, tk_controls):
+        super().__init__()
+        self.title("Visualizador de Frames com Filtros")
+        self.geometry("850x400")
+        self.shared_frames = shared_frames
+        self.tk_controls = tk_controls
+
+        # Layout geral
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=0)
+        self.grid_columnconfigure((0, 1, 2), weight=1)
+
+        # Vídeos
+        self.normal_frame = VideoFrame(self, "NORMAL_FRAME")
+        self.edges_frame = VideoFrame(self, "EDGES_FRAME")
+        self.object_frame = VideoFrame(self, "OBJECT_FRAME")
+
+        self.normal_frame.grid(row=0, column=0, padx=10, pady=10)
+        self.edges_frame.grid(row=0, column=1, padx=10, pady=10)
+        self.object_frame.grid(row=0, column=2, padx=10, pady=10)
+
+        # Seção de Filtros
+        self.filters = FilterControls(self, self.tk_controls)
+        self.filters.grid(row=1, column=0, columnspan=3, pady=10, sticky="ew")
+
+        self.update_loop()
+
+    def update_loop(self):
         try:
-            data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
-            save_data(filter_flags(data=data, flags_to_ignore=FLAGS_TO_IGNORE), file_path=CALIBRATION_FILE)
-            log_message("Calibração salva.", prefix=ts())
+            self.normal_frame.update_image(self.shared_frames.get("NORMAL_FRAME"))
+            self.edges_frame.update_image(self.shared_frames.get("EDGES_FRAME"))
+            self.object_frame.update_image(self.shared_frames.get("OBJECT_FRAME"))
         except Exception as e:
-            log_message(f"Erro ao salvar calibração: {e}", "ERROR", prefix=ts())
+            print("Erro ao atualizar frames:", e)
 
-    def restore_defaults():
-        try:
-            defaults = load_data(DEFAULTS_FILE)
-            for k, v in defaults.items():
-                tk_controls[k] = v
-                if k in vars:
-                    vars[k].set(v)
-            log_message("Defaults restaurados com sucesso.", prefix=ts())
-        except Exception as e:
-            log_message(f"Erro ao restaurar padrão: {e}", "ERROR", prefix=ts())
+        self.after(33, self.update_loop)  # ~30 FPS
 
-    def save_as_new_defaults():
-        try:
-            data = {k: v for k, v in dict(tk_controls).items() if isinstance(v, (int, float, bool))}
-            save_data(
-                filter_flags(data=data, flags_to_ignore=FLAGS_TO_IGNORE),
-                file_path=DEFAULTS_FILE
-            )
-            log_message("Novo padrão salvo em defaults.json.", prefix=ts())
-        except Exception as e:
-            log_message(f"Erro ao salvar novo padrão: {e}", "ERROR", prefix=ts())
 
-    build_calibration_section(main_frame, save_calibration_data, restore_defaults, save_as_new_defaults)
-
-    # Seção de Fontes e Portas Seriais
-    build_sources_and_serial_section(main_frame, tk_controls, shared_controls)
-
-    # Seção de Logs
-    log_message = build_log_section(main_frame)
-
-    # ========== SEÇÃO DE VÍDEO ==========
-    video_section = None
-
-    def create_video_section():
-        nonlocal video_section
-        if video_section is None:
-            log_message("Criando exibição embarcada.", prefix=ts())
-            video_section = build_video_display(main_frame, shared_frames, shared_controls.get("WEBVIEW"), log_message)
-
-    def destroy_video_section():
-        nonlocal video_section
-        if video_section is not None:
-            log_message("Destruindo exibição embarcada.", "WARNING", prefix=ts())
-            log_message("Inicializando WEBVIEW.", prefix=ts())
-            video_section.destroy()
-            video_section = None
-
-    if not webview:
-        create_video_section()
-
-    # ========== CONTROLE DE WEBVIEW ==========
-    def update_ui_on_webview_change():
-        nonlocal webview, video_section
-        current_webview = shared_controls.get("WEBVIEW")
-        if current_webview != webview:
-            webview = current_webview
-            root.geometry("1400x700" if webview else "1400x1020")
-            if webview:
-                destroy_video_section()
-            else:
-                log_message("Encerrando WEBVIEW", "WARNING", prefix=ts())
-                create_video_section()
-        root.after(200, update_ui_on_webview_change)
-
-    update_ui_on_webview_change()
-    root.mainloop()
+def launch_homepage(shared_frames, tk_controls):
+    app = MainApp(shared_frames, tk_controls)
+    app.mainloop()
