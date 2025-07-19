@@ -133,7 +133,7 @@ class MainApp(ctk.CTk):
         EXTRA_MARGIN = 20
 
         self.video_section_height = self.VIDEO_HEIGHT + 10 + 2 + EXTRA_MARGIN
-        self.lower_section_height = max(240, 110) + 2 + 5 + EXTRA_MARGIN
+        self.lower_section_height = max(300, 110) + 2 + 5 + EXTRA_MARGIN
 
         self.TOTAL_HEIGHT = self.video_section_height + self.lower_section_height
 
@@ -170,7 +170,7 @@ class MainApp(ctk.CTk):
 
         self.warp_container = ctk.CTkFrame(self)
         self.warp_container.grid(row=1, column=0, pady=(2, 5))
-        self.warp_container.configure(width=self.VIDEO_WIDTH, height=240)
+        self.warp_container.configure(width=self.VIDEO_WIDTH, height=300)
         self.warp_container.pack_propagate(False)
 
         self.warp_controls = WarpControls(self.warp_container, self.tk_controls, self.calibration_data)
