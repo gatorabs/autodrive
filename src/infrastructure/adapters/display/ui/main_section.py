@@ -2,6 +2,8 @@ import customtkinter as ctk
 from PIL import Image
 from customtkinter import CTkImage
 import io
+from src.infrastructure.adapters.calibration.calibration_repository import load_data
+from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
 
 FRAME_WIDTH = 360
 FRAME_HEIGHT = 203
@@ -22,11 +24,11 @@ class VideoFrame(ctk.CTkFrame):
             self.image_label.image = ctk_image
 
 class FilterControls(ctk.CTkFrame):
-    def __init__(self, master, tk_controls, **kwargs):
+    def __init__(self, master, tk_controls, calibration_data, **kwargs):
         super().__init__(master, **kwargs)
         self.pack_propagate(False)
         self.tk_controls = tk_controls
-
+        self.calibration_data = calibration_data
         ctk.CTkLabel(self, text="Filtros", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
         # F_Canny
@@ -36,7 +38,8 @@ class FilterControls(ctk.CTkFrame):
 
         ctk.CTkLabel(f_row, text="F_Canny").grid(row=0, column=0, padx=(10, 5))
         self.f_canny_slider = ctk.CTkSlider(f_row, from_=0, to=255, number_of_steps=255, command=self.update_f_canny)
-        self.f_canny_slider.set(self.tk_controls.get("F_Canny", 20))
+        default_f_canny = self.calibration_data.get("F_Canny", self.tk_controls.get("F_Canny"))
+        self.f_canny_slider.set(default_f_canny)
         self.f_canny_slider.grid(row=0, column=1, padx=5, sticky="ew")
 
         self.f_canny_value = ctk.CTkLabel(f_row, text=str(self.f_canny_slider.get()), fg_color="transparent",
@@ -50,7 +53,8 @@ class FilterControls(ctk.CTkFrame):
 
         ctk.CTkLabel(s_row, text="S_Canny").grid(row=0, column=0, padx=(10, 5))
         self.s_canny_slider = ctk.CTkSlider(s_row, from_=0, to=255, number_of_steps=255, command=self.update_s_canny)
-        self.s_canny_slider.set(self.tk_controls.get("S_Canny", 152))
+        default_s_canny = self.calibration_data.get("S_Canny", self.tk_controls.get("S_Canny"))
+        self.s_canny_slider.set(default_s_canny)
         self.s_canny_slider.grid(row=0, column=1, padx=5, sticky="ew")
 
         self.s_canny_value = ctk.CTkLabel(s_row, text=str(self.s_canny_slider.get()), fg_color="transparent",
@@ -70,6 +74,7 @@ class FilterControls(ctk.CTkFrame):
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls):
         super().__init__()
+        self.calibration_data = load_data(CALIBRATION_FILE)
         self.title("Visualizador de Frames com Filtros")
         self.VIDEO_WIDTH = FRAME_WIDTH
         self.GAP = 20
@@ -101,7 +106,7 @@ class MainApp(ctk.CTk):
         self.filters_container.configure(width=self.VIDEO_WIDTH, height=110)
         self.filters_container.pack_propagate(False)
 
-        self.filters = FilterControls(self.filters_container, self.tk_controls)
+        self.filters = FilterControls(self.filters_container, self.tk_controls, self.calibration_data)
         self.filters.pack(fill="both", expand=True)
         self.update_loop()
 
