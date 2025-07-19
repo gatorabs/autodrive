@@ -4,9 +4,10 @@ from customtkinter import CTkImage
 import io
 from src.infrastructure.adapters.calibration.calibration_repository import load_data
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
+from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 
-FRAME_WIDTH = 360
-FRAME_HEIGHT = 203
+FRAME_WIDTH_T = 360
+FRAME_HEIGHT_T = 203
 
 class VideoFrame(ctk.CTkFrame):
     def __init__(self, master, title="Frame", **kwargs):
@@ -18,8 +19,8 @@ class VideoFrame(ctk.CTkFrame):
 
     def update_image(self, image_bytes):
         if image_bytes:
-            image = Image.open(io.BytesIO(image_bytes)).resize((FRAME_WIDTH, FRAME_HEIGHT))
-            ctk_image = CTkImage(light_image=image, size=(FRAME_WIDTH, FRAME_HEIGHT))
+            image = Image.open(io.BytesIO(image_bytes)).resize((FRAME_WIDTH_T, FRAME_HEIGHT_T))
+            ctk_image = CTkImage(light_image=image, size=(FRAME_WIDTH_T, FRAME_HEIGHT_T))
             self.image_label.configure(image=ctk_image)
             self.image_label.image = ctk_image
 
@@ -71,15 +72,73 @@ class FilterControls(ctk.CTkFrame):
         self.tk_controls["S_Canny"] = value
         self.s_canny_value.configure(text=str(value))
 
+class WarpControls(ctk.CTkFrame):
+    def __init__(self, master, tk_controls, calibration_data, **kwargs):
+        super().__init__(master, **kwargs)
+        self.pack_propagate(False)
+        self.tk_controls = tk_controls
+        self.calibration_data = calibration_data
+
+        ctk.CTkLabel(self, text="Warp Controls", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
+
+        self.sliders = {}
+
+        points = [
+            ("tl_x", FRAME_WIDTH),
+            ("tl_y", FRAME_HEIGHT),
+            ("tr_x", FRAME_WIDTH),
+            ("tr_y", FRAME_HEIGHT),
+            ("bl_x", FRAME_WIDTH),
+            ("bl_y", FRAME_HEIGHT),
+            ("br_x", FRAME_WIDTH),
+            ("br_y", FRAME_HEIGHT),
+        ]
+
+        for name, max_value in points:
+            self._add_slider(name, max_value)
+
+    def _add_slider(self, name, max_value):
+        row = ctk.CTkFrame(self)
+        row.pack(fill="x", padx=20, pady=2)
+        row.columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(row, text=name).grid(row=0, column=0, padx=(10, 5))
+        slider = ctk.CTkSlider(row, from_=0, to=max_value, number_of_steps=max_value, command=lambda v, n=name: self._update_value(n, v))
+        default = self.calibration_data.get(name, self.tk_controls.get(name, 0))
+        slider.set(default)
+        slider.grid(row=0, column=1, padx=5, sticky="ew")
+
+        value_label = ctk.CTkLabel(row, text=str(int(slider.get())), fg_color="transparent", bg_color="transparent")
+        value_label.grid(row=0, column=2, padx=(5, 10))
+
+        self.sliders[name] = {
+            "slider": slider,
+            "label": value_label
+        }
+
+    def _update_value(self, name, value):
+        value = int(value)
+        self.tk_controls[name] = value
+        self.sliders[name]["label"].configure(text=str(value))
+
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls):
         super().__init__()
         self.calibration_data = load_data(CALIBRATION_FILE)
         self.title("Visualizador de Frames com Filtros")
-        self.VIDEO_WIDTH = FRAME_WIDTH
+
+        self.VIDEO_WIDTH = FRAME_WIDTH_T
+        self.VIDEO_HEIGHT = FRAME_HEIGHT_T
         self.GAP = 20
+        EXTRA_MARGIN = 20
+
+        self.video_section_height = self.VIDEO_HEIGHT + 10 + 2 + EXTRA_MARGIN
+        self.lower_section_height = max(240, 110) + 2 + 5 + EXTRA_MARGIN
+
+        self.TOTAL_HEIGHT = self.video_section_height + self.lower_section_height
+
+        self.TOTAL_HEIGHT = self.video_section_height + self.lower_section_height
         self.TOTAL_WIDTH = self.VIDEO_WIDTH * 3 + self.GAP * 4
-        self.TOTAL_HEIGHT = 350
 
         self.geometry(f"{self.TOTAL_WIDTH}x{self.TOTAL_HEIGHT}")
         self.minsize(self.TOTAL_WIDTH, self.TOTAL_HEIGHT)
@@ -108,6 +167,15 @@ class MainApp(ctk.CTk):
 
         self.filters = FilterControls(self.filters_container, self.tk_controls, self.calibration_data)
         self.filters.pack(fill="both", expand=True)
+
+        self.warp_container = ctk.CTkFrame(self)
+        self.warp_container.grid(row=1, column=0, pady=(2, 5))
+        self.warp_container.configure(width=self.VIDEO_WIDTH, height=240)
+        self.warp_container.pack_propagate(False)
+
+        self.warp_controls = WarpControls(self.warp_container, self.tk_controls, self.calibration_data)
+        self.warp_controls.pack(fill="both", expand=True)
+
         self.update_loop()
 
     def update_loop(self):
