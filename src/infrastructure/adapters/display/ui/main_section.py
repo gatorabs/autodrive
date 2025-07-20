@@ -5,6 +5,7 @@ import io
 from src.infrastructure.adapters.calibration.calibration_repository import load_data
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
+from src.infrastructure.adapters.serial.serial_comm import  SerialCommunicator
 
 FRAME_WIDTH_T = 360
 FRAME_HEIGHT_T = 203
@@ -121,8 +122,96 @@ class WarpControls(ctk.CTkFrame):
         self.tk_controls[name] = value
         self.sliders[name]["label"].configure(text=str(value))
 
+class SourceAndSerialControls(ctk.CTkFrame):
+    def __init__(self, master, tk_controls, calibration_data, shared_controls, **kwargs):
+        super().__init__(master, **kwargs)
+        self.pack_propagate(False)
+        self.tk_controls = tk_controls
+        self.calibration_data = calibration_data
+        self.shared_controls = shared_controls
+
+        ctk.CTkLabel(self, text="Fontes e Comunicação", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
+
+        self.com_ports = SerialCommunicator.list_available_ports()
+
+        def get_valid_com(port_name):
+            return port_name if port_name in self.com_ports else (self.com_ports[0] if self.com_ports else "")
+
+        # LANE SOURCE
+        lane_row = ctk.CTkFrame(self)
+        lane_row.pack(fill="x", padx=20, pady=2)
+        ctk.CTkLabel(lane_row, text="Lane Source").pack(side="left", padx=(10, 5))
+        self.lane_source_combo = ctk.CTkComboBox(
+            lane_row,
+            values=["camera", "video"],
+            variable=ctk.StringVar(value=calibration_data.get("lane_source", "camera"))
+        )
+        self.lane_source_combo.pack(side="left", fill="x", expand=True)
+
+        # OBJECT SOURCE
+        object_row = ctk.CTkFrame(self)
+        object_row.pack(fill="x", padx=20, pady=2)
+        ctk.CTkLabel(object_row, text="Object Source").pack(side="left", padx=(10, 5))
+        self.object_source_combo = ctk.CTkComboBox(
+            object_row,
+            values=["camera", "video"],
+            variable=ctk.StringVar(value=calibration_data.get("object_source", "camera"))
+        )
+        self.object_source_combo.pack(side="left", fill="x", expand=True)
+
+        # SECURITY COM
+        security_row = ctk.CTkFrame(self)
+        security_row.pack(fill="x", padx=20, pady=2)
+        ctk.CTkLabel(security_row, text="Security COM").pack(side="left", padx=(10, 5))
+        self.security_com_combo = ctk.CTkComboBox(
+            security_row,
+            values=self.com_ports,
+            variable=ctk.StringVar(value=get_valid_com(shared_controls.get("SECURITY_COM")))
+        )
+        self.security_com_combo.pack(side="left", fill="x", expand=True)
+
+        # SENDER COM + Botões
+        sender_row = ctk.CTkFrame(self)
+        sender_row.pack(fill="x", padx=20, pady=2)
+
+        ctk.CTkLabel(sender_row, text="Sender COM").pack(side="left", padx=(10, 5))
+        self.sender_com_combo = ctk.CTkComboBox(
+            sender_row,
+            values=self.com_ports,
+            variable=ctk.StringVar(value=get_valid_com(shared_controls.get("SENDER_COM"))),
+            width=150
+        )
+        self.sender_com_combo.pack(side="left", fill="x", expand=True)
+
+        # Botões em linha separada
+        button_row = ctk.CTkFrame(self)
+        button_row.pack(pady=(10, 0))
+
+        apply_btn = ctk.CTkButton(button_row, text="Aplicar", width=100, command=self.apply_sender_com)
+        apply_btn.pack(side="left", padx=10)
+
+        refresh_btn = ctk.CTkButton(button_row, text="Atualizar COMs", width=120, command=self.refresh_com_ports)
+        refresh_btn.pack(side="left", padx=10)
+
+    def refresh_com_ports(self):
+        self.com_ports = SerialCommunicator.list_available_ports()
+        def refresh_combo(combo, current_value):
+            combo.configure(values=self.com_ports)
+            if current_value in self.com_ports:
+                combo.set(current_value)
+            elif self.com_ports:
+                combo.set(self.com_ports[0])
+            else:
+                combo.set("")
+        refresh_combo(self.security_com_combo, self.security_com_combo.get())
+        refresh_combo(self.sender_com_combo, self.sender_com_combo.get())
+
+    def apply_sender_com(self):
+        selected_com = self.sender_com_combo.get()
+        self.shared_controls["SENDER_COM"] = selected_com
+
 class MainApp(ctk.CTk):
-    def __init__(self, shared_frames, tk_controls):
+    def __init__(self, shared_frames, tk_controls, shared_controls):
         super().__init__()
         self.calibration_data = load_data(CALIBRATION_FILE)
         self.title("Visualizador de Frames com Filtros")
@@ -132,51 +221,70 @@ class MainApp(ctk.CTk):
         self.GAP = 20
         EXTRA_MARGIN = 20
 
+        # Alturas individuais
         self.video_section_height = self.VIDEO_HEIGHT + 10 + 2 + EXTRA_MARGIN
-        self.lower_section_height = max(300, 110) + 2 + 5 + EXTRA_MARGIN
+        self.warp_section_height = 300
+        self.filters_section_height = 110
+        self.coms_section_height = 200
 
-        self.TOTAL_HEIGHT = self.video_section_height + self.lower_section_height
+        # Novo: empilhamento vertical da coluna central (filtros + COMs)
+        self.filters_coms_section_height = self.filters_section_height + self.coms_section_height + 5
 
+        # Altura total
+        self.lower_section_height = max(self.warp_section_height, self.filters_coms_section_height) + EXTRA_MARGIN
         self.TOTAL_HEIGHT = self.video_section_height + self.lower_section_height
         self.TOTAL_WIDTH = self.VIDEO_WIDTH * 3 + self.GAP * 4
 
+        # Janela
         self.geometry(f"{self.TOTAL_WIDTH}x{self.TOTAL_HEIGHT}")
         self.minsize(self.TOTAL_WIDTH, self.TOTAL_HEIGHT)
         self.shared_frames = shared_frames
         self.tk_controls = tk_controls
+        self.shared_controls = shared_controls
 
-        # Layout geral
+        # Layout principal (2 linhas: vídeos e controles)
         self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=0)
         self.grid_columnconfigure((0, 1, 2), weight=1)
 
-        # Vídeos
+        # -------------------- Seção de Vídeos --------------------
         self.normal_frame = VideoFrame(self, "NORMAL_FRAME")
         self.edges_frame = VideoFrame(self, "EDGES_FRAME")
         self.object_frame = VideoFrame(self, "OBJECT_FRAME")
 
-        self.normal_frame.grid(row=0, column=0, padx=10, pady=(10,2))
-        self.edges_frame.grid(row=0, column=1, padx=10, pady=(10,2))
-        self.object_frame.grid(row=0, column=2, padx=10, pady=(10,2))
+        self.normal_frame.grid(row=0, column=0, padx=10, pady=(10, 2))
+        self.edges_frame.grid(row=0, column=1, padx=10, pady=(10, 2))
+        self.object_frame.grid(row=0, column=2, padx=10, pady=(10, 2))
 
-        # Seção de Filtros
-        self.filters_container = ctk.CTkFrame(self)
-        self.filters_container.grid(row=1, column=1, pady=(2, 5), sticky="n")
-        self.filters_container.configure(width=self.VIDEO_WIDTH, height=110)
-        self.filters_container.pack_propagate(False)
-
-        self.filters = FilterControls(self.filters_container, self.tk_controls, self.calibration_data)
-        self.filters.pack(fill="both", expand=True)
-
+        # Seção de Warp Controls (lado esquerdo)
         self.warp_container = ctk.CTkFrame(self)
-        self.warp_container.grid(row=1, column=0, pady=(2, 5))
+        self.warp_container.grid(row=1, column=0, rowspan=2, pady=(2, 5), sticky="n")
         self.warp_container.configure(width=self.VIDEO_WIDTH, height=300)
         self.warp_container.pack_propagate(False)
 
         self.warp_controls = WarpControls(self.warp_container, self.tk_controls, self.calibration_data)
         self.warp_controls.pack(fill="both", expand=True)
 
+        # Seção de Filtros (centro - parte superior)
+        self.filters_container = ctk.CTkFrame(self)
+        self.filters_container.grid(row=1, column=1, pady=(0, 5), sticky="n")
+        self.filters_container.configure(width=self.VIDEO_WIDTH, height=110)
+        self.filters_container.pack_propagate(False)
+
+        self.filters = FilterControls(self.filters_container, self.tk_controls, self.calibration_data)
+        self.filters.pack(fill="both", expand=False)
+
+        # Seção de Fontes e Seriais (centro - parte inferior)
+        self.serials_container = ctk.CTkFrame(self)
+        self.serials_container.grid(row=2, column=1, pady=(0, 5), sticky="n")
+        self.serials_container.configure(width=self.VIDEO_WIDTH, height=200)
+        self.serials_container.pack_propagate(False)
+
+        self.sources_controls = SourceAndSerialControls(self.serials_container, self.tk_controls, self.calibration_data, self.shared_controls)
+        self.sources_controls.pack(fill="both", expand=False)
+
         self.update_loop()
+
 
     def update_loop(self):
         try:
@@ -189,6 +297,6 @@ class MainApp(ctk.CTk):
         self.after(33, self.update_loop)  # ~30 FPS
 
 
-def launch_homepage(shared_frames, tk_controls):
-    app = MainApp(shared_frames, tk_controls)
+def launch_homepage(shared_frames, tk_controls, shared_controls):
+    app = MainApp(shared_frames, tk_controls, shared_controls)
     app.mainloop()

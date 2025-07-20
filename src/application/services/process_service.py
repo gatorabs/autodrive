@@ -43,7 +43,8 @@ def create_processes(shared_controls, shared_frames, tk_controls, user_flags):
             target=launch_homepage,
             kwargs={
                 "shared_frames": shared_frames,
-                "tk_controls": tk_controls
+                "tk_controls": tk_controls,
+                "shared_controls": shared_controls
             },
         )
     )
