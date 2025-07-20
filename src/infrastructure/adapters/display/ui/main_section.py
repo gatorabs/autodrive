@@ -3,9 +3,10 @@ from PIL import Image
 from customtkinter import CTkImage
 import io
 from src.infrastructure.adapters.calibration.calibration_repository import load_data
-from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
+from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 from src.infrastructure.adapters.serial.serial_comm import  SerialCommunicator
+from src.infrastructure.adapters.video.begin_the_video import detect_camera_indices, get_video_files_from_folder
 
 FRAME_WIDTH_T = 360
 FRAME_HEIGHT_T = 203
@@ -123,12 +124,13 @@ class WarpControls(ctk.CTkFrame):
         self.sliders[name]["label"].configure(text=str(value))
 
 class SourceAndSerialControls(ctk.CTkFrame):
-    def __init__(self, master, tk_controls, calibration_data, shared_controls, **kwargs):
+    def __init__(self, master, tk_controls, calibration_data, shared_controls, init_data, **kwargs):
         super().__init__(master, **kwargs)
         self.pack_propagate(False)
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
         self.shared_controls = shared_controls
+        self.init_data = init_data
 
         ctk.CTkLabel(self, text="Fontes e Comunicação", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
@@ -141,10 +143,11 @@ class SourceAndSerialControls(ctk.CTkFrame):
         lane_row = ctk.CTkFrame(self)
         lane_row.pack(fill="x", padx=20, pady=2)
         ctk.CTkLabel(lane_row, text="Lane Source").pack(side="left", padx=(10, 5))
+        detected_cameras = self.tk_controls.get("DETECTED_CAMERAS", [])
         self.lane_source_combo = ctk.CTkComboBox(
             lane_row,
-            values=["camera", "video"],
-            variable=ctk.StringVar(value=calibration_data.get("lane_source", "camera"))
+            values=detected_cameras+get_video_files_from_folder(),
+            variable=ctk.StringVar(value=self.init_data.get("LANE_SOURCE"))
         )
         self.lane_source_combo.pack(side="left", fill="x", expand=True)
 
@@ -154,8 +157,8 @@ class SourceAndSerialControls(ctk.CTkFrame):
         ctk.CTkLabel(object_row, text="Object Source").pack(side="left", padx=(10, 5))
         self.object_source_combo = ctk.CTkComboBox(
             object_row,
-            values=["camera", "video"],
-            variable=ctk.StringVar(value=calibration_data.get("object_source", "camera"))
+            values=detected_cameras+get_video_files_from_folder(),
+            variable=ctk.StringVar(value=self.init_data.get("OBJECT_SOURCE"))
         )
         self.object_source_combo.pack(side="left", fill="x", expand=True)
 
@@ -178,7 +181,6 @@ class SourceAndSerialControls(ctk.CTkFrame):
             command=self.refresh_sources  # função placeholder
         )
         refresh_source_btn.pack(side="left", padx=10)
-
 
         # SECURITY COM
         security_row = ctk.CTkFrame(self)
@@ -215,11 +217,31 @@ class SourceAndSerialControls(ctk.CTkFrame):
     def apply_sources(self):
         lane_value = self.lane_source_combo.get()
         object_value = self.object_source_combo.get()
+
+        # Desempacota "camera 0" → "0"
+        if lane_value.startswith("Câmera "):
+            lane_value = lane_value.replace("Câmera ", "")
+        if object_value.startswith("Câmera "):
+            object_value = object_value.replace("Câmera ", "")
+
         self.tk_controls["LANE_SOURCE"] = lane_value
         self.tk_controls["OBJECT_SOURCE"] = object_value
 
     def refresh_sources(self):
-        print("[INFO] Atualizar fontes: funcionalidade futura")
+        cameras = detect_camera_indices()
+        videos = get_video_files_from_folder()
+
+        new_options = [f"Câmera {i}" for i in cameras] + videos
+
+        if not new_options:
+            print("[WARNING] Nenhuma fonte de vídeo encontrada.")
+            return
+
+        # Atualiza opções nas comboboxes
+        self.lane_source_combo.configure(values=new_options)
+        self.object_source_combo.configure(values=new_options)
+
+        print(f"[INFO] Fontes atualizadas: {new_options}")
 
     def refresh_com_ports(self):
         self.com_ports = SerialCommunicator.list_available_ports()
@@ -242,6 +264,7 @@ class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
         super().__init__()
         self.calibration_data = load_data(CALIBRATION_FILE)
+        self.init_data = load_data(DEFAULT_UI_PATH)
         self.title("Visualizador de Frames com Filtros")
 
         self.VIDEO_WIDTH = FRAME_WIDTH_T
@@ -308,7 +331,7 @@ class MainApp(ctk.CTk):
         self.serials_container.configure(width=self.VIDEO_WIDTH, height=250)
         self.serials_container.pack_propagate(False)
 
-        self.sources_controls = SourceAndSerialControls(self.serials_container, self.tk_controls, self.calibration_data, self.shared_controls)
+        self.sources_controls = SourceAndSerialControls(self.serials_container, self.tk_controls, self.calibration_data, self.shared_controls, self.init_data)
         self.sources_controls.pack(fill="both", expand=True)
 
         self.update_loop()
