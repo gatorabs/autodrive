@@ -24,3 +24,14 @@ def load_data(file_path):
 def filter_flags(data, flags_to_ignore):
     return {k: v for k, v in data.items() if k not in flags_to_ignore}
 
+
+def refresh_json(updates: dict, path: str):
+    try:
+        with open(path, 'r') as f:
+            current_data = json.load(f)
+    except Exception as e:
+        logger.error(f"Falha ao carregar {path}: {e}")
+        current_data = {}
+
+    current_data.update(updates)
+    save_data(current_data, path)

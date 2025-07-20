@@ -4,7 +4,7 @@ import customtkinter as ctk
 from PIL import Image
 from customtkinter import CTkImage
 import io
-from src.infrastructure.adapters.calibration.calibration_repository import load_data, save_data
+from src.infrastructure.adapters.calibration.calibration_repository import load_data, save_data, refresh_json
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 from src.infrastructure.adapters.serial.serial_comm import  SerialCommunicator
@@ -34,6 +34,7 @@ class FilterControls(ctk.CTkFrame):
         self.pack_propagate(False)
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
+        self.refresh_json = refresh_json
         ctk.CTkLabel(self, text="Filtros", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
         # F_Canny
@@ -70,11 +71,12 @@ class FilterControls(ctk.CTkFrame):
         value = int(value)
         self.tk_controls["F_Canny"] = value
         self.f_canny_value.configure(text=str(value))
-
+        self.refresh_json({"F_Canny": value}, CALIBRATION_FILE)
     def update_s_canny(self, value):
         value = int(value)
         self.tk_controls["S_Canny"] = value
         self.s_canny_value.configure(text=str(value))
+        self.refresh_json({"S_Canny": value}, CALIBRATION_FILE)
 
 class WarpControls(ctk.CTkFrame):
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
@@ -82,6 +84,7 @@ class WarpControls(ctk.CTkFrame):
         self.pack_propagate(False)
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
+        self.refresh_json = refresh_json
 
         ctk.CTkLabel(self, text="Warp Controls", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
@@ -124,6 +127,7 @@ class WarpControls(ctk.CTkFrame):
         value = int(value)
         self.tk_controls[name] = value
         self.sliders[name]["label"].configure(text=str(value))
+        refresh_json({name: value}, CALIBRATION_FILE)
 
 class SourceAndSerialControls(ctk.CTkFrame):
     def __init__(self, master, tk_controls, calibration_data, shared_controls, init_data, **kwargs):
@@ -133,6 +137,7 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.calibration_data = calibration_data
         self.shared_controls = shared_controls
         self.init_data = init_data
+        self.refresh_json = refresh_json
 
         ctk.CTkLabel(self, text="Fontes e Comunicação", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
@@ -229,23 +234,12 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.tk_controls["LANE_SOURCE"] = lane_value
         self.tk_controls["OBJECT_SOURCE"] = object_value
 
-        self.refresh_json(valueName1="LANE_SOURCE", valueName2="OBJECT_SOURCE",
-                       value1=lane_value, value2=object_value,
-                       path=DEFAULT_UI_PATH)
+        self.refresh_json({
+            "LANE_SOURCE": lane_value,
+            "OBJECT_SOURCE": object_value
+        }, DEFAULT_UI_PATH)
 
         print("[INFO] LANE_SOURCE e OBJECT_SOURCE atualizados em DEFAULT_UI_PATH.")
-
-    def refresh_json(self, valueName1, valueName2, value1, value2, path):
-        try:
-            with open(path, 'r') as f:
-                current_data = json.load(f)
-        except Exception as e:
-            print(f"[ERROR] Falha ao carregar DEFAULT_UI_PATH: {e}")
-            current_data = {}
-
-        current_data[valueName1] = value1
-        current_data[valueName2] = value2
-        save_data(current_data, path)
 
     def refresh_sources(self):
         cameras = detect_camera_indices()
@@ -281,9 +275,10 @@ class SourceAndSerialControls(ctk.CTkFrame):
         selected_security_com = self.security_com_combo.get()
         self.shared_controls["SENDER_COM"] = selected_sender_com
         self.shared_controls["SECURITY_COM"] = selected_security_com
-        self.refresh_json(valueName1="SENDER_COM", valueName2="SECURITY_COM",
-                       value1=selected_sender_com, value2=selected_security_com,
-                       path=DEFAULT_UI_PATH)
+        self.refresh_json({
+            "SENDER_COM": selected_sender_com,
+            "SECURITY_COM": selected_security_com
+        }, DEFAULT_UI_PATH)
 
 class ObjectRoiSection(ctk.CTkFrame):
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
@@ -291,16 +286,17 @@ class ObjectRoiSection(ctk.CTkFrame):
         self.pack_propagate(False)
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
+        self.refresh_json = refresh_json
 
         # Título
         ctk.CTkLabel(self, text="ROI de Objetos", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
-        # Pessoa
+        # Person
         person_row = ctk.CTkFrame(self)
         person_row.pack(fill="x", padx=20, pady=(0, 4))
         person_row.columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(person_row, text="Pessoa").grid(row=0, column=0, padx=(10, 5))
+        ctk.CTkLabel(person_row, text="Person").grid(row=0, column=0, padx=(10, 5))
         self.person_slider = ctk.CTkSlider(
             person_row, from_=0, to=300, number_of_steps=300, command=self.update_person
         )
@@ -311,12 +307,12 @@ class ObjectRoiSection(ctk.CTkFrame):
         self.person_value = ctk.CTkLabel(person_row, text=str(self.person_slider.get()), fg_color="transparent")
         self.person_value.grid(row=0, column=2, padx=(5, 10))
 
-        # Trânsito
+        # Traffic Sign
         traffic_row = ctk.CTkFrame(self)
         traffic_row.pack(fill="x", padx=20, pady=(0, 2))
         traffic_row.columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(traffic_row, text="Trânsito").grid(row=0, column=0, padx=(10, 5))
+        ctk.CTkLabel(traffic_row, text="Traffic Sign").grid(row=0, column=0, padx=(10, 5))
         self.traffic_slider = ctk.CTkSlider(
             traffic_row, from_=0, to=300, number_of_steps=300, command=self.update_traffic
         )
@@ -331,11 +327,12 @@ class ObjectRoiSection(ctk.CTkFrame):
         value = int(value)
         self.tk_controls["Person"] = value
         self.person_value.configure(text=str(value))
-
+        self.refresh_json({"Person": value}, CALIBRATION_FILE)
     def update_traffic(self, value):
         value = int(value)
         self.tk_controls["Traffic"] = value
         self.traffic_value.configure(text=str(value))
+        self.refresh_json({"Traffic": value}, CALIBRATION_FILE)
 
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
@@ -421,7 +418,6 @@ class MainApp(ctk.CTk):
         self.object_roi_controls.pack(fill="both", expand=False)
 
         self.update_loop()
-
 
     def update_loop(self):
         try:
