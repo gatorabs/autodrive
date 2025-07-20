@@ -160,13 +160,13 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.object_source_combo.pack(side="left", fill="x", expand=True)
 
         # Botões para aplicar/atualizar fontes
-        source_btn_row = ctk.CTkFrame(self)
+        source_btn_row = ctk.CTkFrame(self, fg_color="transparent")
         source_btn_row.pack(pady=(5, 10))
 
         apply_source_btn = ctk.CTkButton(
             source_btn_row,
             text="Aplicar",
-            width=100,
+            width=148,
             command=self.apply_sources
         )
         apply_source_btn.pack(side="left", padx=10)
@@ -174,7 +174,7 @@ class SourceAndSerialControls(ctk.CTkFrame):
         refresh_source_btn = ctk.CTkButton(
             source_btn_row,
             text="Atualizar",
-            width=120,
+            width=148,
             command=self.refresh_sources  # função placeholder
         )
         refresh_source_btn.pack(side="left", padx=10)
@@ -203,13 +203,13 @@ class SourceAndSerialControls(ctk.CTkFrame):
         )
         self.sender_com_combo.pack(side="left", fill="x", expand=True)
 
-        com_button_row = ctk.CTkFrame(self)
+        com_button_row = ctk.CTkFrame(self, fg_color="transparent")
         com_button_row.pack(pady=(5, 10), anchor="n")
 
-        apply_btn = ctk.CTkButton(com_button_row, text="Aplicar", width=100, command=self.apply_sender_com)
+        apply_btn = ctk.CTkButton(com_button_row, text="Aplicar", width=148, command=self.apply_sender_com)
         apply_btn.pack(side="left", padx=10)
 
-        refresh_btn = ctk.CTkButton(com_button_row, text="Atualizar COMs", width=120, command=self.refresh_com_ports)
+        refresh_btn = ctk.CTkButton(com_button_row, text="Atualizar", width=148, command=self.refresh_com_ports)
         refresh_btn.pack(side="left", padx=10)
 
     def apply_sources(self):
