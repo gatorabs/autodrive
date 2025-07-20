@@ -159,6 +159,27 @@ class SourceAndSerialControls(ctk.CTkFrame):
         )
         self.object_source_combo.pack(side="left", fill="x", expand=True)
 
+        # Botões para aplicar/atualizar fontes
+        source_btn_row = ctk.CTkFrame(self)
+        source_btn_row.pack(pady=(5, 10))
+
+        apply_source_btn = ctk.CTkButton(
+            source_btn_row,
+            text="Aplicar",
+            width=100,
+            command=self.apply_sources
+        )
+        apply_source_btn.pack(side="left", padx=10)
+
+        refresh_source_btn = ctk.CTkButton(
+            source_btn_row,
+            text="Atualizar",
+            width=120,
+            command=self.refresh_sources  # função placeholder
+        )
+        refresh_source_btn.pack(side="left", padx=10)
+
+
         # SECURITY COM
         security_row = ctk.CTkFrame(self)
         security_row.pack(fill="x", padx=20, pady=2)
@@ -170,10 +191,9 @@ class SourceAndSerialControls(ctk.CTkFrame):
         )
         self.security_com_combo.pack(side="left", fill="x", expand=True)
 
-        # SENDER COM + Botões
+        # SENDER COM
         sender_row = ctk.CTkFrame(self)
         sender_row.pack(fill="x", padx=20, pady=2)
-
         ctk.CTkLabel(sender_row, text="Sender COM").pack(side="left", padx=(10, 5))
         self.sender_com_combo = ctk.CTkComboBox(
             sender_row,
@@ -183,15 +203,23 @@ class SourceAndSerialControls(ctk.CTkFrame):
         )
         self.sender_com_combo.pack(side="left", fill="x", expand=True)
 
-        # Botões em linha separada
-        button_row = ctk.CTkFrame(self)
-        button_row.pack(pady=(10, 0))
+        com_button_row = ctk.CTkFrame(self)
+        com_button_row.pack(pady=(5, 10), anchor="n")
 
-        apply_btn = ctk.CTkButton(button_row, text="Aplicar", width=100, command=self.apply_sender_com)
+        apply_btn = ctk.CTkButton(com_button_row, text="Aplicar", width=100, command=self.apply_sender_com)
         apply_btn.pack(side="left", padx=10)
 
-        refresh_btn = ctk.CTkButton(button_row, text="Atualizar COMs", width=120, command=self.refresh_com_ports)
+        refresh_btn = ctk.CTkButton(com_button_row, text="Atualizar COMs", width=120, command=self.refresh_com_ports)
         refresh_btn.pack(side="left", padx=10)
+
+    def apply_sources(self):
+        lane_value = self.lane_source_combo.get()
+        object_value = self.object_source_combo.get()
+        self.tk_controls["LANE_SOURCE"] = lane_value
+        self.tk_controls["OBJECT_SOURCE"] = object_value
+
+    def refresh_sources(self):
+        print("[INFO] Atualizar fontes: funcionalidade futura")
 
     def refresh_com_ports(self):
         self.com_ports = SerialCommunicator.list_available_ports()
@@ -225,7 +253,7 @@ class MainApp(ctk.CTk):
         self.video_section_height = self.VIDEO_HEIGHT + 10 + 2 + EXTRA_MARGIN
         self.warp_section_height = 300
         self.filters_section_height = 110
-        self.coms_section_height = 200
+        self.coms_section_height = 250
 
         # Novo: empilhamento vertical da coluna central (filtros + COMs)
         self.filters_coms_section_height = self.filters_section_height + self.coms_section_height + 5
@@ -277,11 +305,11 @@ class MainApp(ctk.CTk):
         # Seção de Fontes e Seriais (centro - parte inferior)
         self.serials_container = ctk.CTkFrame(self)
         self.serials_container.grid(row=2, column=1, pady=(0, 5), sticky="n")
-        self.serials_container.configure(width=self.VIDEO_WIDTH, height=200)
+        self.serials_container.configure(width=self.VIDEO_WIDTH, height=250)
         self.serials_container.pack_propagate(False)
 
         self.sources_controls = SourceAndSerialControls(self.serials_container, self.tk_controls, self.calibration_data, self.shared_controls)
-        self.sources_controls.pack(fill="both", expand=False)
+        self.sources_controls.pack(fill="both", expand=True)
 
         self.update_loop()
 
