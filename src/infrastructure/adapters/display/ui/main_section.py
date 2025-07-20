@@ -285,6 +285,58 @@ class SourceAndSerialControls(ctk.CTkFrame):
                        value1=selected_sender_com, value2=selected_security_com,
                        path=DEFAULT_UI_PATH)
 
+class ObjectRoiSection(ctk.CTkFrame):
+    def __init__(self, master, tk_controls, calibration_data, **kwargs):
+        super().__init__(master, **kwargs)
+        self.pack_propagate(False)
+        self.tk_controls = tk_controls
+        self.calibration_data = calibration_data
+
+        # Título
+        ctk.CTkLabel(self, text="ROI de Objetos", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
+
+        # Pessoa
+        person_row = ctk.CTkFrame(self)
+        person_row.pack(fill="x", padx=20, pady=(0, 4))
+        person_row.columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(person_row, text="Pessoa").grid(row=0, column=0, padx=(10, 5))
+        self.person_slider = ctk.CTkSlider(
+            person_row, from_=0, to=300, number_of_steps=300, command=self.update_person
+        )
+        default_person = self.calibration_data.get("Person", self.tk_controls.get("Person", 0))
+        self.person_slider.set(default_person)
+        self.person_slider.grid(row=0, column=1, padx=5, sticky="ew")
+
+        self.person_value = ctk.CTkLabel(person_row, text=str(self.person_slider.get()), fg_color="transparent")
+        self.person_value.grid(row=0, column=2, padx=(5, 10))
+
+        # Trânsito
+        traffic_row = ctk.CTkFrame(self)
+        traffic_row.pack(fill="x", padx=20, pady=(0, 2))
+        traffic_row.columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(traffic_row, text="Trânsito").grid(row=0, column=0, padx=(10, 5))
+        self.traffic_slider = ctk.CTkSlider(
+            traffic_row, from_=0, to=300, number_of_steps=300, command=self.update_traffic
+        )
+        default_traffic = self.calibration_data.get("Traffic", self.tk_controls.get("Traffic", 0))
+        self.traffic_slider.set(default_traffic)
+        self.traffic_slider.grid(row=0, column=1, padx=5, sticky="ew")
+
+        self.traffic_value = ctk.CTkLabel(traffic_row, text=str(self.traffic_slider.get()), fg_color="transparent")
+        self.traffic_value.grid(row=0, column=2, padx=(5, 10))
+
+    def update_person(self, value):
+        value = int(value)
+        self.tk_controls["Person"] = value
+        self.person_value.configure(text=str(value))
+
+    def update_traffic(self, value):
+        value = int(value)
+        self.tk_controls["Traffic"] = value
+        self.traffic_value.configure(text=str(value))
+
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
         super().__init__()
@@ -358,6 +410,15 @@ class MainApp(ctk.CTk):
 
         self.sources_controls = SourceAndSerialControls(self.serials_container, self.tk_controls, self.calibration_data, self.shared_controls, self.init_data)
         self.sources_controls.pack(fill="both", expand=True)
+
+        # Seção de ROI de Objetos (lado direito abaixo do vídeo)
+        self.object_roi_container = ctk.CTkFrame(self)
+        self.object_roi_container.grid(row=1, column=2, pady=(0, 5), sticky="n")
+        self.object_roi_container.configure(width=self.VIDEO_WIDTH, height=110)
+        self.object_roi_container.pack_propagate(False)
+
+        self.object_roi_controls = ObjectRoiSection(self.object_roi_container, self.tk_controls, self.calibration_data)
+        self.object_roi_controls.pack(fill="both", expand=False)
 
         self.update_loop()
 
