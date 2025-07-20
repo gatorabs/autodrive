@@ -1,8 +1,10 @@
+import json
+
 import customtkinter as ctk
 from PIL import Image
 from customtkinter import CTkImage
 import io
-from src.infrastructure.adapters.calibration.calibration_repository import load_data
+from src.infrastructure.adapters.calibration.calibration_repository import load_data, save_data
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 from src.infrastructure.adapters.serial.serial_comm import  SerialCommunicator
@@ -218,7 +220,7 @@ class SourceAndSerialControls(ctk.CTkFrame):
         lane_value = self.lane_source_combo.get()
         object_value = self.object_source_combo.get()
 
-        # Desempacota "camera 0" → "0"
+        # Desempacota "Câmera 0" → "0"
         if lane_value.startswith("Câmera "):
             lane_value = lane_value.replace("Câmera ", "")
         if object_value.startswith("Câmera "):
@@ -226,6 +228,20 @@ class SourceAndSerialControls(ctk.CTkFrame):
 
         self.tk_controls["LANE_SOURCE"] = lane_value
         self.tk_controls["OBJECT_SOURCE"] = object_value
+
+        try:
+            with open(DEFAULT_UI_PATH, 'r') as f:
+                current_data = json.load(f)
+        except Exception as e:
+            print(f"[ERROR] Falha ao carregar DEFAULT_UI_PATH: {e}")
+            current_data = {}
+
+        current_data["LANE_SOURCE"] = lane_value
+        current_data["OBJECT_SOURCE"] = object_value
+
+        save_data(current_data, DEFAULT_UI_PATH)
+        print("[INFO] LANE_SOURCE e OBJECT_SOURCE atualizados em DEFAULT_UI_PATH.")
+
 
     def refresh_sources(self):
         cameras = detect_camera_indices()
