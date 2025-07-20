@@ -229,19 +229,23 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.tk_controls["LANE_SOURCE"] = lane_value
         self.tk_controls["OBJECT_SOURCE"] = object_value
 
+        self.refresh_json(valueName1="LANE_SOURCE", valueName2="OBJECT_SOURCE",
+                       value1=lane_value, value2=object_value,
+                       path=DEFAULT_UI_PATH)
+
+        print("[INFO] LANE_SOURCE e OBJECT_SOURCE atualizados em DEFAULT_UI_PATH.")
+
+    def refresh_json(self, valueName1, valueName2, value1, value2, path):
         try:
-            with open(DEFAULT_UI_PATH, 'r') as f:
+            with open(path, 'r') as f:
                 current_data = json.load(f)
         except Exception as e:
             print(f"[ERROR] Falha ao carregar DEFAULT_UI_PATH: {e}")
             current_data = {}
 
-        current_data["LANE_SOURCE"] = lane_value
-        current_data["OBJECT_SOURCE"] = object_value
-
-        save_data(current_data, DEFAULT_UI_PATH)
-        print("[INFO] LANE_SOURCE e OBJECT_SOURCE atualizados em DEFAULT_UI_PATH.")
-
+        current_data[valueName1] = value1
+        current_data[valueName2] = value2
+        save_data(current_data, path)
 
     def refresh_sources(self):
         cameras = detect_camera_indices()
@@ -273,8 +277,13 @@ class SourceAndSerialControls(ctk.CTkFrame):
         refresh_combo(self.sender_com_combo, self.sender_com_combo.get())
 
     def apply_sender_com(self):
-        selected_com = self.sender_com_combo.get()
-        self.shared_controls["SENDER_COM"] = selected_com
+        selected_sender_com = self.sender_com_combo.get()
+        selected_security_com = self.security_com_combo.get()
+        self.shared_controls["SENDER_COM"] = selected_sender_com
+        self.shared_controls["SECURITY_COM"] = selected_security_com
+        self.refresh_json(valueName1="SENDER_COM", valueName2="SECURITY_COM",
+                       value1=selected_sender_com, value2=selected_security_com,
+                       path=DEFAULT_UI_PATH)
 
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
