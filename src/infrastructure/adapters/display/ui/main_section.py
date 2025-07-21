@@ -114,97 +114,61 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.init_data = init_data
         self.refresh_json = refresh_json
 
+        self.com_ports = SerialCommunicator.list_available_ports()
+        self.detected_cameras = self.tk_controls.get("DETECTED_CAMERAS", [])
+        self._build_ui()
+
+    def _get_valid_com(self, port_name):
+        return port_name if port_name in self.com_ports else (self.com_ports[0] if self.com_ports else "")
+
+    def _build_ui(self):
         ctk.CTkLabel(self, text="Fontes e Comunicação", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
-        self.com_ports = SerialCommunicator.list_available_ports()
+        self._create_source_comboboxes()
+        self._create_source_buttons()
+        self._create_com_comboboxes()
+        self._create_com_buttons()
 
-        def get_valid_com(port_name):
-            return port_name if port_name in self.com_ports else (self.com_ports[0] if self.com_ports else "")
+    def _create_source_comboboxes(self):
+        sources = self.detected_cameras + get_video_files_from_folder()
 
-        # LANE SOURCE
-        lane_row = ctk.CTkFrame(self)
-        lane_row.pack(fill="x", padx=20, pady=2)
-        ctk.CTkLabel(lane_row, text="Lane Source").pack(side="left", padx=(10, 5))
-        detected_cameras = self.tk_controls.get("DETECTED_CAMERAS", [])
-        self.lane_source_combo = ctk.CTkComboBox(
-            lane_row,
-            values=detected_cameras+get_video_files_from_folder(),
-            variable=ctk.StringVar(value=self.init_data.get("LANE_SOURCE"))
-        )
-        self.lane_source_combo.pack(side="left", fill="x", expand=True)
+        self.lane_source_combo = self._create_combo_row("Lane Source", sources, self.init_data.get("LANE_SOURCE"))
+        self.object_source_combo = self._create_combo_row("Object Source", sources, self.init_data.get("OBJECT_SOURCE"))
 
-        # OBJECT SOURCE
-        object_row = ctk.CTkFrame(self)
-        object_row.pack(fill="x", padx=20, pady=2)
-        ctk.CTkLabel(object_row, text="Object Source").pack(side="left", padx=(10, 5))
-        self.object_source_combo = ctk.CTkComboBox(
-            object_row,
-            values=detected_cameras+get_video_files_from_folder(),
-            variable=ctk.StringVar(value=self.init_data.get("OBJECT_SOURCE"))
-        )
-        self.object_source_combo.pack(side="left", fill="x", expand=True)
+    def _create_source_buttons(self):
+        row = ctk.CTkFrame(self, fg_color="transparent")
+        row.pack(pady=(5, 10))
 
-        # Botões para aplicar/atualizar fontes
-        source_btn_row = ctk.CTkFrame(self, fg_color="transparent")
-        source_btn_row.pack(pady=(5, 10))
+        ctk.CTkButton(row, text="Aplicar", width=148, command=self.apply_sources).pack(side="left", padx=10)
+        ctk.CTkButton(row, text="Atualizar", width=148, command=self.refresh_sources).pack(side="left", padx=10)
 
-        apply_source_btn = ctk.CTkButton(
-            source_btn_row,
-            text="Aplicar",
-            width=148,
-            command=self.apply_sources
-        )
-        apply_source_btn.pack(side="left", padx=10)
+    def _create_com_comboboxes(self):
+        self.security_com_combo = self._create_combo_row("Security COM", self.com_ports,
+                                                         self._get_valid_com(self.shared_controls.get("SECURITY_COM")))
+        self.sender_com_combo = self._create_combo_row("Sender COM", self.com_ports,
+                                                       self._get_valid_com(self.shared_controls.get("SENDER_COM")))
 
-        refresh_source_btn = ctk.CTkButton(
-            source_btn_row,
-            text="Atualizar",
-            width=148,
-            command=self.refresh_sources  # função placeholder
-        )
-        refresh_source_btn.pack(side="left", padx=10)
+    def _create_com_buttons(self):
+        row = ctk.CTkFrame(self, fg_color="transparent")
+        row.pack(pady=(5, 10))
 
-        # SECURITY COM
-        security_row = ctk.CTkFrame(self)
-        security_row.pack(fill="x", padx=20, pady=2)
-        ctk.CTkLabel(security_row, text="Security COM").pack(side="left", padx=(10, 5))
-        self.security_com_combo = ctk.CTkComboBox(
-            security_row,
-            values=self.com_ports,
-            variable=ctk.StringVar(value=get_valid_com(shared_controls.get("SECURITY_COM")))
-        )
-        self.security_com_combo.pack(side="left", fill="x", expand=True)
+        ctk.CTkButton(row, text="Aplicar", width=148, command=self.apply_sender_com).pack(side="left", padx=10)
+        ctk.CTkButton(row, text="Atualizar", width=148, command=self.refresh_com_ports).pack(side="left", padx=10)
 
-        # SENDER COM
-        sender_row = ctk.CTkFrame(self)
-        sender_row.pack(fill="x", padx=20, pady=2)
-        ctk.CTkLabel(sender_row, text="Sender COM").pack(side="left", padx=(10, 5))
-        self.sender_com_combo = ctk.CTkComboBox(
-            sender_row,
-            values=self.com_ports,
-            variable=ctk.StringVar(value=get_valid_com(shared_controls.get("SENDER_COM"))),
-            width=150
-        )
-        self.sender_com_combo.pack(side="left", fill="x", expand=True)
-
-        com_button_row = ctk.CTkFrame(self, fg_color="transparent")
-        com_button_row.pack(pady=(5, 10), anchor="n")
-
-        apply_btn = ctk.CTkButton(com_button_row, text="Aplicar", width=148, command=self.apply_sender_com)
-        apply_btn.pack(side="left", padx=10)
-
-        refresh_btn = ctk.CTkButton(com_button_row, text="Atualizar", width=148, command=self.refresh_com_ports)
-        refresh_btn.pack(side="left", padx=10)
+    def _create_combo_row(self, label_text, values, default_value):
+        row = ctk.CTkFrame(self)
+        row.pack(fill="x", padx=20, pady=2)
+        ctk.CTkLabel(row, text=label_text).pack(side="left", padx=(10, 5))
+        combo = ctk.CTkComboBox(row, values=values, variable=ctk.StringVar(value=default_value))
+        combo.pack(side="left", fill="x", expand=True)
+        return combo
 
     def apply_sources(self):
-        lane_value = self.lane_source_combo.get()
-        object_value = self.object_source_combo.get()
+        def clean_source(value):
+            return value.replace("Câmera ", "") if value.startswith("Câmera ") else value
 
-        # Desempacota "Câmera 0" → "0"
-        if lane_value.startswith("Câmera "):
-            lane_value = lane_value.replace("Câmera ", "")
-        if object_value.startswith("Câmera "):
-            object_value = object_value.replace("Câmera ", "")
+        lane_value = clean_source(self.lane_source_combo.get())
+        object_value = clean_source(self.object_source_combo.get())
 
         self.tk_controls["LANE_SOURCE"] = lane_value
         self.tk_controls["OBJECT_SOURCE"] = object_value
@@ -214,45 +178,42 @@ class SourceAndSerialControls(ctk.CTkFrame):
             "OBJECT_SOURCE": object_value
         }, DEFAULT_UI_PATH)
 
-        print("[INFO] LANE_SOURCE e OBJECT_SOURCE atualizados em DEFAULT_UI_PATH.")
-
     def refresh_sources(self):
         cameras = detect_camera_indices()
         videos = get_video_files_from_folder()
-
         new_options = [f"Câmera {i}" for i in cameras] + videos
 
         if not new_options:
-            print("[WARNING] Nenhuma fonte de vídeo encontrada.")
             return
 
-        # Atualiza opções nas comboboxes
         self.lane_source_combo.configure(values=new_options)
         self.object_source_combo.configure(values=new_options)
 
-        print(f"[INFO] Fontes atualizadas: {new_options}")
-
     def refresh_com_ports(self):
         self.com_ports = SerialCommunicator.list_available_ports()
-        def refresh_combo(combo, current_value):
+
+        def update_combo(combo, current):
             combo.configure(values=self.com_ports)
-            if current_value in self.com_ports:
-                combo.set(current_value)
+            if current in self.com_ports:
+                combo.set(current)
             elif self.com_ports:
                 combo.set(self.com_ports[0])
             else:
                 combo.set("")
-        refresh_combo(self.security_com_combo, self.security_com_combo.get())
-        refresh_combo(self.sender_com_combo, self.sender_com_combo.get())
+
+        update_combo(self.security_com_combo, self.security_com_combo.get())
+        update_combo(self.sender_com_combo, self.sender_com_combo.get())
 
     def apply_sender_com(self):
-        selected_sender_com = self.sender_com_combo.get()
-        selected_security_com = self.security_com_combo.get()
-        self.shared_controls["SENDER_COM"] = selected_sender_com
-        self.shared_controls["SECURITY_COM"] = selected_security_com
+        sender_com = self.sender_com_combo.get()
+        security_com = self.security_com_combo.get()
+
+        self.shared_controls["SENDER_COM"] = sender_com
+        self.shared_controls["SECURITY_COM"] = security_com
+
         self.refresh_json({
-            "SENDER_COM": selected_sender_com,
-            "SECURITY_COM": selected_security_com
+            "SENDER_COM": sender_com,
+            "SECURITY_COM": security_com
         }, DEFAULT_UI_PATH)
 
 class ObjectRoiSection(SliderSection):
