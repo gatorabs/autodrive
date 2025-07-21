@@ -13,6 +13,59 @@ from src.infrastructure.adapters.video.begin_the_video import detect_camera_indi
 FRAME_WIDTH_T = 360
 FRAME_HEIGHT_T = 203
 
+class SliderSection(ctk.CTkFrame):
+    def __init__(self, master, title, tk_controls, calibration_data, sliders_config, **kwargs):
+        super().__init__(master, **kwargs)
+        self.tk_controls = tk_controls
+        self.calibration_data = calibration_data
+        self.refresh_json = refresh_json
+
+        ctk.CTkLabel(self, text=title, font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
+
+        self.sliders = {}
+        for config in sliders_config:
+            name, label, min_val, max_val = config
+            default = self.calibration_data.get(name, self.tk_controls.get(name, 0))
+            slider, value_label = self.add_slider(self, label, name, min_val, max_val, default)
+            self.sliders[name] = {"slider": slider, "label": value_label}
+
+    def add_slider(self, parent, label_text, name, from_, to, default):
+        row = ctk.CTkFrame(parent)
+        row.pack(fill="x", padx=20, pady=2)
+        row.columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(row, text=label_text).grid(row=0, column=0, padx=(10, 5))
+
+        slider = ctk.CTkSlider(
+            row,
+            from_=from_,
+            to=to,
+            number_of_steps=to - from_,
+            command=lambda value, n=name: self._on_slider_change(n, value)
+        )
+        slider.set(default)
+        slider.grid(row=0, column=1, padx=5, sticky="ew")
+
+        value_label = ctk.CTkLabel(row, text=str(int(default)))
+        value_label.grid(row=0, column=2, padx=(5, 10))
+
+        return slider, value_label
+
+    def _on_slider_change(self, name, value):
+        int_value = int(float(value))
+        self.tk_controls[name] = int_value
+        self.sliders[name]["label"].configure(text=str(int_value))
+        self.refresh_json({name: int_value}, CALIBRATION_FILE)
+
+    def get(self, name):
+        return int(self.sliders[name]["slider"].get())
+
+    def set(self, name, value):
+        self.sliders[name]["slider"].set(value)
+        self.sliders[name]["label"].configure(text=str(int(value)))
+        self.tk_controls[name] = int(value)
+
+
 class VideoFrame(ctk.CTkFrame):
     def __init__(self, master, title="Frame", **kwargs):
         super().__init__(master, **kwargs)
@@ -28,106 +81,28 @@ class VideoFrame(ctk.CTkFrame):
             self.image_label.configure(image=ctk_image)
             self.image_label.image = ctk_image
 
-class FilterControls(ctk.CTkFrame):
+class FilterControls(SliderSection):
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
-        super().__init__(master, **kwargs)
-        self.pack_propagate(False)
-        self.tk_controls = tk_controls
-        self.calibration_data = calibration_data
-        self.refresh_json = refresh_json
-        ctk.CTkLabel(self, text="Filtros", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
-
-        # F_Canny
-        f_row = ctk.CTkFrame(self)
-        f_row.pack(fill="x", padx=20, pady=2)
-        f_row.columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(f_row, text="F_Canny").grid(row=0, column=0, padx=(10, 5))
-        self.f_canny_slider = ctk.CTkSlider(f_row, from_=0, to=255, number_of_steps=255, command=self.update_f_canny)
-        default_f_canny = self.calibration_data.get("F_Canny", self.tk_controls.get("F_Canny"))
-        self.f_canny_slider.set(default_f_canny)
-        self.f_canny_slider.grid(row=0, column=1, padx=5, sticky="ew")
-
-        self.f_canny_value = ctk.CTkLabel(f_row, text=str(self.f_canny_slider.get()), fg_color="transparent",
-                                          bg_color="transparent")
-        self.f_canny_value.grid(row=0, column=2, padx=(5, 10))
-
-        # S_Canny
-        s_row = ctk.CTkFrame(self)
-        s_row.pack(fill="x", padx=20, pady=2)
-        s_row.columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(s_row, text="S_Canny").grid(row=0, column=0, padx=(10, 5))
-        self.s_canny_slider = ctk.CTkSlider(s_row, from_=0, to=255, number_of_steps=255, command=self.update_s_canny)
-        default_s_canny = self.calibration_data.get("S_Canny", self.tk_controls.get("S_Canny"))
-        self.s_canny_slider.set(default_s_canny)
-        self.s_canny_slider.grid(row=0, column=1, padx=5, sticky="ew")
-
-        self.s_canny_value = ctk.CTkLabel(s_row, text=str(self.s_canny_slider.get()), fg_color="transparent",
-                                          bg_color="transparent")
-        self.s_canny_value.grid(row=0, column=2, padx=(5, 10))
-
-    def update_f_canny(self, value):
-        value = int(value)
-        self.tk_controls["F_Canny"] = value
-        self.f_canny_value.configure(text=str(value))
-        self.refresh_json({"F_Canny": value}, CALIBRATION_FILE)
-    def update_s_canny(self, value):
-        value = int(value)
-        self.tk_controls["S_Canny"] = value
-        self.s_canny_value.configure(text=str(value))
-        self.refresh_json({"S_Canny": value}, CALIBRATION_FILE)
-
-class WarpControls(ctk.CTkFrame):
-    def __init__(self, master, tk_controls, calibration_data, **kwargs):
-        super().__init__(master, **kwargs)
-        self.pack_propagate(False)
-        self.tk_controls = tk_controls
-        self.calibration_data = calibration_data
-        self.refresh_json = refresh_json
-
-        ctk.CTkLabel(self, text="Warp Controls", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
-
-        self.sliders = {}
-
-        points = [
-            ("tl_x", FRAME_WIDTH),
-            ("tl_y", FRAME_HEIGHT),
-            ("tr_x", FRAME_WIDTH),
-            ("tr_y", FRAME_HEIGHT),
-            ("bl_x", FRAME_WIDTH),
-            ("bl_y", FRAME_HEIGHT),
-            ("br_x", FRAME_WIDTH),
-            ("br_y", FRAME_HEIGHT),
+        sliders = [
+            ("F_Canny", "F_Canny", 0, 255),
+            ("S_Canny", "S_Canny", 0, 255),
         ]
+        super().__init__(master, "Filtros", tk_controls, calibration_data, sliders, **kwargs)
 
-        for name, max_value in points:
-            self._add_slider(name, max_value)
+class WarpControls(SliderSection):
+    def __init__(self, master, tk_controls, calibration_data, **kwargs):
+        points = [
+            ("tl_x", "tl_x", 0, FRAME_WIDTH),
+            ("tl_y", "tl_y", 0, FRAME_HEIGHT),
+            ("tr_x", "tr_x", 0, FRAME_WIDTH),
+            ("tr_y", "tr_y", 0, FRAME_HEIGHT),
+            ("bl_x", "bl_x", 0, FRAME_WIDTH),
+            ("bl_y", "bl_y", 0, FRAME_HEIGHT),
+            ("br_x", "br_x", 0, FRAME_WIDTH),
+            ("br_y", "br_y", 0, FRAME_HEIGHT),
+        ]
+        super().__init__(master, "Warp Controls", tk_controls, calibration_data, points, **kwargs)
 
-    def _add_slider(self, name, max_value):
-        row = ctk.CTkFrame(self)
-        row.pack(fill="x", padx=20, pady=2)
-        row.columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(row, text=name).grid(row=0, column=0, padx=(10, 5))
-        slider = ctk.CTkSlider(row, from_=0, to=max_value, number_of_steps=max_value, command=lambda v, n=name: self._update_value(n, v))
-        default = self.calibration_data.get(name, self.tk_controls.get(name, 0))
-        slider.set(default)
-        slider.grid(row=0, column=1, padx=5, sticky="ew")
-
-        value_label = ctk.CTkLabel(row, text=str(int(slider.get())), fg_color="transparent", bg_color="transparent")
-        value_label.grid(row=0, column=2, padx=(5, 10))
-
-        self.sliders[name] = {
-            "slider": slider,
-            "label": value_label
-        }
-
-    def _update_value(self, name, value):
-        value = int(value)
-        self.tk_controls[name] = value
-        self.sliders[name]["label"].configure(text=str(value))
-        refresh_json({name: value}, CALIBRATION_FILE)
 
 class SourceAndSerialControls(ctk.CTkFrame):
     def __init__(self, master, tk_controls, calibration_data, shared_controls, init_data, **kwargs):
@@ -280,59 +255,14 @@ class SourceAndSerialControls(ctk.CTkFrame):
             "SECURITY_COM": selected_security_com
         }, DEFAULT_UI_PATH)
 
-class ObjectRoiSection(ctk.CTkFrame):
+class ObjectRoiSection(SliderSection):
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
-        super().__init__(master, **kwargs)
-        self.pack_propagate(False)
-        self.tk_controls = tk_controls
-        self.calibration_data = calibration_data
-        self.refresh_json = refresh_json
+        sliders = [
+            ("Person", "Person", 0, 300),
+            ("Traffic", "Traffic Sign", 0, 300)
+        ]
+        super().__init__(master, "ROI de Objetos", tk_controls, calibration_data, sliders, **kwargs)
 
-        # Título
-        ctk.CTkLabel(self, text="ROI de Objetos", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
-
-        # Person
-        person_row = ctk.CTkFrame(self)
-        person_row.pack(fill="x", padx=20, pady=(0, 4))
-        person_row.columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(person_row, text="Person").grid(row=0, column=0, padx=(10, 5))
-        self.person_slider = ctk.CTkSlider(
-            person_row, from_=0, to=300, number_of_steps=300, command=self.update_person
-        )
-        default_person = self.calibration_data.get("Person", self.tk_controls.get("Person", 0))
-        self.person_slider.set(default_person)
-        self.person_slider.grid(row=0, column=1, padx=5, sticky="ew")
-
-        self.person_value = ctk.CTkLabel(person_row, text=str(self.person_slider.get()), fg_color="transparent")
-        self.person_value.grid(row=0, column=2, padx=(5, 10))
-
-        # Traffic Sign
-        traffic_row = ctk.CTkFrame(self)
-        traffic_row.pack(fill="x", padx=20, pady=(0, 2))
-        traffic_row.columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(traffic_row, text="Traffic Sign").grid(row=0, column=0, padx=(10, 5))
-        self.traffic_slider = ctk.CTkSlider(
-            traffic_row, from_=0, to=300, number_of_steps=300, command=self.update_traffic
-        )
-        default_traffic = self.calibration_data.get("Traffic", self.tk_controls.get("Traffic", 0))
-        self.traffic_slider.set(default_traffic)
-        self.traffic_slider.grid(row=0, column=1, padx=5, sticky="ew")
-
-        self.traffic_value = ctk.CTkLabel(traffic_row, text=str(self.traffic_slider.get()), fg_color="transparent")
-        self.traffic_value.grid(row=0, column=2, padx=(5, 10))
-
-    def update_person(self, value):
-        value = int(value)
-        self.tk_controls["Person"] = value
-        self.person_value.configure(text=str(value))
-        self.refresh_json({"Person": value}, CALIBRATION_FILE)
-    def update_traffic(self, value):
-        value = int(value)
-        self.tk_controls["Traffic"] = value
-        self.traffic_value.configure(text=str(value))
-        self.refresh_json({"Traffic": value}, CALIBRATION_FILE)
 
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
@@ -383,7 +313,7 @@ class MainApp(ctk.CTk):
 
         # Seção de Warp Controls (lado esquerdo)
         self.warp_container = ctk.CTkFrame(self)
-        self.warp_container.grid(row=1, column=0, rowspan=2, pady=(2, 5), sticky="n")
+        self.warp_container.grid(row=1, column=0, rowspan=2, pady=(0, 5), sticky="n")
         self.warp_container.configure(width=self.VIDEO_WIDTH, height=300)
         self.warp_container.pack_propagate(False)
 
@@ -397,7 +327,7 @@ class MainApp(ctk.CTk):
         self.filters_container.pack_propagate(False)
 
         self.filters = FilterControls(self.filters_container, self.tk_controls, self.calibration_data)
-        self.filters.pack(fill="both", expand=False)
+        self.filters.pack(fill="both", expand=True)
 
         # Seção de Fontes e Seriais (centro - parte inferior)
         self.serials_container = ctk.CTkFrame(self)
@@ -415,7 +345,7 @@ class MainApp(ctk.CTk):
         self.object_roi_container.pack_propagate(False)
 
         self.object_roi_controls = ObjectRoiSection(self.object_roi_container, self.tk_controls, self.calibration_data)
-        self.object_roi_controls.pack(fill="both", expand=False)
+        self.object_roi_controls.pack(fill="both", expand=True)
 
         self.update_loop()
 
@@ -432,4 +362,5 @@ class MainApp(ctk.CTk):
 
 def launch_homepage(shared_frames, tk_controls, shared_controls):
     app = MainApp(shared_frames, tk_controls, shared_controls)
+    app.resizable(False, False)
     app.mainloop()
