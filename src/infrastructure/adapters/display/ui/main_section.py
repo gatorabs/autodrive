@@ -224,6 +224,136 @@ class ObjectRoiSection(SliderSection):
         ]
         super().__init__(master, "ROI de Objetos", tk_controls, calibration_data, sliders, **kwargs)
 
+class FloatingWidget(ctk.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, fg_color="transparent", **kwargs)
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-10, y=-10)
+
+        self.modal_open = False
+        self.modal = None
+        self.modal_height = 0
+        self.max_height = 90
+
+        self.floating_button = ctk.CTkButton(
+            self,
+            text="+",
+            width=30,
+            height=40,
+            corner_radius=40,
+            font=ctk.CTkFont(size=20, weight="bold"),
+            command=self.toggle_modal
+        )
+        self.floating_button.pack()
+
+    def toggle_modal(self):
+        if self.modal_open:
+            self.animate_close()
+        else:
+            self.open_modal()
+
+    def open_modal(self):
+        if self.modal:
+            self.modal.destroy()
+
+        self.modal = ctk.CTkFrame(self.master, corner_radius=12, fg_color="#2b2b2b")
+        self.modal.place(relx=1.0, rely=1.0, anchor="se", x=-50, y=-50)
+        self.modal.place_configure(height=0, width=120)
+
+        self.button1 = ctk.CTkButton(self.modal, text="Botão 1", command=self.button_1_action)
+        self.button2 = ctk.CTkButton(self.modal, text="Botão 2", command=self.button_2_action)
+
+        self.modal_height = 0
+        self.animate_open()
+        self.modal_open = True
+
+    def animate_open(self):
+        if self.modal_height < self.max_height:
+            self.modal_height += 10
+            self.modal.place_configure(height=self.modal_height)
+            self.after(10, self.animate_open)
+        else:
+            self.button1.pack(padx=10, pady=(12, 5))
+            self.button2.pack(padx=10, pady=(5, 5))
+
+    def animate_close(self):
+        if self.button1.winfo_ismapped():
+            self.button1.pack_forget()
+            self.button2.pack_forget()
+
+        if self.modal_height > 0:
+            self.modal_height -= 10
+            self.modal.place_configure(height=self.modal_height)
+            self.after(10, self.animate_close)
+        else:
+            self.modal.destroy()
+            self.modal = None
+            self.modal_open = False
+
+    def button_1_action(self):
+        print("Botão 1 clicado")
+
+    def button_2_action(self):
+        print("Botão 2 clicado")
+
+class TabManager(ctk.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.pack(fill="x", pady=(5, 0), padx=10)
+
+        self.active_tab = None
+        self.tabs = {}
+        self.buttons = {}
+
+        self.left_tab_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.left_tab_frame.pack(side="left", fill="x", expand=True)
+
+        self.right_tab_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.right_tab_frame.pack(side="right")
+
+        # Cria tabs iniciais
+        self.create_tab("Home", on_right=False)
+        self.create_tab("Save", on_right=True)
+
+        # Define tab inicial
+        self.select_tab("Home")
+
+    def create_tab(self, name, on_right=False):
+        frame = ctk.CTkFrame(self.master, fg_color="transparent")  # Conteúdo da tab
+        frame.pack_forget()
+        self.tabs[name] = frame
+
+        btn = ctk.CTkButton(
+            self.right_tab_frame if on_right else self.left_tab_frame,
+            text=name,
+            command=lambda n=name: self.select_tab(n),
+            width=80,
+            height=28,
+            fg_color="transparent",
+            hover_color="#333333",
+            text_color="#ffffff"
+        )
+        btn.pack(side="left", padx=5)
+        self.buttons[name] = btn
+
+    def select_tab(self, name):
+        # Esconde todas as tabs
+        for f in self.tabs.values():
+            f.pack_forget()
+
+        # Mostra tab ativa
+        self.tabs[name].pack(fill="both", expand=True)
+
+        # Atualiza estado visual dos botões
+        for tab_name, btn in self.buttons.items():
+            if tab_name == name:
+                btn.configure(fg_color="#1f6aa5")
+            else:
+                btn.configure(fg_color="transparent")
+
+        self.active_tab = name
+
+    def get_tab_frame(self, name):
+        return self.tabs.get(name)
 
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
@@ -262,6 +392,8 @@ class MainApp(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=0)
         self.grid_columnconfigure((0, 1, 2), weight=1)
+
+        self.floating_widget = FloatingWidget(self)
 
         # -------------------- Seção de Vídeos --------------------
         self.normal_frame = VideoFrame(self, "NORMAL_FRAME")
