@@ -5,7 +5,7 @@ from PIL import Image
 from customtkinter import CTkImage
 import io
 from src.infrastructure.adapters.calibration.calibration_repository import load_data, save_data, refresh_json
-from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
+from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH, DEFAULTS_FILE
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 from src.infrastructure.adapters.serial.serial_comm import  SerialCommunicator
 from src.infrastructure.adapters.video.begin_the_video import detect_camera_indices, get_video_files_from_folder
@@ -224,23 +224,27 @@ class ObjectRoiSection(SliderSection):
         super().__init__(master, "ROI de Objetos", tk_controls, calibration_data, sliders, **kwargs)
 
 class FloatingWidget(ctk.CTkFrame):
-    def __init__(self, master, **kwargs):
-        super().__init__(master, fg_color="transparent", **kwargs)
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-10, y=-10)
+    def __init__(self, master, tk_controls, **kwargs):
+        super().__init__(master, fg_color="#2b2b2b", **kwargs)
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-1086, y=-15)
+        self.save_data = save_data
+        self.load_data = load_data
+        self.tk_controls = tk_controls
+        self.DEFAULTS_FILE = DEFAULTS_FILE
 
         self.modal_open = False
         self.modal = None
         self.modal_height = 0
-        self.max_height = 90
+        self.max_height = 50
 
         self.floating_button = ctk.CTkButton(
             self,
             text="+",
-            width=30,
+            width=40,
             height=40,
             corner_radius=10,
-            font=ctk.CTkFont(size=20, weight="bold"),
-            command=self.toggle_modal
+            font=ctk.CTkFont(size=15),
+            command=self.toggle_modal,
         )
         self.floating_button.pack()
 
@@ -255,11 +259,18 @@ class FloatingWidget(ctk.CTkFrame):
             self.modal.destroy()
 
         self.modal = ctk.CTkFrame(self.master, corner_radius=12, fg_color="#2b2b2b")
-        self.modal.place(relx=1.0, rely=1.0, anchor="se", x=-50, y=-50)
-        self.modal.place_configure(height=0, width=120)
+        self.modal.place(relx=1.0, rely=1.0, anchor="se", x=-810, y=-10)
+        self.modal.place_configure(height=0, width=317)
 
-        self.button1 = ctk.CTkButton(self.modal, text="Botão 1", command=self.button_1_action)
-        self.button2 = ctk.CTkButton(self.modal, text="Botão 2", command=self.button_2_action)
+        # Frame para botões
+        button_frame = ctk.CTkFrame(self.modal, fg_color="#2b2b2b")
+        button_frame.pack(pady=(5,0))
+        # Botões lado a lado
+        self.button1 = ctk.CTkButton(button_frame, text="Salvar Padrão", command=self.button_1_action, width=148, height=40)
+        self.button1.pack(side="left", padx=(2, 15))
+
+        self.button2 = ctk.CTkButton(button_frame, text="Restaurar Padrão", command=self.button_2_action, width=148, height=40)
+        self.button2.pack(side="left", padx=(2, 2))
 
         self.modal_height = 0
         self.animate_open()
@@ -270,9 +281,6 @@ class FloatingWidget(ctk.CTkFrame):
             self.modal_height += 10
             self.modal.place_configure(height=self.modal_height)
             self.after(10, self.animate_open)
-        else:
-            self.button1.pack(padx=10, pady=(12, 5))
-            self.button2.pack(padx=10, pady=(5, 5))
 
     def animate_close(self):
         if self.button1.winfo_ismapped():
@@ -289,10 +297,12 @@ class FloatingWidget(ctk.CTkFrame):
             self.modal_open = False
 
     def button_1_action(self):
-        print("Botão 1 clicado")
+        refresh_json(self.tk_controls, self.DEFAULTS_FILE, only_existing_keys=True)
+        self.animate_close()
 
     def button_2_action(self):
-        print("Botão 2 clicado")
+        self.master.restore_defaults() # type: ignore[attr-defined]
+        self.animate_close()
 
 class TabManager(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
@@ -346,6 +356,7 @@ class MainApp(ctk.CTk):
         self.init_data = load_data(DEFAULT_UI_PATH)
         self.title("Visualizador de Frames com Filtros")
 
+        self.DEFAULTS_FILE = DEFAULTS_FILE
         self.shared_frames = shared_frames
         self.tk_controls = tk_controls
         self.shared_controls = shared_controls
@@ -389,6 +400,7 @@ class MainApp(ctk.CTk):
 
         # monta conteúdo da aba Home **dentro** de self.home_frame
         self._build_home(self.home_frame)
+        self.floating_widget = FloatingWidget(self, self.tk_controls)
 
         # inicia loop
         self.update_loop()
@@ -436,8 +448,6 @@ class MainApp(ctk.CTk):
         self.object_roi_controls = ObjectRoiSection(roi_ct, self.tk_controls, self.calibration_data)
         self.object_roi_controls.pack(fill="both",expand=True)
 
-        # Widget flutuante permanece na MainApp, não aqui
-
     def update_loop(self):
         try:
             self.normal_frame.update_image(self.shared_frames.get("NORMAL_FRAME"))
@@ -447,7 +457,14 @@ class MainApp(ctk.CTk):
             print("Erro ao atualizar frames:", e)
         self.after(33, self.update_loop)
 
-
+    def restore_defaults(self):
+        load_data(self.DEFAULTS_FILE, update_target_if_exists=self.tk_controls)
+        for name, value in self.tk_controls.items():
+            # Tenta atualizar cada grupo de sliders
+            for section in [self.filters, self.warp_controls, self.object_roi_controls]:
+                if name in section.sliders:
+                    section.set(name, value)
+        refresh_json(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
 
 def launch_homepage(shared_frames, tk_controls, shared_controls):
     app = MainApp(shared_frames, tk_controls, shared_controls)
