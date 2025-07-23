@@ -65,7 +65,6 @@ class SliderSection(ctk.CTkFrame):
         self.sliders[name]["label"].configure(text=str(int(value)))
         self.tk_controls[name] = int(value)
 
-
 class VideoFrame(ctk.CTkFrame):
     def __init__(self, master, title="Frame", **kwargs):
         super().__init__(master, **kwargs)
@@ -239,7 +238,7 @@ class FloatingWidget(ctk.CTkFrame):
             text="+",
             width=30,
             height=40,
-            corner_radius=40,
+            corner_radius=10,
             font=ctk.CTkFont(size=20, weight="bold"),
             command=self.toggle_modal
         )
@@ -298,62 +297,47 @@ class FloatingWidget(ctk.CTkFrame):
 class TabManager(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
-        self.pack(fill="x", pady=(5, 0), padx=10)
+        self.grid(row=0, column=0, columnspan=3, sticky="ew", padx=10, pady=(5, 0))
+        self.tabs, self.buttons = {}, {}
+        self.left = ctk.CTkFrame(self, fg_color="transparent")
+        self.left.pack(side="left", fill="x", expand=True)
+        self.right = ctk.CTkFrame(self, fg_color="transparent")
+        self.right.pack(side="right")
+        self.active = None
 
-        self.active_tab = None
-        self.tabs = {}
-        self.buttons = {}
-
-        self.left_tab_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.left_tab_frame.pack(side="left", fill="x", expand=True)
-
-        self.right_tab_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.right_tab_frame.pack(side="right")
-
-        # Cria tabs iniciais
-        self.create_tab("Home", on_right=False)
-        self.create_tab("Save", on_right=True)
-
-        # Define tab inicial
-        self.select_tab("Home")
-
-    def create_tab(self, name, on_right=False):
-        frame = ctk.CTkFrame(self.master, fg_color="transparent")  # Conteúdo da tab
-        frame.pack_forget()
-        self.tabs[name] = frame
-
+    def create_tab(self, name, frame, on_right=False):
+        def cb():
+            self.select_tab(name)
         btn = ctk.CTkButton(
-            self.right_tab_frame if on_right else self.left_tab_frame,
+            self.right if on_right else self.left,
             text=name,
-            command=lambda n=name: self.select_tab(n),
-            width=80,
-            height=28,
+            command=cb,
+            width=80, height=28,
             fg_color="transparent",
-            hover_color="#333333",
-            text_color="#ffffff"
+            hover_color="#444444",
+            text_color="#fff"
         )
         btn.pack(side="left", padx=5)
         self.buttons[name] = btn
+        self.tabs[name] = frame
+        if frame:
+            frame.grid_forget()
+        if self.active is None and frame:
+            self.select_tab(name)
 
     def select_tab(self, name):
-        # Esconde todas as tabs
-        for f in self.tabs.values():
-            f.pack_forget()
+        if self.active:
+            # esconde antiga
+            prev = self.tabs.get(self.active)
+            if prev:
+                prev.grid_forget()
 
-        # Mostra tab ativa
-        self.tabs[name].pack(fill="both", expand=True)
+        # mostra nova
+        frm = self.tabs.get(name)
+        if frm:
+            frm.grid(row=1, column=0, columnspan=3, sticky="nsew")
+            self.active = name
 
-        # Atualiza estado visual dos botões
-        for tab_name, btn in self.buttons.items():
-            if tab_name == name:
-                btn.configure(fg_color="#1f6aa5")
-            else:
-                btn.configure(fg_color="transparent")
-
-        self.active_tab = name
-
-    def get_tab_frame(self, name):
-        return self.tabs.get(name)
 
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
@@ -362,85 +346,97 @@ class MainApp(ctk.CTk):
         self.init_data = load_data(DEFAULT_UI_PATH)
         self.title("Visualizador de Frames com Filtros")
 
-        self.VIDEO_WIDTH = FRAME_WIDTH_T
-        self.VIDEO_HEIGHT = FRAME_HEIGHT_T
-        self.GAP = 20
-        EXTRA_MARGIN = 20
-
-        # Alturas individuais
-        self.video_section_height = self.VIDEO_HEIGHT + 10 + 2 + EXTRA_MARGIN
-        self.warp_section_height = 300
-        self.filters_section_height = 110
-        self.coms_section_height = 250
-
-        # Novo: empilhamento vertical da coluna central (filtros + COMs)
-        self.filters_coms_section_height = self.filters_section_height + self.coms_section_height + 5
-
-        # Altura total
-        self.lower_section_height = max(self.warp_section_height, self.filters_coms_section_height) + EXTRA_MARGIN
-        self.TOTAL_HEIGHT = self.video_section_height + self.lower_section_height
-        self.TOTAL_WIDTH = self.VIDEO_WIDTH * 3 + self.GAP * 4
-
-        # Janela
-        self.geometry(f"{self.TOTAL_WIDTH}x{self.TOTAL_HEIGHT}")
-        self.minsize(self.TOTAL_WIDTH, self.TOTAL_HEIGHT)
         self.shared_frames = shared_frames
         self.tk_controls = tk_controls
         self.shared_controls = shared_controls
 
-        # Layout principal (2 linhas: vídeos e controles)
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=0)
-        self.grid_columnconfigure((0, 1, 2), weight=1)
+        self.VIDEO_WIDTH = FRAME_WIDTH_T
+        self.VIDEO_HEIGHT = FRAME_HEIGHT_T
 
-        self.floating_widget = FloatingWidget(self)
+        self.GAP = 20
+        EXTRA_MARGIN = 20
 
-        # -------------------- Seção de Vídeos --------------------
-        self.normal_frame = VideoFrame(self, "NORMAL_FRAME")
-        self.edges_frame = VideoFrame(self, "EDGES_FRAME")
-        self.object_frame = VideoFrame(self, "OBJECT_FRAME")
+        self.video_section_height = self.VIDEO_HEIGHT + 12 + EXTRA_MARGIN
+        self.warp_section_height = 300
+        self.filters_section_height = 110
+        self.coms_section_height = 250
 
-        self.normal_frame.grid(row=0, column=0, padx=10, pady=(10, 2))
-        self.edges_frame.grid(row=0, column=1, padx=10, pady=(10, 2))
-        self.object_frame.grid(row=0, column=2, padx=10, pady=(10, 2))
+        self.filters_coms_section_height = self.filters_section_height + self.coms_section_height + 5
 
-        # Seção de Warp Controls (lado esquerdo)
-        self.warp_container = ctk.CTkFrame(self)
-        self.warp_container.grid(row=1, column=0, rowspan=2, pady=(0, 5), sticky="n")
-        self.warp_container.configure(width=self.VIDEO_WIDTH, height=300)
-        self.warp_container.pack_propagate(False)
+        lower = max(self.warp_section_height, self.filters_coms_section_height) + EXTRA_MARGIN
 
-        self.warp_controls = WarpControls(self.warp_container, self.tk_controls, self.calibration_data)
-        self.warp_controls.pack(fill="both", expand=True)
+        self.TOTAL_HEIGHT = self.video_section_height + lower + 50  # + espaço p/ tabs
+        self.TOTAL_WIDTH = self.VIDEO_WIDTH*3 + self.GAP*4
 
-        # Seção de Filtros (centro - parte superior)
-        self.filters_container = ctk.CTkFrame(self)
-        self.filters_container.grid(row=1, column=1, pady=(0, 5), sticky="n")
-        self.filters_container.configure(width=self.VIDEO_WIDTH, height=110)
-        self.filters_container.pack_propagate(False)
+        self.geometry(f"{self.TOTAL_WIDTH}x{self.TOTAL_HEIGHT}")
+        self.minsize(self.TOTAL_WIDTH, self.TOTAL_HEIGHT)
 
-        self.filters = FilterControls(self.filters_container, self.tk_controls, self.calibration_data)
-        self.filters.pack(fill="both", expand=True)
+        # configura grid principal
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure((0,1,2), weight=1)
 
-        # Seção de Fontes e Seriais (centro - parte inferior)
-        self.serials_container = ctk.CTkFrame(self)
-        self.serials_container.grid(row=2, column=1, pady=(0, 5), sticky="n")
-        self.serials_container.configure(width=self.VIDEO_WIDTH, height=250)
-        self.serials_container.pack_propagate(False)
+        # cria gerenciador de tabs
+        self.tab_manager = TabManager(self)
+        # frame Home
+        self.home_frame = ctk.CTkFrame(self)
+        # frame Tab 2
+        self.tab2_frame = ctk.CTkFrame(self)
+        ctk.CTkLabel(self.tab2_frame, text="Teste", font=ctk.CTkFont(size=20)).pack(expand=True)
 
-        self.sources_controls = SourceAndSerialControls(self.serials_container, self.tk_controls, self.calibration_data, self.shared_controls, self.init_data)
-        self.sources_controls.pack(fill="both", expand=True)
+        # registra abas
+        self.tab_manager.create_tab("Home",  self.home_frame, on_right=False)
+        self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True)
 
-        # Seção de ROI de Objetos (lado direito abaixo do vídeo)
-        self.object_roi_container = ctk.CTkFrame(self)
-        self.object_roi_container.grid(row=1, column=2, pady=(0, 5), sticky="n")
-        self.object_roi_container.configure(width=self.VIDEO_WIDTH, height=110)
-        self.object_roi_container.pack_propagate(False)
+        # monta conteúdo da aba Home **dentro** de self.home_frame
+        self._build_home(self.home_frame)
 
-        self.object_roi_controls = ObjectRoiSection(self.object_roi_container, self.tk_controls, self.calibration_data)
-        self.object_roi_controls.pack(fill="both", expand=True)
-
+        # inicia loop
         self.update_loop()
+
+    def _build_home(self, parent):
+        # ajusta parent para grid
+        parent.grid_rowconfigure(0, weight=1)
+        parent.grid_rowconfigure(1, weight=0)
+        parent.grid_columnconfigure((0,1,2), weight=1)
+
+        # Vídeos
+        nf = VideoFrame(parent, "NORMAL_FRAME"); nf.grid(row=0,column=0,padx=10,pady=(10,2))
+        ef = VideoFrame(parent, "EDGES_FRAME");  ef.grid(row=0,column=1,padx=10,pady=(10,2))
+        of = VideoFrame(parent, "OBJECT_FRAME");of.grid(row=0,column=2,padx=10,pady=(10,2))
+        self.normal_frame, self.edges_frame, self.object_frame = nf, ef, of
+
+        # Warp Controls
+        warp_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=300, fg_color="transparent")
+        warp_ct.grid(row=1,column=0,rowspan=2,pady=(0,5),sticky="n")
+        warp_ct.pack_propagate(False)
+        self.warp_controls = WarpControls(warp_ct, self.tk_controls, self.calibration_data)
+        self.warp_controls.pack(fill="both",expand=True)
+
+        # Filter Controls
+        filt_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=110, fg_color="transparent")
+        filt_ct.grid(row=1,column=1,pady=(0,5),sticky="n")
+        filt_ct.pack_propagate(False)
+        self.filters = FilterControls(filt_ct, self.tk_controls, self.calibration_data)
+        self.filters.pack(fill="both",expand=True)
+
+        # Serial Controls
+        ser_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=250, fg_color="transparent")
+        ser_ct.grid(row=2,column=1,pady=(0,5),sticky="n")
+        ser_ct.pack_propagate(False)
+        self.sources_controls = SourceAndSerialControls(
+            ser_ct, self.tk_controls, self.calibration_data,
+            self.shared_controls, self.init_data
+        )
+        self.sources_controls.pack(fill="both",expand=True)
+
+        # ROI Controls
+        roi_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=110, fg_color="transparent")
+        roi_ct.grid(row=1,column=2,pady=(0,5),sticky="n")
+        roi_ct.pack_propagate(False)
+        self.object_roi_controls = ObjectRoiSection(roi_ct, self.tk_controls, self.calibration_data)
+        self.object_roi_controls.pack(fill="both",expand=True)
+
+        # Widget flutuante permanece na MainApp, não aqui
 
     def update_loop(self):
         try:
@@ -449,8 +445,8 @@ class MainApp(ctk.CTk):
             self.object_frame.update_image(self.shared_frames.get("OBJECT_FRAME"))
         except Exception as e:
             print("Erro ao atualizar frames:", e)
+        self.after(33, self.update_loop)
 
-        self.after(33, self.update_loop)  # ~30 FPS
 
 
 def launch_homepage(shared_frames, tk_controls, shared_controls):
