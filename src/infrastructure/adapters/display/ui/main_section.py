@@ -226,71 +226,91 @@ class ObjectRoiSection(SliderSection):
 class FloatingWidget(ctk.CTkFrame):
     def __init__(self, master, tk_controls, **kwargs):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-1086, y=-15)
+        # posiciona o widget no canto inferior esquerdo da área de conteúdo
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-1086, y=-20)
+
         self.save_data = save_data
         self.load_data = load_data
         self.tk_controls = tk_controls
         self.DEFAULTS_FILE = DEFAULTS_FILE
+        self.button_colors = "#2b2b2b"
 
-        self.modal_open = False
         self.modal = None
-        self.modal_height = 0
-        self.max_height = 50
+        self.modal_open = False
+        self.modal_width = 0
+
+        # dimensões do modal
+        self.max_width = 267
+        self.max_height = 40
 
         self.floating_button = ctk.CTkButton(
             self,
-            text="+",
+            text="📂",
             width=40,
             height=40,
             corner_radius=10,
             font=ctk.CTkFont(size=15),
             command=self.toggle_modal,
+            border_width=2,
+            border_color="#FFFFFF"
         )
         self.floating_button.pack()
 
     def toggle_modal(self):
         if self.modal_open:
-            self.animate_close()
+            self._start_closing()
         else:
-            self.open_modal()
+            self._start_opening()
 
-    def open_modal(self):
+    def _start_opening(self):
         if self.modal:
             self.modal.destroy()
 
-        self.modal = ctk.CTkFrame(self.master, corner_radius=12, fg_color="#2b2b2b")
-        self.modal.place(relx=1.0, rely=1.0, anchor="se", x=-810, y=-10)
-        self.modal.place_configure(height=0, width=317)
+        self.modal = ctk.CTkFrame(self.master, fg_color="#2b2b2b", corner_radius=0, border_width=2, border_color="#FFFFFF")
+        self.modal.place(relx=1.0, rely=1.0, anchor="sw", x=-1080, y=-20)
+        self.modal.place_configure(width=0, height=self.max_height)
 
-        # Frame para botões
-        button_frame = ctk.CTkFrame(self.modal, fg_color="#2b2b2b")
-        button_frame.pack(pady=(5,0))
-        # Botões lado a lado
-        self.button1 = ctk.CTkButton(button_frame, text="Salvar Padrão", command=self.button_1_action, width=148, height=40)
-        self.button1.pack(side="left", padx=(2, 15))
+        btn_frame = ctk.CTkFrame(self.modal, fg_color="#2b2b2b")
+        btn_frame.pack(fill="both", expand=True, padx=5)
+        self.button1 = ctk.CTkButton(
+            btn_frame, text="Salvar Padrão",
+            command=self.button_1_action, text_color="#1DBF08", border_color="#1DBF08", border_width=2, fg_color=self.button_colors,
+            width=125, height=self.max_height,
+        )
+        self.button2 = ctk.CTkButton(
+            btn_frame, text="Restaurar Padrão",
+            command=self.button_2_action,
+            width=125, height=self.max_height, text_color="#BF081D", border_color="#BF081D", border_width=2,fg_color=self.button_colors
+        )
+        self.button1.pack(side="left", padx=(3, 5), pady=5)
+        self.button2.pack(side="left", padx=(5, 3), pady=5)
 
-        self.button2 = ctk.CTkButton(button_frame, text="Restaurar Padrão", command=self.button_2_action, width=148, height=40)
-        self.button2.pack(side="left", padx=(2, 2))
-
-        self.modal_height = 0
-        self.animate_open()
+        self.modal_width = 0
         self.modal_open = True
+        self._animate_open()
 
-    def animate_open(self):
-        if self.modal_height < self.max_height:
-            self.modal_height += 10
-            self.modal.place_configure(height=self.modal_height)
-            self.after(10, self.animate_open)
+    def _animate_open(self):
+        if not self.modal:
+            return
+        if self.modal_width < self.max_width:
+            self.modal_width += 10
+            self.modal.place_configure(width=self.modal_width)
+            self.after(10, self._animate_open)
 
-    def animate_close(self):
-        if self.button1.winfo_ismapped():
+    def _start_closing(self):
+        # antes de fechar, remove os botões pra não "quebrar" o layout
+        if hasattr(self, "button1"):
             self.button1.pack_forget()
             self.button2.pack_forget()
+        self._animate_close()
 
-        if self.modal_height > 0:
-            self.modal_height -= 10
-            self.modal.place_configure(height=self.modal_height)
-            self.after(10, self.animate_close)
+    def _animate_close(self):
+        if not self.modal:
+            return
+        if self.modal_width > 0:
+            self.modal_width -= 10
+            self.modal.place_configure(width=self.modal_width)
+            self.after(10, self._animate_close)
         else:
             self.modal.destroy()
             self.modal = None
@@ -298,11 +318,12 @@ class FloatingWidget(ctk.CTkFrame):
 
     def button_1_action(self):
         refresh_json(self.tk_controls, self.DEFAULTS_FILE, only_existing_keys=True)
-        self.animate_close()
+        self._start_closing()
 
     def button_2_action(self):
-        self.master.restore_defaults() # type: ignore[attr-defined]
-        self.animate_close()
+        self.master.restore_defaults()  # type: ignore[attr-defined]
+        self._start_closing()
+
 
 class TabManager(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
