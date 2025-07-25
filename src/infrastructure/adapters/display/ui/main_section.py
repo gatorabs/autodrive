@@ -66,18 +66,23 @@ class SliderSection(ctk.CTkFrame):
         self.tk_controls[name] = int(value)
 
 class VideoFrame(ctk.CTkFrame):
-    def __init__(self, master, title="Frame", **kwargs):
+    def __init__(self, master, shared_controls, title="Frame", **kwargs):
         super().__init__(master, **kwargs)
+        self.shared_controls = shared_controls
         self.label = ctk.CTkLabel(self, text=title)
         self.label.pack()
         self.image_label = ctk.CTkLabel(self, text="")
         self.image_label.pack()
 
     def update_image(self, image_bytes):
+        if self.shared_controls.get("WEBVIEW"):
+            self.image_label.configure(image="", text="Webview ATIVO.")
+            self.image_label.image = None
+            return
         if image_bytes:
             image = Image.open(io.BytesIO(image_bytes)).resize((FRAME_WIDTH_T, FRAME_HEIGHT_T))
             ctk_image = CTkImage(light_image=image, size=(FRAME_WIDTH_T, FRAME_HEIGHT_T))
-            self.image_label.configure(image=ctk_image)
+            self.image_label.configure(image=ctk_image, text="")
             self.image_label.image = ctk_image
 
 class FilterControls(SliderSection):
@@ -521,9 +526,9 @@ class MainApp(ctk.CTk):
         self.floating_widget = FloatingWidget(self, self.tk_controls)
 
         # Vídeos
-        nf = VideoFrame(parent, "NORMAL_FRAME"); nf.grid(row=0,column=0,padx=10,pady=(10,2))
-        ef = VideoFrame(parent, "EDGES_FRAME");  ef.grid(row=0,column=1,padx=10,pady=(10,2))
-        of = VideoFrame(parent, "OBJECT_FRAME");of.grid(row=0,column=2,padx=10,pady=(10,2))
+        nf = VideoFrame(parent, self.shared_controls,"NORMAL_FRAME"); nf.grid(row=0,column=0,padx=10,pady=(10,2))
+        ef = VideoFrame(parent, self.shared_controls,"EDGES_FRAME");  ef.grid(row=0,column=1,padx=10,pady=(10,2))
+        of = VideoFrame(parent, self.shared_controls,"OBJECT_FRAME");of.grid(row=0,column=2,padx=10,pady=(10,2))
         self.normal_frame, self.edges_frame, self.object_frame = nf, ef, of
 
         # Warp Controls
