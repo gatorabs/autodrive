@@ -375,7 +375,49 @@ class ExtrasControls(SliderSection):
             ("Speed",    "Speed",    0, 255),
             ("Side",     "Side",     1, 2),
         ]
+
         super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
+        self.checkbox_section = CheckboxSection(
+            self,
+            labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS"],
+            orientation="grid",
+            columns=2
+        )
+        self.checkbox_section.pack(fill="x", padx=20, pady=(6, 0))
+
+class CheckboxSection(ctk.CTkFrame):
+    def __init__(self, master, labels, orientation="horizontal", columns=2, **kwargs):
+        super().__init__(master, **kwargs)
+        self.checkboxes = []
+        self.vars = {}
+
+        if orientation == "grid":
+            for index, label in enumerate(labels):
+                row = index // columns
+                col = index % columns
+
+                var = ctk.BooleanVar(value=False)
+                checkbox = ctk.CTkCheckBox(self, text=label, variable=var)
+                checkbox.grid(row=row, column=col, padx=10, pady=5, sticky="w")
+
+                self.checkboxes.append(checkbox)
+                self.vars[label] = var
+
+        elif orientation == "horizontal":
+            for label in labels:
+                var = ctk.BooleanVar(value=False)
+                checkbox = ctk.CTkCheckBox(self, text=label, variable=var)
+                checkbox.pack(side="left", padx=10)
+                self.checkboxes.append(checkbox)
+                self.vars[label] = var
+
+        elif orientation == "vertical":
+            for label in labels:
+                var = ctk.BooleanVar(value=False)
+                checkbox = ctk.CTkCheckBox(self, text=label, variable=var)
+                checkbox.pack(anchor="w", pady=2)
+                self.checkboxes.append(checkbox)
+                self.vars[label] = var
 
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
@@ -397,12 +439,17 @@ class MainApp(ctk.CTk):
 
         self.video_section_height = self.VIDEO_HEIGHT + 12 + EXTRA_MARGIN
         self.warp_section_height = 300
-        self.filters_section_height = 110
-        self.coms_section_height = 250
 
+        self.object_roi_section_height = 110
+        self.extras_section_height = 250
+
+        self.last_colunm_section_height = self.extras_section_height + self.object_roi_section_height
+
+        self.coms_section_height = 250
+        self.filters_section_height = 110
         self.filters_coms_section_height = self.filters_section_height + self.coms_section_height + 5
 
-        lower = max(self.warp_section_height, self.filters_coms_section_height) + EXTRA_MARGIN
+        lower = max(self.warp_section_height, self.filters_coms_section_height, self.last_colunm_section_height) + EXTRA_MARGIN
 
         self.TOTAL_HEIGHT = self.video_section_height + lower + 50  # + espaço p/ tabs
         self.TOTAL_WIDTH = self.VIDEO_WIDTH*3 + self.GAP*4
@@ -478,11 +525,12 @@ class MainApp(ctk.CTk):
         self.object_roi_controls.pack(fill="both",expand=True)
 
         # === EXTRAS ===
-        extras_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=170, fg_color="transparent")
+        extras_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=250, fg_color="transparent")
         extras_ct.grid(row=2, column=2, pady=(0, 5), sticky="n")
         extras_ct.pack_propagate(False)
         self.extras_controls = ExtrasControls(extras_ct, self.tk_controls, self.calibration_data)
         self.extras_controls.pack(fill="both", expand=True)
+
 
     def update_loop(self):
         try:
