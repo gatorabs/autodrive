@@ -227,7 +227,7 @@ class FloatingWidget(ctk.CTkFrame):
     def __init__(self, master, tk_controls, **kwargs):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
         # posiciona o widget no canto inferior esquerdo da área de conteúdo
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-1086, y=-20)
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-1087, y=-20)
 
         self.save_data = save_data
         self.load_data = load_data
@@ -251,8 +251,6 @@ class FloatingWidget(ctk.CTkFrame):
             corner_radius=10,
             font=ctk.CTkFont(size=15),
             command=self.toggle_modal,
-            border_width=2,
-            border_color="#FFFFFF"
         )
         self.floating_button.pack()
 
