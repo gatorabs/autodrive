@@ -368,7 +368,7 @@ class TabManager(ctk.CTkFrame):
             self.active = name
 
 class ExtrasControls(SliderSection):
-    def __init__(self, master, tk_controls, calibration_data, **kwargs):
+    def __init__(self, master, tk_controls, calibration_data, shared_controls, **kwargs):
         sliders = [
             ("Lines",    "Lines",    0, FRAME_HEIGHT),
             ("Distance", "Distance", 0, 270),
@@ -380,44 +380,72 @@ class ExtrasControls(SliderSection):
         self.checkbox_section = CheckboxSection(
             self,
             labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS"],
+            tk_controls=self.tk_controls,
+            shared_controls=shared_controls,
             orientation="grid",
             columns=2
         )
         self.checkbox_section.pack(fill="x", padx=20, pady=(6, 0))
 
 class CheckboxSection(ctk.CTkFrame):
-    def __init__(self, master, labels, orientation="horizontal", columns=2, **kwargs):
+    def __init__(self, master, labels, tk_controls, shared_controls, orientation="horizontal", columns=2, **kwargs):
         super().__init__(master, **kwargs)
-        self.checkboxes = []
+        self.labels = labels
+        self.tk_controls = tk_controls
+        self.columns = columns
         self.vars = {}
+        self.shared_controls = shared_controls
 
         if orientation == "grid":
-            for index, label in enumerate(labels):
-                row = index // columns
-                col = index % columns
-
-                var = ctk.BooleanVar(value=False)
-                checkbox = ctk.CTkCheckBox(self, text=label, variable=var)
-                checkbox.grid(row=row, column=col, padx=10, pady=5, sticky="w")
-
-                self.checkboxes.append(checkbox)
-                self.vars[label] = var
-
+            self._create_grid()
         elif orientation == "horizontal":
-            for label in labels:
-                var = ctk.BooleanVar(value=False)
-                checkbox = ctk.CTkCheckBox(self, text=label, variable=var)
-                checkbox.pack(side="left", padx=10)
-                self.checkboxes.append(checkbox)
-                self.vars[label] = var
-
+            self._create_horizontal()
         elif orientation == "vertical":
-            for label in labels:
-                var = ctk.BooleanVar(value=False)
-                checkbox = ctk.CTkCheckBox(self, text=label, variable=var)
-                checkbox.pack(anchor="w", pady=2)
-                self.checkboxes.append(checkbox)
-                self.vars[label] = var
+            self._create_vertical()
+
+    def _create_grid(self):
+        for index, label in enumerate(self.labels):
+            row = index // self.columns
+            col = index % self.columns
+            self._create_checkbox(label, row=row, column=col)
+
+    def _create_horizontal(self):
+        for label in self.labels:
+            self._create_checkbox(label).pack(side="left", padx=10)
+
+    def _create_vertical(self):
+        for label in self.labels:
+            self._create_checkbox(label).pack(anchor="w", pady=2)
+
+    def _create_checkbox(self, label, row=None, column=None):
+        initial_value = self.tk_controls.get(label, False)
+        var = ctk.BooleanVar(value=initial_value)
+        checkbox = ctk.CTkCheckBox(self, text=label, variable=var, command=self._save_state)
+        self.vars[label] = var
+
+        if row is not None and column is not None:
+            checkbox.grid(row=row, column=column, padx=10, pady=5, sticky="w")
+
+        return checkbox
+
+    def _save_state(self):
+        for label, var in self.vars.items():
+            value = var.get()
+            self.tk_controls[label] = value
+
+            if label == "WEBVIEW":
+                self._save_webview_to_file(value)
+
+    def _save_webview_to_file(self, value: bool):
+        try:
+            refresh_json({"WEBVIEW": value}, path=DEFAULT_UI_PATH)
+            self.shared_controls["WEBVIEW"] = value
+
+        except Exception as e:
+            print(f"Erro ao salvar WEBVIEW em {DEFAULT_UI_PATH}: {e}")
+
+    def get_states(self):
+        return {label: var.get() for label, var in self.vars.items()}
 
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
@@ -528,7 +556,7 @@ class MainApp(ctk.CTk):
         extras_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=250, fg_color="transparent")
         extras_ct.grid(row=2, column=2, pady=(0, 5), sticky="n")
         extras_ct.pack_propagate(False)
-        self.extras_controls = ExtrasControls(extras_ct, self.tk_controls, self.calibration_data)
+        self.extras_controls = ExtrasControls(extras_ct, self.tk_controls, self.shared_controls, self.shared_controls)
         self.extras_controls.pack(fill="both", expand=True)
 
 
