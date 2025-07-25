@@ -367,6 +367,15 @@ class TabManager(ctk.CTkFrame):
             frm.grid(row=1, column=0, columnspan=3, sticky="nsew")
             self.active = name
 
+class ExtrasControls(SliderSection):
+    def __init__(self, master, tk_controls, calibration_data, **kwargs):
+        sliders = [
+            ("Lines",    "Lines",    0, FRAME_HEIGHT),
+            ("Distance", "Distance", 0, 270),
+            ("Speed",    "Speed",    0, 255),
+            ("Side",     "Side",     1, 2),
+        ]
+        super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
 
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
@@ -419,7 +428,6 @@ class MainApp(ctk.CTk):
 
         # monta conteúdo da aba Home **dentro** de self.home_frame
         self._build_home(self.home_frame)
-        self.floating_widget = FloatingWidget(self, self.tk_controls)
 
         # inicia loop
         self.update_loop()
@@ -429,6 +437,8 @@ class MainApp(ctk.CTk):
         parent.grid_rowconfigure(0, weight=1)
         parent.grid_rowconfigure(1, weight=0)
         parent.grid_columnconfigure((0,1,2), weight=1)
+
+        self.floating_widget = FloatingWidget(self, self.tk_controls)
 
         # Vídeos
         nf = VideoFrame(parent, "NORMAL_FRAME"); nf.grid(row=0,column=0,padx=10,pady=(10,2))
@@ -466,6 +476,13 @@ class MainApp(ctk.CTk):
         roi_ct.pack_propagate(False)
         self.object_roi_controls = ObjectRoiSection(roi_ct, self.tk_controls, self.calibration_data)
         self.object_roi_controls.pack(fill="both",expand=True)
+
+        # === EXTRAS ===
+        extras_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=170, fg_color="transparent")
+        extras_ct.grid(row=2, column=2, pady=(0, 5), sticky="n")
+        extras_ct.pack_propagate(False)
+        self.extras_controls = ExtrasControls(extras_ct, self.tk_controls, self.calibration_data)
+        self.extras_controls.pack(fill="both", expand=True)
 
     def update_loop(self):
         try:
