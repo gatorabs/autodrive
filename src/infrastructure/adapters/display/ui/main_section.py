@@ -23,39 +23,68 @@ class SliderSection(ctk.CTkFrame):
         ctk.CTkLabel(self, text=title, font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
         self.sliders = {}
+
         for config in sliders_config:
-            name, label, min_val, max_val = config
-            default = self.calibration_data.get(name, self.tk_controls.get(name, 0))
-            slider, value_label = self.add_slider(self, label, name, min_val, max_val, default)
+            if not isinstance(config, tuple):
+                raise TypeError(f"Esperado tupla em sliders_config, mas recebeu: {type(config)}")
+
+            if len(config) == 4:
+                name, label, min_val, max_val = config
+                step = 1
+            elif len(config) == 5:
+                name, label, min_val, max_val, step = config
+            else:
+                raise ValueError(f"Tupla inválida em sliders_config: {config}")
+
+            default = self.calibration_data.get(name, self.tk_controls.get(name, min_val))
+            slider, value_label = self.add_slider(
+                self,
+                label_text=label,
+                name=name,
+                from_=min_val,
+                to=max_val,
+                default=default,
+                step=step
+            )
             self.sliders[name] = {"slider": slider, "label": value_label}
 
-    def add_slider(self, parent, label_text, name, from_, to, default):
+    def add_slider(self, parent, label_text, name, from_, to, default, step=1):
         row = ctk.CTkFrame(parent)
         row.pack(fill="x", padx=20, pady=2)
         row.columnconfigure(1, weight=1)
 
         ctk.CTkLabel(row, text=label_text).grid(row=0, column=0, padx=(10, 5))
 
+        num_steps = int(round((to - from_) / step))
+
         slider = ctk.CTkSlider(
             row,
             from_=from_,
             to=to,
-            number_of_steps=to - from_,
-            command=lambda value, n=name: self._on_slider_change(n, value)
+            number_of_steps=num_steps,
+            command=lambda value, n=name, s=step, l=label_text: self._on_slider_change(n, value, s)
         )
         slider.set(default)
         slider.grid(row=0, column=1, padx=5, sticky="ew")
 
-        value_label = ctk.CTkLabel(row, text=str(int(default)))
+        value_label = ctk.CTkLabel(row, text=str(default))
         value_label.grid(row=0, column=2, padx=(5, 10))
 
         return slider, value_label
 
-    def _on_slider_change(self, name, value):
-        int_value = int(float(value))
-        self.tk_controls[name] = int_value
-        self.sliders[name]["label"].configure(text=str(int_value))
-        self.refresh_json({name: int_value}, CALIBRATION_FILE)
+    def _on_slider_change(self, name, value, step):
+        stepped_value = round(value / step) * step
+
+        # Atualiza visualmente o label
+        label = self.sliders[name]["label"]
+        if step < 1:
+            label.configure(text=f"{stepped_value:.2f}")
+        else:
+            label.configure(text=str(int(stepped_value)))
+
+        # Atualiza controle e persiste com refresh_json
+        self.tk_controls[name] = stepped_value
+        self.refresh_json({name: stepped_value}, CALIBRATION_FILE)
 
     def get(self, name):
         return int(self.sliders[name]["slider"].get())
@@ -110,7 +139,6 @@ class WarpControls(SliderSection):
             ("br_y", "br_y", 0, FRAME_HEIGHT),
         ]
         super().__init__(master, "Warp Controls", tk_controls, calibration_data, points, **kwargs)
-
 
 class SourceAndSerialControls(ctk.CTkFrame):
     def __init__(self, master, tk_controls, calibration_data, shared_controls, init_data, **kwargs):
@@ -331,7 +359,6 @@ class FloatingWidget(ctk.CTkFrame):
         self.master.restore_defaults()  # type: ignore[attr-defined]
         self._start_closing()
 
-
 class TabManager(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -461,6 +488,23 @@ class CheckboxSection(ctk.CTkFrame):
     def get_states(self):
         return {label: var.get() for label, var in self.vars.items()}
 
+class PIDSection(SliderSection):
+    def __init__(self, master, tk_controls, calibration_data, **kwargs):
+        sliders_config = [
+            ("KP", "KP", 0.0, 5.0, 0.01),
+            ("KI", "KI", 0.0, 10.0, 0.01),
+            ("KD", "KD", 0.0, 10.0, 0.01)
+        ]
+        super().__init__(
+            master=master,
+            title="PID",
+            tk_controls=tk_controls,
+            calibration_data=calibration_data,
+            sliders_config=sliders_config,
+            height=120,
+            **kwargs
+        )
+
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
         super().__init__()
@@ -481,6 +525,9 @@ class MainApp(ctk.CTk):
 
         self.video_section_height = self.VIDEO_HEIGHT + 12 + EXTRA_MARGIN
         self.warp_section_height = 300
+        self.pid_section_height = 165
+
+        self.first_colunm_section_height = self.pid_section_height + self.warp_section_height
 
         self.object_roi_section_height = 110
         self.extras_section_height = 250
@@ -491,7 +538,8 @@ class MainApp(ctk.CTk):
         self.filters_section_height = 110
         self.filters_coms_section_height = self.filters_section_height + self.coms_section_height + 5
 
-        lower = max(self.warp_section_height, self.filters_coms_section_height, self.last_colunm_section_height) + EXTRA_MARGIN
+
+        lower = max(self.first_colunm_section_height, self.filters_coms_section_height, self.last_colunm_section_height) + EXTRA_MARGIN
 
         self.TOTAL_HEIGHT = self.video_section_height + lower + 50  # + espaço p/ tabs
         self.TOTAL_WIDTH = self.VIDEO_WIDTH*3 + self.GAP*4
@@ -507,17 +555,11 @@ class MainApp(ctk.CTk):
         self.tab_manager = TabManager(self)
         # frame Home
         self.home_frame = ctk.CTkFrame(self)
-        # frame Tab 2
-        self.tab2_frame = ctk.CTkFrame(self)
-        ctk.CTkLabel(self.tab2_frame, text="Teste", font=ctk.CTkFont(size=20)).pack(expand=True)
 
-        # registra abas
         self.tab_manager.create_tab("Home",  self.home_frame, on_right=False)
-        self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True)
-
-        # monta conteúdo da aba Home **dentro** de self.home_frame
         self._build_home(self.home_frame)
 
+        self._build_tab2_frame()
         # inicia loop
         self.update_loop()
 
@@ -536,11 +578,14 @@ class MainApp(ctk.CTk):
         self.normal_frame, self.edges_frame, self.object_frame = nf, ef, of
 
         # Warp Controls
-        warp_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=300, fg_color="transparent")
+        warp_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=465, fg_color="transparent")
         warp_ct.grid(row=1,column=0,rowspan=2,pady=(0,5),sticky="n")
         warp_ct.pack_propagate(False)
         self.warp_controls = WarpControls(warp_ct, self.tk_controls, self.calibration_data)
         self.warp_controls.pack(fill="both",expand=True)
+
+        self.pid_section = PIDSection(warp_ct, self.tk_controls, self.calibration_data)
+        self.pid_section.pack(fill="x", padx=20, pady=(0, 2))
 
         # Filter Controls
         filt_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=110, fg_color="transparent")
@@ -573,6 +618,26 @@ class MainApp(ctk.CTk):
         self.extras_controls = ExtrasControls(extras_ct, self.tk_controls, self.shared_controls, self.shared_controls)
         self.extras_controls.pack(fill="both", expand=True)
 
+    def _build_tab2_frame(self):
+        self.tab2_frame = ctk.CTkFrame(self)
+
+        # registra aba na direita
+        self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True)
+
+        # configura layout com 3 colunas
+        self.tab2_frame.columnconfigure((0, 1, 2), weight=1)
+        self.tab2_frame.rowconfigure(0, weight=0)
+        self.tab2_frame.rowconfigure(1, weight=1)
+
+        # adiciona o vídeo na coluna central
+        self.central_video_frame_tab2 = VideoFrame(
+            master=self.tab2_frame,
+            shared_controls=self.shared_controls,
+            title="Vídeo Central"
+        )
+        self.central_video_frame_tab2.grid(
+            row=0, column=1, pady=(10, 5), padx=10, sticky="n"
+        )
 
     def update_loop(self):
         try:
