@@ -395,6 +395,7 @@ class CheckboxSection(ctk.CTkFrame):
         self.columns = columns
         self.vars = {}
         self.shared_controls = shared_controls
+        self.refresh_json = refresh_json
 
         if orientation == "grid":
             self._create_grid()
@@ -429,16 +430,20 @@ class CheckboxSection(ctk.CTkFrame):
         return checkbox
 
     def _save_state(self):
+        updates = {}
         for label, var in self.vars.items():
             value = var.get()
             self.tk_controls[label] = value
-
             if label == "WEBVIEW":
                 self._save_webview_to_file(value)
+            else:
+                updates[label] = value  
+        if updates:
+            refresh_json(updates, path=CALIBRATION_FILE)
 
     def _save_webview_to_file(self, value: bool):
         try:
-            refresh_json({"WEBVIEW": value}, path=DEFAULT_UI_PATH)
+            self.refresh_json({"WEBVIEW": value}, path=DEFAULT_UI_PATH)
             self.shared_controls["WEBVIEW"] = value
 
         except Exception as e:
