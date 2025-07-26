@@ -9,9 +9,12 @@ from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 from src.infrastructure.adapters.serial.serial_comm import  SerialCommunicator
 from src.infrastructure.adapters.video.begin_the_video import detect_camera_indices, get_video_files_from_folder
+from src.infrastructure.logging.logger import Logger
 
 FRAME_WIDTH_T = 360
 FRAME_HEIGHT_T = 203
+
+logger = Logger("MainUI")
 
 class SliderSection(ctk.CTkFrame):
     def __init__(self, master, title, tk_controls, calibration_data, sliders_config, **kwargs):
@@ -256,7 +259,9 @@ class ObjectRoiSection(SliderSection):
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
         sliders = [
             ("Person", "Person", 0, 300),
-            ("Traffic", "Traffic Sign", 0, 300)
+            ("Traffic", "Traffic Sign", 0, 300),
+            ("Ex1", "Extra Object", 0, 10),
+            ("Ex2", "Extra Object 2", 0, 10)
         ]
         super().__init__(master, "ROI de Objetos", tk_controls, calibration_data, sliders, **kwargs)
 
@@ -264,7 +269,7 @@ class FloatingWidget(ctk.CTkFrame):
     def __init__(self, master, tk_controls, **kwargs):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
         # posiciona o widget no canto inferior esquerdo da área de conteúdo
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-1087, y=-20)
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-700, y=-47)
 
         self.save_data = save_data
         self.load_data = load_data
@@ -302,7 +307,7 @@ class FloatingWidget(ctk.CTkFrame):
             self.modal.destroy()
 
         self.modal = ctk.CTkFrame(self.master, fg_color="#2b2b2b", corner_radius=0, border_width=2, border_color="#FFFFFF")
-        self.modal.place(relx=1.0, rely=1.0, anchor="sw", x=-1080, y=-20)
+        self.modal.place(relx=1.0, rely=1.0, anchor="sw", x=-693, y=-47)
         self.modal.place_configure(width=0, height=self.max_height)
 
         btn_frame = ctk.CTkFrame(self.modal, fg_color="#2b2b2b")
@@ -415,13 +420,14 @@ class ExtrasControls(SliderSection):
         super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
         self.checkbox_section = CheckboxSection(
             self,
-            labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS"],
+            labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID"],
             tk_controls=self.tk_controls,
             shared_controls=shared_controls,
             orientation="grid",
-            columns=2
+
+            columns=3
         )
-        self.checkbox_section.pack(fill="x", padx=20, pady=(6, 0))
+        self.checkbox_section.pack(fill="x", padx=2, pady=(33, 0))
 
 class CheckboxSection(ctk.CTkFrame):
     def __init__(self, master, labels, tk_controls, shared_controls, orientation="horizontal", columns=2, **kwargs):
@@ -470,20 +476,20 @@ class CheckboxSection(ctk.CTkFrame):
         for label, var in self.vars.items():
             value = var.get()
             self.tk_controls[label] = value
-            if label == "WEBVIEW":
-                self._save_webview_to_file(value)
+            if label in ("WEBVIEW", "NEW_PID"):
+                self._save_to_default(label, value)
             else:
-                updates[label] = value  
+                updates[label] = value
         if updates:
             refresh_json(updates, path=CALIBRATION_FILE)
 
-    def _save_webview_to_file(self, value: bool):
+    def _save_to_default(self, key: str, value: bool):
         try:
-            self.refresh_json({"WEBVIEW": value}, path=DEFAULT_UI_PATH)
-            self.shared_controls["WEBVIEW"] = value
+            self.refresh_json({key: value}, path=DEFAULT_UI_PATH)
+            self.shared_controls[key] = value
 
         except Exception as e:
-            print(f"Erro ao salvar WEBVIEW em {DEFAULT_UI_PATH}: {e}")
+            logger.error(f"Erro ao salvar em {DEFAULT_UI_PATH}: {e}")
 
     def get_states(self):
         return {label: var.get() for label, var in self.vars.items()}
@@ -564,59 +570,62 @@ class MainApp(ctk.CTk):
         self.update_loop()
 
     def _build_home(self, parent):
-        # ajusta parent para grid
-        parent.grid_rowconfigure(0, weight=1)
-        parent.grid_rowconfigure(1, weight=0)
-        parent.grid_columnconfigure((0,1,2), weight=1)
+        # === GRID CONFIG ===
+        # 2 linhas de controles (0 = vídeos / 1 = toda a área de controles)
+        parent.grid_rowconfigure((0, 1), weight=0)
+        parent.grid_columnconfigure((0, 1, 2), weight=1, uniform="col")
 
         self.floating_widget = FloatingWidget(self, self.tk_controls)
 
-        # Vídeos
-        nf = VideoFrame(parent, self.shared_controls,"NORMAL_FRAME"); nf.grid(row=0,column=0,padx=10,pady=(10,2))
-        ef = VideoFrame(parent, self.shared_controls,"EDGES_FRAME");  ef.grid(row=0,column=1,padx=10,pady=(10,2))
-        of = VideoFrame(parent, self.shared_controls,"OBJECT_FRAME");of.grid(row=0,column=2,padx=10,pady=(10,2))
-        self.normal_frame, self.edges_frame, self.object_frame = nf, ef, of
+        # === VÍDEOS (row 0) ===
+        VIDEO_WIDTH, VIDEO_HEIGHT = 360, 203
 
-        # Warp Controls
-        warp_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=465, fg_color="transparent")
-        warp_ct.grid(row=1,column=0,rowspan=2,pady=(0,5),sticky="n")
-        warp_ct.pack_propagate(False)
-        self.warp_controls = WarpControls(warp_ct, self.tk_controls, self.calibration_data)
-        self.warp_controls.pack(fill="both",expand=True)
+        def _add_video_frame(col, name):
+            container = ctk.CTkFrame(parent, width=VIDEO_WIDTH, height=VIDEO_HEIGHT, fg_color="transparent")
+            container.grid(row=0, column=col, padx=10, pady=(10, 2), sticky="nsew")
+            container.grid_propagate(False)
+            video = VideoFrame(container, self.shared_controls, name)
+            video.pack(expand=True, fill="both")
+            return video
 
-        self.pid_section = PIDSection(warp_ct, self.tk_controls, self.calibration_data)
-        self.pid_section.pack(fill="x", padx=20, pady=(0, 2))
+        self.normal_frame = _add_video_frame(0, "NORMAL_FRAME")
+        self.edges_frame = _add_video_frame(1, "EDGES_FRAME")
+        self.object_frame = _add_video_frame(2, "OBJECT_FRAME")
 
-        # Filter Controls
-        filt_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=110, fg_color="transparent")
-        filt_ct.grid(row=1,column=1,pady=(0,5),sticky="n")
-        filt_ct.pack_propagate(False)
-        self.filters = FilterControls(filt_ct, self.tk_controls, self.calibration_data)
-        self.filters.pack(fill="both",expand=True)
+        # === SEÇÕES DE CONTROLE (row 1) ===
+        # helper para criar blocos fixos
+        def _make_section(master, height, ControlClass, *args):
+            sec = ctk.CTkFrame(master, height=height, fg_color="transparent")
+            sec.pack(fill="x", pady=5, padx=10)
+            sec.pack_propagate(False)
+            ctrl = ControlClass(sec, *args)
+            ctrl.pack(expand=True, fill="both")
+            return ctrl
 
-        # Serial Controls
-        ser_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=250, fg_color="transparent")
-        ser_ct.grid(row=2,column=1,pady=(0,5),sticky="n")
-        ser_ct.pack_propagate(False)
-        self.sources_controls = SourceAndSerialControls(
-            ser_ct, self.tk_controls, self.calibration_data,
-            self.shared_controls, self.init_data
-        )
-        self.sources_controls.pack(fill="both",expand=True)
+        # Coluna 0: Warp em cima e PID embaixo, em dois containers
+        col0 = ctk.CTkFrame(parent, fg_color="transparent")
+        col0.grid(row=1, column=0, sticky="nsew")
+        self.warp_controls = _make_section(col0, 300, WarpControls, self.tk_controls, self.calibration_data)
+        self.pid_controls = _make_section(col0, 165, PIDSection, self.tk_controls, self.calibration_data)
 
-        # ROI Controls
-        roi_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=110, fg_color="transparent")
-        roi_ct.grid(row=1,column=2,pady=(0,5),sticky="n")
-        roi_ct.pack_propagate(False)
-        self.object_roi_controls = ObjectRoiSection(roi_ct, self.tk_controls, self.calibration_data)
-        self.object_roi_controls.pack(fill="both",expand=True)
+        # Coluna 1: wrapper que empacota Filtros + Fontes/Serial em sequência
+        col1 = ctk.CTkFrame(parent, fg_color="transparent")
+        col1.grid(row=1, column=1, sticky="nsew")
+        self.filters = _make_section(col1, 110, FilterControls, self.tk_controls, self.calibration_data)
+        self.sources_controls = _make_section(col1, 250,
+                                              SourceAndSerialControls,
+                                              self.tk_controls,
+                                              self.calibration_data,
+                                              self.shared_controls,
+                                              self.init_data
+                                              )
 
-        # === EXTRAS ===
-        extras_ct = ctk.CTkFrame(parent, width=self.VIDEO_WIDTH, height=250, fg_color="transparent")
-        extras_ct.grid(row=2, column=2, pady=(0, 5), sticky="n")
-        extras_ct.pack_propagate(False)
-        self.extras_controls = ExtrasControls(extras_ct, self.tk_controls, self.shared_controls, self.shared_controls)
-        self.extras_controls.pack(fill="both", expand=True)
+        # Coluna 2: wrapper para ROI + Extras
+        col2 = ctk.CTkFrame(parent, fg_color="transparent")
+        col2.grid(row=1, column=2, sticky="nsew")
+        self.object_roi_controls = _make_section(col2, 165, ObjectRoiSection, self.tk_controls, self.calibration_data)
+        self.extras_controls = _make_section(col2, 280, ExtrasControls,
+                                             self.tk_controls, self.shared_controls, self.shared_controls)
 
     def _build_tab2_frame(self):
         self.tab2_frame = ctk.CTkFrame(self)
@@ -645,7 +654,7 @@ class MainApp(ctk.CTk):
             self.edges_frame.update_image(self.shared_frames.get("EDGES_FRAME"))
             self.object_frame.update_image(self.shared_frames.get("OBJECT_FRAME"))
         except Exception as e:
-            print("Erro ao atualizar frames:", e)
+            logger.error("Erro ao atualizar frames:", e)
         self.after(33, self.update_loop)
 
     def restore_defaults(self):
