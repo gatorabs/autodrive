@@ -535,15 +535,14 @@ class MainApp(ctk.CTk):
 
         self.first_colunm_section_height = self.pid_section_height + self.warp_section_height
 
-        self.object_roi_section_height = 110
-        self.extras_section_height = 250
+        self.object_roi_section_height = 165
+        self.extras_section_height = 280
 
         self.last_colunm_section_height = self.extras_section_height + self.object_roi_section_height
 
         self.coms_section_height = 250
         self.filters_section_height = 110
         self.filters_coms_section_height = self.filters_section_height + self.coms_section_height + 5
-
 
         lower = max(self.first_colunm_section_height, self.filters_coms_section_height, self.last_colunm_section_height) + EXTRA_MARGIN
 
