@@ -258,8 +258,8 @@ class SourceAndSerialControls(ctk.CTkFrame):
 class ObjectRoiSection(SliderSection):
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
         sliders = [
-            ("Person", "Person", 0, 300),
-            ("Traffic", "Traffic Sign", 0, 300),
+            ("Person", "Person", 0, 240),
+            ("Traffic", "Traffic Sign", 0, 240),
             ("Ex1", "Extra Object", 0, 10),
             ("Ex2", "Extra Object 2", 0, 10)
         ]

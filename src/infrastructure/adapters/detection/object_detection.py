@@ -45,22 +45,25 @@ class ObjectDetector:
         person_detected = False
         traffic_light_state = 2
 
-        min_person_height = self.tk_controls["Person"]
-        min_traffic_height = self.tk_controls["Traffic"]
+        min_person_size = self.tk_controls["Person"]
+        min_traffic_size = self.tk_controls["Traffic"]
 
         for result in results:
             for box in result.boxes:
                 cls = int(box.cls[0])
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 box_height = y2 - y1
+                box_width = x2 - x1
 
-                if cls == 0 and box_height >= min_person_height:
+                #box_area = (x2 - x1) * (y2 - y1)
+
+                if cls == 0 and box_height >= min_person_size or cls == 0 and box_width >= min_person_size:
                     person_detected = True
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.putText(frame, "Person", (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-                elif cls == 9 and box_height >= min_traffic_height:
+                elif cls == 9 and box_height >= min_traffic_size or cls == 9 and box_width >= min_traffic_size:
                     roi = frame[y1:y2, x1:x2]
                     active_color, color_bgr, traffic_light_state = process_traffic_light_roi(roi)
 
