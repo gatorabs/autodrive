@@ -269,7 +269,7 @@ class FloatingWidget(ctk.CTkFrame):
     def __init__(self, master, tk_controls, **kwargs):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
         # posiciona o widget no canto inferior esquerdo da área de conteúdo
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-700, y=-47)
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-700, y=-27)
 
         self.save_data = save_data
         self.load_data = load_data
@@ -307,7 +307,7 @@ class FloatingWidget(ctk.CTkFrame):
             self.modal.destroy()
 
         self.modal = ctk.CTkFrame(self.master, fg_color="#2b2b2b", corner_radius=0, border_width=2, border_color="#FFFFFF")
-        self.modal.place(relx=1.0, rely=1.0, anchor="sw", x=-693, y=-47)
+        self.modal.place(relx=1.0, rely=1.0, anchor="sw", x=-693, y=-27)
         self.modal.place_configure(width=0, height=self.max_height)
 
         btn_frame = ctk.CTkFrame(self.modal, fg_color="#2b2b2b")
@@ -546,7 +546,7 @@ class MainApp(ctk.CTk):
 
         lower = max(self.first_colunm_section_height, self.filters_coms_section_height, self.last_colunm_section_height) + EXTRA_MARGIN
 
-        self.TOTAL_HEIGHT = self.video_section_height + lower + 50  # + espaço p/ tabs
+        self.TOTAL_HEIGHT = self.video_section_height + lower + 30
         self.TOTAL_WIDTH = self.VIDEO_WIDTH*3 + self.GAP*4
 
         self.geometry(f"{self.TOTAL_WIDTH}x{self.TOTAL_HEIGHT}")
