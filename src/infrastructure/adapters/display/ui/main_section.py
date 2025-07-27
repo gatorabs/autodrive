@@ -1,5 +1,5 @@
 import json
-
+from CTkMessagebox import CTkMessagebox
 import customtkinter as ctk
 from PIL import Image
 from customtkinter import CTkImage
@@ -375,9 +375,13 @@ class TabManager(ctk.CTkFrame):
         self.right.pack(side="right")
         self.active = None
 
-    def create_tab(self, name, frame, on_right=False):
+    def create_tab(self, name, frame, on_right=False, on_select=None):
         def cb():
-            self.select_tab(name)
+            if on_select:
+                on_select(name)  # Passa o nome da tab
+            else:
+                self.select_tab(name)
+
         btn = ctk.CTkButton(
             self.right if on_right else self.left,
             text=name,
@@ -420,7 +424,7 @@ class ExtrasControls(SliderSection):
         super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
         self.checkbox_section = CheckboxSection(
             self,
-            labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID", "MANUAL_MD"],
+            labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID"],
             tk_controls=self.tk_controls,
             shared_controls=shared_controls,
             orientation="grid",
@@ -475,7 +479,7 @@ class CheckboxSection(ctk.CTkFrame):
         for label, var in self.vars.items():
             value = var.get()
             self.tk_controls[label] = value
-            if label in ("WEBVIEW", "NEW_PID", "MANUAL_MD"):
+            if label in ("WEBVIEW", "NEW_PID"):
                 self._save_to_default(label, value)
             else:
                 updates[label] = value
@@ -560,7 +564,7 @@ class MainApp(ctk.CTk):
         # frame Home
         self.home_frame = ctk.CTkFrame(self)
 
-        self.tab_manager.create_tab("Home",  self.home_frame, on_right=False)
+        self.tab_manager.create_tab("Home", self.home_frame, on_right=False, on_select=self.on_home_selected)
         self._build_home(self.home_frame)
 
         self._build_tab2_frame()
@@ -628,15 +632,31 @@ class MainApp(ctk.CTk):
     def _build_tab2_frame(self):
         self.tab2_frame = ctk.CTkFrame(self)
 
-        # registra aba na direita
-        self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True)
+        def on_tab2_selected(tab_name):
+            if not self.tk_controls.get("MANUAL_MD", False):
+                box = CTkMessagebox(
+                    title="Atenção",
+                    message="Modo manual será ativo",
+                    icon="warning",
+                    option_1="OK",
+                    option_2="Cancelar"
+                )
+                response = box.get()
+                if response == "OK":
+                    self.tk_controls["MANUAL_MD"] = True
+                    self.shared_controls["MANUAL_MD"] = True
+                    refresh_json({"MANUAL_MD": True}, DEFAULT_UI_PATH)
+                    self.tab_manager.select_tab(tab_name)  # troca manual
+                # se clicar em Cancelar, não faz nada
+            else:
+                self.tab_manager.select_tab(tab_name)
 
-        # configura layout com 3 colunas
+        self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
+
         self.tab2_frame.columnconfigure((0, 1, 2), weight=1)
         self.tab2_frame.rowconfigure(0, weight=0)
         self.tab2_frame.rowconfigure(1, weight=1)
 
-        # adiciona o vídeo na coluna central
         self.central_video_frame_tab2 = VideoFrame(
             master=self.tab2_frame,
             shared_controls=self.shared_controls,
@@ -645,6 +665,25 @@ class MainApp(ctk.CTk):
         self.central_video_frame_tab2.grid(
             row=0, column=1, pady=(10, 5), padx=10, sticky="n"
         )
+
+    def on_home_selected(self, tab_name):
+        if self.tk_controls.get("MANUAL_MD", False):
+            box = CTkMessagebox(
+                title="Atenção",
+                message="O Modo manual será desativado",
+                icon="info",
+                option_1="OK",
+                option_2="Cancelar"
+            )
+            response = box.get()
+            if response == "OK":
+                self.tk_controls["MANUAL_MD"] = False
+                self.shared_controls["MANUAL_MD"] = False
+                refresh_json({"MANUAL_MD": False}, DEFAULT_UI_PATH)
+                self.tab_manager.select_tab(tab_name)
+            # se cancelar, nada acontece
+        else:
+            self.tab_manager.select_tab(tab_name)
 
     def update_loop(self):
         try:
