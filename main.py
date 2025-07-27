@@ -23,24 +23,30 @@ def main():
         for p in processes:
             p.start()
 
-        flask_proc = None
         last_webview = None
+        last_manual_mode = None
 
         try:
             while True:
                 current_webview = shared_controls.get("WEBVIEW")
-                flask_proc, last_webview = manager_instance.handle_flask_process(
+                current_manual_mode = shared_controls.get("MANUAL_MD")
+
+                _, last_webview = manager_instance.handle_flask_process(
                     current_webview=current_webview,
                     last_webview=last_webview
+                )
+
+                _, last_manual_mode = manager_instance.handle_lane_object_processes(
+                    current_manual_mode=current_manual_mode,
+                    last_manual_mode=last_manual_mode
                 )
 
         except KeyboardInterrupt:
             shared_controls["RUNNING"] = False
             for p in processes:
-                if p.is_alive():
-                    p.terminate()
-            if flask_proc and flask_proc.is_alive():
-                flask_proc.terminate()
+                terminate_if_alive(p)
+            for proc in (manager_instance.flask_proc, manager_instance.lane_proc, manager_instance.object_proc):
+                terminate_if_alive(proc)
 
 if __name__ == '__main__':
     main()

@@ -420,11 +420,10 @@ class ExtrasControls(SliderSection):
         super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
         self.checkbox_section = CheckboxSection(
             self,
-            labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID"],
+            labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID", "MANUAL_MD"],
             tk_controls=self.tk_controls,
             shared_controls=shared_controls,
             orientation="grid",
-
             columns=3
         )
         self.checkbox_section.pack(fill="x", padx=2, pady=(33, 0))
@@ -476,7 +475,7 @@ class CheckboxSection(ctk.CTkFrame):
         for label, var in self.vars.items():
             value = var.get()
             self.tk_controls[label] = value
-            if label in ("WEBVIEW", "NEW_PID"):
+            if label in ("WEBVIEW", "NEW_PID", "MANUAL_MD"):
                 self._save_to_default(label, value)
             else:
                 updates[label] = value

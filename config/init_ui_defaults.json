@@ -8,5 +8,6 @@
         "0"
     ],
     "NEW_PID": false,
-    "SEND_DATA": true
+    "SEND_DATA": true,
+    "MANUAL_MD": false
 }

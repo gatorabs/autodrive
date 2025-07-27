@@ -42,3 +42,7 @@ def prepare_initial_flags(progress_callback=None):
         progress_callback(100)
 
     return defaults_ui
+
+def terminate_if_alive(process):
+    if process and process.is_alive():
+        process.terminate()

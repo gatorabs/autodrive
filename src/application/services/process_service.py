@@ -23,11 +23,11 @@ class ProcessManager:
         self.object_queue = mp.Queue(maxsize=10)
         self.processes = []
         self.flask_proc = None
+        self.lane_proc = None
+        self.object_proc = None
         self.logger = logger
 
     def create_all_processes(self):
-        self._add_lane_process()
-        self._add_object_process()
         self._add_ui_process()
         if self.shared_controls.get("SEND_DATA"):
             self._add_sender_process()
@@ -40,28 +40,6 @@ class ProcessManager:
             kwargs=kwargs
         )
         self.processes.append(process)
-
-    def _add_lane_process(self):
-        self._create_process(
-            name="lane",
-            target=lane_detection_process,
-            lane_queue=self.lane_queue,
-            shared_controls=self.shared_controls,
-            shared_frames=self.shared_frames,
-            tk_controls=self.tk_controls,
-            video_source=self.user_flags["LANE_SOURCE"]
-        )
-
-    def _add_object_process(self):
-        self._create_process(
-            name="object",
-            target=object_detection_process,
-            object_queue=self.object_queue,
-            shared_controls=self.shared_controls,
-            shared_frames=self.shared_frames,
-            tk_controls=self.tk_controls,
-            camera_source=self.user_flags["OBJECT_SOURCE"]
-        )
 
     def _add_ui_process(self):
         self._create_process(
@@ -81,6 +59,53 @@ class ProcessManager:
             shared_controls=self.shared_controls,
             tk_controls=self.tk_controls
         )
+
+    def handle_lane_object_processes(self, current_manual_mode, last_manual_mode):
+        if current_manual_mode != last_manual_mode:
+            if not current_manual_mode:
+                if self.lane_proc is None or not self.lane_proc.is_alive():
+                    self.lane_proc = mp.Process(
+                        name="lane",
+                        target=lane_detection_process,
+                        kwargs={
+                            "lane_queue": self.lane_queue,
+                            "shared_controls": self.shared_controls,
+                            "shared_frames": self.shared_frames,
+                            "tk_controls": self.tk_controls,
+                            "video_source": self.user_flags["LANE_SOURCE"]
+                        }
+                    )
+                    self.lane_proc.start()
+                    logger.info("Inicializando Lane process.")
+                if self.object_proc is None or not self.object_proc.is_alive():
+                    self.object_proc = mp.Process(
+                        name="object",
+                        target=object_detection_process,
+                        kwargs={
+                            "object_queue": self.object_queue,
+                            "shared_controls": self.shared_controls,
+                            "shared_frames": self.shared_frames,
+                            "tk_controls": self.tk_controls,
+                            "camera_source": self.user_flags["OBJECT_SOURCE"]
+                        }
+                    )
+                    self.object_proc.start()
+                    logger.info("Inicializando Object process.")
+
+            else:
+                if self.lane_proc and self.lane_proc.is_alive():
+                    self.logger.warning("Encerrando lane process (modo manual).")
+                    self.lane_proc.terminate()
+                    self.lane_proc.join(timeout=3)
+                    self.lane_proc = None
+
+                if self.object_proc and self.object_proc.is_alive():
+                    self.logger.warning("Encerrando object process (modo manual).")
+                    self.object_proc.terminate()
+                    self.object_proc.join(timeout=3)
+                    self.object_proc = None
+
+        return (self.lane_proc, self.object_proc), current_manual_mode
 
     def handle_flask_process(self, current_webview, last_webview):
         if current_webview != last_webview:
