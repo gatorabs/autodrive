@@ -7,6 +7,6 @@ import multiprocessing as mp
 import time
 
 from src.infrastructure.adapters.web_server.app import start_flask_server
-from src.application.services.process_service import create_processes, handle_flask_process
+from src.application.services.process_service import ProcessManager
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULTS_FILE
 from src.infrastructure.logging.logger import Logger
