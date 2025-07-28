@@ -10,6 +10,8 @@ from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIG
 from src.infrastructure.adapters.serial.serial_comm import  SerialCommunicator
 from src.infrastructure.adapters.video.begin_the_video import detect_camera_indices, get_video_files_from_folder
 from src.infrastructure.logging.logger import Logger
+import os
+import signal
 
 FRAME_WIDTH_T = 360
 FRAME_HEIGHT_T = 203
@@ -517,6 +519,8 @@ class PIDSection(SliderSection):
 class MainApp(ctk.CTk):
     def __init__(self, shared_frames, tk_controls, shared_controls):
         super().__init__()
+        self.protocol("WM_DELETE_WINDOW", self._on_close_request)
+
         self.calibration_data = load_data(CALIBRATION_FILE)
         self.init_data = load_data(DEFAULT_UI_PATH)
         self.title("Visualizador de Frames com Filtros")
@@ -570,6 +574,23 @@ class MainApp(ctk.CTk):
         self._build_tab2_frame()
         # inicia loop
         self.update_loop()
+
+    def _on_close_request(self):
+        from CTkMessagebox import CTkMessagebox
+
+        box = CTkMessagebox(
+            title="Encerrar aplicação",
+            message="Deseja realmente encerrar o sistema?",
+            icon="question",
+            option_1="Sim",
+            option_2="Cancelar"
+        )
+
+        if box.get() == "Sim":
+            self.shared_controls["MANUAL_MD"] = False
+            self.shared_controls["RUNNING"] = False
+            refresh_json({"MANUAL_MD": False}, DEFAULT_UI_PATH)
+            self.destroy()
 
     def _build_home(self, parent):
         # === GRID CONFIG ===
@@ -666,6 +687,67 @@ class MainApp(ctk.CTk):
             row=0, column=1, pady=(10, 5), padx=10, sticky="n"
         )
 
+        # === ComboBox de fonte de vídeo enriquecido para Tab 2 ===
+        self.source_frame_tab2 = ctk.CTkFrame(self.tab2_frame)
+        self.source_frame_tab2.grid(row=1, column=1, pady=(5, 15), padx=10, sticky="n")
+
+        ctk.CTkLabel(self.source_frame_tab2, text="Fonte de Vídeo (Tab 2)").pack(pady=(5, 0))
+
+        # opções iniciais
+        sources_tab2 = self.tk_controls.get("DETECTED_CAMERAS", []) + get_video_files_from_folder()
+        default_source = self.init_data.get("LANE_SOURCE_TAB2", "")
+
+        self.lane_source_combo_tab2 = ctk.CTkComboBox(
+            self.source_frame_tab2,
+            values=sources_tab2,
+            variable=ctk.StringVar(value=default_source),
+            width=260
+        )
+        self.lane_source_combo_tab2.pack(pady=5)
+
+        button_row = ctk.CTkFrame(self.source_frame_tab2, fg_color="transparent")
+        button_row.pack(pady=(5, 0))
+
+        ctk.CTkButton(
+            button_row,
+            text="Aplicar",
+            width=120,
+            command=self.apply_lane_source_tab2
+        ).pack(side="left", padx=5)
+
+        ctk.CTkButton(
+            button_row,
+            text="Atualizar",
+            width=120,
+            command=self.refresh_sources_tab2
+        ).pack(side="left", padx=5)
+
+    def apply_lane_source_tab2(self):
+        def clean_source(value):
+            return value.replace("Câmera ", "") if value.startswith("Câmera ") else value
+
+        selected_source = clean_source(self.lane_source_combo_tab2.get())
+        self.tk_controls["LANE_SOURCE_TAB2"] = selected_source
+        self.shared_controls["LANE_SOURCE_TAB2"] = selected_source
+
+        refresh_json({
+            "LANE_SOURCE_TAB2": selected_source
+        }, DEFAULT_UI_PATH)
+
+    def refresh_sources_tab2(self):
+        cameras = detect_camera_indices()
+        videos = get_video_files_from_folder()
+        new_options = [f"Câmera {i}" for i in cameras] + videos
+
+        if not new_options:
+            return
+
+        self.lane_source_combo_tab2.configure(values=new_options)
+        # Atualiza visualmente se a fonte atual não estiver entre as opções
+        current = self.lane_source_combo_tab2.get()
+        if current not in new_options:
+            self.lane_source_combo_tab2.set(new_options[0])
+
     def on_home_selected(self, tab_name):
         if self.tk_controls.get("MANUAL_MD", False):
             box = CTkMessagebox(
@@ -687,11 +769,18 @@ class MainApp(ctk.CTk):
 
     def update_loop(self):
         try:
-            self.normal_frame.update_image(self.shared_frames.get("NORMAL_FRAME"))
-            self.edges_frame.update_image(self.shared_frames.get("EDGES_FRAME"))
-            self.object_frame.update_image(self.shared_frames.get("OBJECT_FRAME"))
+            if not self.tk_controls.get("MANUAL_MD", False):
+                self.normal_frame.update_image(self.shared_frames.get("NORMAL_FRAME"))
+                self.edges_frame.update_image(self.shared_frames.get("EDGES_FRAME"))
+                self.object_frame.update_image(self.shared_frames.get("OBJECT_FRAME"))
+
+            else:
+                # Atualiza somente o vídeo central da Tab 2
+                self.central_video_frame_tab2.update_image(self.shared_frames.get("TAB2_FRAME"))
+
         except Exception as e:
             logger.error("Erro ao atualizar frames:", e)
+
         self.after(33, self.update_loop)
 
     def restore_defaults(self):

@@ -43,6 +43,9 @@ def prepare_initial_flags(progress_callback=None):
 
     return defaults_ui
 
-def terminate_if_alive(process):
+def terminate_if_alive(process, timeout=3):
     if process and process.is_alive():
-        process.terminate()
+        process.join(timeout=timeout)
+        if process.is_alive():
+            process.terminate()
+

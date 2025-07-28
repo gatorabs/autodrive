@@ -27,7 +27,7 @@ def main():
         last_manual_mode = None
 
         try:
-            while True:
+            while shared_controls.get("RUNNING", True):
                 current_webview = shared_controls.get("WEBVIEW")
                 current_manual_mode = shared_controls.get("MANUAL_MD")
 
@@ -42,7 +42,6 @@ def main():
                 )
 
         except KeyboardInterrupt:
-            shared_controls["RUNNING"] = False
             for p in processes:
                 terminate_if_alive(p)
             for proc in (manager_instance.flask_proc, manager_instance.lane_proc, manager_instance.object_proc):

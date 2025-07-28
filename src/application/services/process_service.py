@@ -6,6 +6,7 @@ from src.core.__init__process import (
     data_sender_process,
     start_flask_server,
     shutdown_endpoint,
+    manual_video_process
 )
 from src.infrastructure.adapters.display.ui.main_section import launch_homepage
 from src.infrastructure.logging.logger import Logger
@@ -25,6 +26,7 @@ class ProcessManager:
         self.flask_proc = None
         self.lane_proc = None
         self.object_proc = None
+        self.manual_proc = None
         self.logger = logger
 
     def create_all_processes(self):
@@ -63,6 +65,11 @@ class ProcessManager:
     def handle_lane_object_processes(self, current_manual_mode, last_manual_mode):
         if current_manual_mode != last_manual_mode:
             if not current_manual_mode:
+                if self.manual_proc and self.manual_proc.is_alive():
+                    self.logger.warning("Encerrando Manual Process.")
+                    self.manual_proc.terminate()
+                    self.manual_proc.join(timeout=3)
+                    self.manual_proc = None
                 if self.lane_proc is None or not self.lane_proc.is_alive():
                     self.lane_proc = mp.Process(
                         name="lane",
@@ -94,18 +101,30 @@ class ProcessManager:
 
             else:
                 if self.lane_proc and self.lane_proc.is_alive():
-                    self.logger.warning("Encerrando lane process (modo manual).")
+                    self.logger.warning("Encerrando Lane Process.")
                     self.lane_proc.terminate()
                     self.lane_proc.join(timeout=3)
                     self.lane_proc = None
 
                 if self.object_proc and self.object_proc.is_alive():
-                    self.logger.warning("Encerrando object process (modo manual).")
+                    self.logger.warning("Encerrando Object Process.")
                     self.object_proc.terminate()
                     self.object_proc.join(timeout=3)
                     self.object_proc = None
 
-        return (self.lane_proc, self.object_proc), current_manual_mode
+                if self.manual_proc is None or not self.manual_proc.is_alive():
+                    self.manual_proc = mp.Process(
+                        name="manual_video",
+                        target=manual_video_process,
+                        kwargs={
+                            "shared_controls": self.shared_controls,
+                            "shared_frames": self.shared_frames
+                        }
+                    )
+                    self.manual_proc.start()
+                    logger.info("Inicializando Manual Process.")
+
+        return (self.lane_proc, self.object_proc, self.manual_proc), current_manual_mode
 
     def handle_flask_process(self, current_webview, last_webview):
         if current_webview != last_webview:

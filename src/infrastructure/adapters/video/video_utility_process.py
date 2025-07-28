@@ -22,9 +22,8 @@ def generate_placeholder_image():
 def switch_video_source(video_processor, current_source, new_source, logger):
     if new_source != current_source:
         logger.info(f"Trocando Source de {current_source} para {new_source}")
-        video_processor.release()
+        if video_processor:
+            video_processor.release()
         video_processor = VideoProcessor(video_source=new_source)
-
         return video_processor, new_source
     return video_processor, current_source
-

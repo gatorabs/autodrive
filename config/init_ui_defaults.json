@@ -9,5 +9,6 @@
     ],
     "NEW_PID": false,
     "SEND_DATA": true,
-    "MANUAL_MD": false
+    "MANUAL_MD": false,
+    "LANE_SOURCE_TAB2": "0"
 }
