@@ -27,7 +27,7 @@ class ManualControls(SliderSection):
     def refresh_from_queue(self) -> None:
         """Update sliders with the latest values from ``lane_queue``."""
         last_lane = None
-        while not self.lane_queue.empty():
+        while True:
             try:
                 last_lane = self.lane_queue.get_nowait()
             except Empty:
