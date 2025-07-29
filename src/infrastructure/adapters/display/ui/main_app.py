@@ -248,7 +248,7 @@ class MainApp(ctk.CTk):
             shared_controls=self.shared_controls,
             orientation="vertical",
         )
-        self.toggles_section.grid(row=2, column=1, padx=10, pady=(5, 10), sticky="n")
+        self.toggles_section.grid(row=3, column=0, sticky="n")
 
     def apply_lane_source_tab2(self):
         def clean_source(value):
