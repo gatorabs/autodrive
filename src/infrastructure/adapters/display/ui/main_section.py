@@ -1,25 +1,58 @@
-import json
 from CTkMessagebox import CTkMessagebox
 import customtkinter as ctk
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from customtkinter import CTkImage
 import io
 from src.infrastructure.adapters.calibration.calibration_repository import load_data, save_data, refresh_json
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH, DEFAULTS_FILE
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
-from src.infrastructure.adapters.serial.serial_comm import  SerialCommunicator
-from src.infrastructure.adapters.video.begin_the_video import detect_camera_indices, get_video_files_from_folder
+from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
+from src.infrastructure.adapters.video.begin_the_video import (
+    detect_camera_indices,
+    get_video_files_from_folder,
+)
 from src.infrastructure.logging.logger import Logger
-import os
-import signal
+from dataclasses import dataclass
+from typing import Any
 
 FRAME_WIDTH_T = 360
 FRAME_HEIGHT_T = 203
 
+
+@dataclass
+class SliderConfig:
+    """Configuration for a slider used in :class:`SliderSection`."""
+
+    name: str
+    label: str
+    min_val: float
+    max_val: float
+    step: float = 1.0
+
+# UI layout constants
+WARP_SECTION_HEIGHT = 300
+PID_SECTION_HEIGHT = 165
+OBJECT_ROI_SECTION_HEIGHT = 165
+EXTRAS_SECTION_HEIGHT = 280
+COMS_SECTION_HEIGHT = 250
+FILTERS_SECTION_HEIGHT = 110
+GAP = 20
+EXTRA_MARGIN = 20
+
 logger = Logger("MainUI")
 
 class SliderSection(ctk.CTkFrame):
-    def __init__(self, master, title, tk_controls, calibration_data, sliders_config, **kwargs):
+    """Generic section that holds multiple sliders."""
+
+    def __init__(
+        self,
+        master,
+        title: str,
+        tk_controls: dict,
+        calibration_data: dict,
+        sliders_config: list[SliderConfig],
+        **kwargs,
+    ) -> None:
         super().__init__(master, **kwargs)
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
@@ -27,19 +60,19 @@ class SliderSection(ctk.CTkFrame):
 
         ctk.CTkLabel(self, text=title, font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
-        self.sliders = {}
+        self.sliders: dict[str, dict[str, Any]] = {}
 
         for config in sliders_config:
-            if not isinstance(config, tuple):
-                raise TypeError(f"Esperado tupla em sliders_config, mas recebeu: {type(config)}")
+            if not isinstance(config, SliderConfig):
+                raise TypeError(
+                    f"Esperado SliderConfig em sliders_config, mas recebeu: {type(config)}"
+                )
 
-            if len(config) == 4:
-                name, label, min_val, max_val = config
-                step = 1
-            elif len(config) == 5:
-                name, label, min_val, max_val, step = config
-            else:
-                raise ValueError(f"Tupla inválida em sliders_config: {config}")
+            name = config.name
+            label = config.label
+            min_val = config.min_val
+            max_val = config.max_val
+            step = config.step
 
             default = self.calibration_data.get(name, self.tk_controls.get(name, min_val))
             slider, value_label = self.add_slider(
@@ -53,7 +86,16 @@ class SliderSection(ctk.CTkFrame):
             )
             self.sliders[name] = {"slider": slider, "label": value_label}
 
-    def add_slider(self, parent, label_text, name, from_, to, default, step=1):
+    def add_slider(
+        self,
+        parent: ctk.CTkFrame,
+        label_text: str,
+        name: str,
+        from_: float,
+        to: float,
+        default: float,
+        step: float = 1.0,
+    ) -> tuple[ctk.CTkSlider, ctk.CTkLabel]:
         row = ctk.CTkFrame(parent)
         row.pack(fill="x", padx=20, pady=2)
         row.columnconfigure(1, weight=1)
@@ -77,7 +119,7 @@ class SliderSection(ctk.CTkFrame):
 
         return slider, value_label
 
-    def _on_slider_change(self, name, value, step):
+    def _on_slider_change(self, name: str, value: float, step: float) -> None:
         stepped_value = round(value / step) * step
 
         # Atualiza visualmente o label
@@ -91,15 +133,16 @@ class SliderSection(ctk.CTkFrame):
         self.tk_controls[name] = stepped_value
         self.refresh_json({name: stepped_value}, CALIBRATION_FILE)
 
-    def get(self, name):
+    def get(self, name: str) -> int:
         return int(self.sliders[name]["slider"].get())
 
-    def set(self, name, value):
+    def set(self, name: str, value: float) -> None:
         self.sliders[name]["slider"].set(value)
         self.sliders[name]["label"].configure(text=str(int(value)))
         self.tk_controls[name] = int(value)
 
 class VideoFrame(ctk.CTkFrame):
+    """Container for displaying a video frame."""
     def __init__(self, master, shared_controls, title="Frame", **kwargs):
         super().__init__(master, **kwargs)
         self.shared_controls = shared_controls
@@ -124,28 +167,31 @@ class VideoFrame(ctk.CTkFrame):
             self.image_label.image = ctk_image
 
 class FilterControls(SliderSection):
+    """Sliders for basic image filter configuration."""
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
         sliders = [
-            ("F_Canny", "F_Canny", 0, 255),
-            ("S_Canny", "S_Canny", 0, 255),
+            SliderConfig("F_Canny", "F_Canny", 0, 255),
+            SliderConfig("S_Canny", "S_Canny", 0, 255),
         ]
         super().__init__(master, "Filtros", tk_controls, calibration_data, sliders, **kwargs)
 
 class WarpControls(SliderSection):
+    """Controls for warp transformation points."""
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
         points = [
-            ("tl_x", "tl_x", 0, FRAME_WIDTH),
-            ("tl_y", "tl_y", 0, FRAME_HEIGHT),
-            ("tr_x", "tr_x", 0, FRAME_WIDTH),
-            ("tr_y", "tr_y", 0, FRAME_HEIGHT),
-            ("bl_x", "bl_x", 0, FRAME_WIDTH),
-            ("bl_y", "bl_y", 0, FRAME_HEIGHT),
-            ("br_x", "br_x", 0, FRAME_WIDTH),
-            ("br_y", "br_y", 0, FRAME_HEIGHT),
+            SliderConfig("tl_x", "tl_x", 0, FRAME_WIDTH),
+            SliderConfig("tl_y", "tl_y", 0, FRAME_HEIGHT),
+            SliderConfig("tr_x", "tr_x", 0, FRAME_WIDTH),
+            SliderConfig("tr_y", "tr_y", 0, FRAME_HEIGHT),
+            SliderConfig("bl_x", "bl_x", 0, FRAME_WIDTH),
+            SliderConfig("bl_y", "bl_y", 0, FRAME_HEIGHT),
+            SliderConfig("br_x", "br_x", 0, FRAME_WIDTH),
+            SliderConfig("br_y", "br_y", 0, FRAME_HEIGHT),
         ]
         super().__init__(master, "Warp Controls", tk_controls, calibration_data, points, **kwargs)
 
 class SourceAndSerialControls(ctk.CTkFrame):
+    """Manage video sources and serial communication settings."""
     def __init__(self, master, tk_controls, calibration_data, shared_controls, init_data, **kwargs):
         super().__init__(master, **kwargs)
         self.pack_propagate(False)
@@ -258,16 +304,18 @@ class SourceAndSerialControls(ctk.CTkFrame):
         }, DEFAULT_UI_PATH)
 
 class ObjectRoiSection(SliderSection):
+    """Sliders for defining the ROI of object detection."""
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
         sliders = [
-            ("Person", "Person", 0, 240),
-            ("Traffic", "Traffic Sign", 0, 240),
-            ("Ex1", "Extra Object", 0, 10),
-            ("Ex2", "Extra Object 2", 0, 10)
+            SliderConfig("Person", "Person", 0, 240),
+            SliderConfig("Traffic", "Traffic Sign", 0, 240),
+            SliderConfig("Ex1", "Extra Object", 0, 10),
+            SliderConfig("Ex2", "Extra Object 2", 0, 10),
         ]
         super().__init__(master, "ROI de Objetos", tk_controls, calibration_data, sliders, **kwargs)
 
 class FloatingWidget(ctk.CTkFrame):
+    """Small widget with buttons for saving and restoring defaults."""
     def __init__(self, master, tk_controls, **kwargs):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
         # posiciona o widget no canto inferior esquerdo da área de conteúdo
@@ -367,6 +415,7 @@ class FloatingWidget(ctk.CTkFrame):
         self._start_closing()
 
 class TabManager(ctk.CTkFrame):
+    """Simple tab manager using CTk buttons."""
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
         self.grid(row=0, column=0, columnspan=3, sticky="ew", padx=10, pady=(5, 0))
@@ -415,12 +464,13 @@ class TabManager(ctk.CTkFrame):
             self.active = name
 
 class ExtrasControls(SliderSection):
+    """Additional sliders and checkboxes for extra options."""
     def __init__(self, master, tk_controls, calibration_data, shared_controls, **kwargs):
         sliders = [
-            ("Lines",    "Lines",    0, FRAME_HEIGHT),
-            ("Distance", "Distance", 0, 270),
-            ("Speed",    "Speed",    0, 255),
-            ("Side",     "Side",     1, 2),
+            SliderConfig("Lines", "Lines", 0, FRAME_HEIGHT),
+            SliderConfig("Distance", "Distance", 0, 270),
+            SliderConfig("Speed", "Speed", 0, 255),
+            SliderConfig("Side", "Side", 1, 2),
         ]
 
         super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
@@ -435,6 +485,7 @@ class ExtrasControls(SliderSection):
         self.checkbox_section.pack(fill="x", padx=2, pady=(33, 0))
 
 class CheckboxSection(ctk.CTkFrame):
+    """Group of checkboxes that persist their state."""
     def __init__(self, master, labels, tk_controls, shared_controls, orientation="horizontal", columns=2, **kwargs):
         super().__init__(master, **kwargs)
         self.labels = labels
@@ -500,11 +551,12 @@ class CheckboxSection(ctk.CTkFrame):
         return {label: var.get() for label, var in self.vars.items()}
 
 class PIDSection(SliderSection):
+    """PID gain sliders."""
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
         sliders_config = [
-            ("KP", "KP", 0.0, 5.0, 0.01),
-            ("KI", "KI", 0.0, 10.0, 0.01),
-            ("KD", "KD", 0.0, 10.0, 0.01)
+            SliderConfig("KP", "KP", 0.0, 5.0, 0.01),
+            SliderConfig("KI", "KI", 0.0, 10.0, 0.01),
+            SliderConfig("KD", "KD", 0.0, 10.0, 0.01),
         ]
         super().__init__(
             master=master,
@@ -517,6 +569,7 @@ class PIDSection(SliderSection):
         )
 
 class MainApp(ctk.CTk):
+    """Main application window for the UI."""
     def __init__(self, shared_frames, tk_controls, shared_controls):
         super().__init__()
         self.protocol("WM_DELETE_WINDOW", self._on_close_request)
@@ -533,28 +586,31 @@ class MainApp(ctk.CTk):
         self.VIDEO_WIDTH = FRAME_WIDTH_T
         self.VIDEO_HEIGHT = FRAME_HEIGHT_T
 
-        self.GAP = 20
-        EXTRA_MARGIN = 20
+        self.GAP = GAP
 
         self.video_section_height = self.VIDEO_HEIGHT + 12 + EXTRA_MARGIN
-        self.warp_section_height = 300
-        self.pid_section_height = 165
+        self.warp_section_height = WARP_SECTION_HEIGHT
+        self.pid_section_height = PID_SECTION_HEIGHT
 
-        self.first_colunm_section_height = self.pid_section_height + self.warp_section_height
+        self.first_column_section_height = self.pid_section_height + self.warp_section_height
 
-        self.object_roi_section_height = 165
-        self.extras_section_height = 280
+        self.object_roi_section_height = OBJECT_ROI_SECTION_HEIGHT
+        self.extras_section_height = EXTRAS_SECTION_HEIGHT
 
-        self.last_colunm_section_height = self.extras_section_height + self.object_roi_section_height
+        self.last_column_section_height = self.extras_section_height + self.object_roi_section_height
 
-        self.coms_section_height = 250
-        self.filters_section_height = 110
+        self.coms_section_height = COMS_SECTION_HEIGHT
+        self.filters_section_height = FILTERS_SECTION_HEIGHT
         self.filters_coms_section_height = self.filters_section_height + self.coms_section_height + 5
 
-        lower = max(self.first_colunm_section_height, self.filters_coms_section_height, self.last_colunm_section_height) + EXTRA_MARGIN
+        lower = max(
+            self.first_column_section_height,
+            self.filters_coms_section_height,
+            self.last_column_section_height,
+        ) + EXTRA_MARGIN
 
         self.TOTAL_HEIGHT = self.video_section_height + lower + 30
-        self.TOTAL_WIDTH = self.VIDEO_WIDTH*3 + self.GAP*4
+        self.TOTAL_WIDTH = self.VIDEO_WIDTH * 3 + self.GAP * 4
 
         self.geometry(f"{self.TOTAL_WIDTH}x{self.TOTAL_HEIGHT}")
         self.minsize(self.TOTAL_WIDTH, self.TOTAL_HEIGHT)
@@ -778,7 +834,7 @@ class MainApp(ctk.CTk):
                 # Atualiza somente o vídeo central da Tab 2
                 self.central_video_frame_tab2.update_image(self.shared_frames.get("TAB2_FRAME"))
 
-        except Exception as e:
+        except (KeyError, OSError, UnidentifiedImageError) as e:
             logger.error("Erro ao atualizar frames:", e)
 
         self.after(33, self.update_loop)
