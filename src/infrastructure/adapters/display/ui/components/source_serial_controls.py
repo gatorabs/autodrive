@@ -123,7 +123,15 @@ class SourceAndSerialControls(ctk.CTkFrame):
     def refresh_sources(self):
         cameras = detect_camera_indices()
         videos = get_video_files_from_folder()
+
         self.sources = [f"Câmera {i}" for i in cameras] + videos
+
+        current_lane = self.lane_source_var.get()
+        current_object = self.object_source_var.get()
+
+        for current in (current_lane, current_object):
+            if current.startswith("Câmera") and current not in self.sources:
+                self.sources.append(current)
 
         if not self.sources:
             return
