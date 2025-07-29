@@ -288,8 +288,16 @@ class MainApp(ctk.CTk):
 
     def restore_defaults(self):
         load_data(self.DEFAULTS_FILE, update_target_if_exists=self.tk_controls)
+        sections = [
+            self.filters,
+            self.warp_controls,
+            self.object_roi_controls,
+            self.extras_controls,
+            self.pid_controls,
+        ]
+
         for name, value in self.tk_controls.items():
-            for section in [self.filters, self.warp_controls, self.object_roi_controls]:
+            for section in sections:
                 if name in section.sliders:
                     section.set(name, value)
         refresh_json(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
