@@ -49,7 +49,8 @@ class ProcessManager:
             target=launch_homepage,
             shared_frames=self.shared_frames,
             tk_controls=self.tk_controls,
-            shared_controls=self.shared_controls
+            shared_controls=self.shared_controls,
+            lane_queue=self.lane_queue
         )
 
     def _add_sender_process(self):

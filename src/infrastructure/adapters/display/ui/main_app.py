@@ -25,6 +25,7 @@ from .components.object_roi_section import ObjectRoiSection
 from .components.pid_section import PIDSection
 from .components.extras_controls import ExtrasControls
 from .components.source_serial_controls import SourceAndSerialControls
+from .components.manual_controls import ManualControls
 from src.infrastructure.adapters.video.begin_the_video import (
     detect_camera_indices,
     get_video_files_from_folder,
@@ -36,7 +37,7 @@ logger = Logger("MainUI")
 
 class MainApp(ctk.CTk):
     """Main application window for the UI."""
-    def __init__(self, shared_frames, tk_controls, shared_controls):
+    def __init__(self, shared_frames, tk_controls, shared_controls, lane_queue):
         super().__init__()
         self.protocol("WM_DELETE_WINDOW", self._on_close_request)
 
@@ -48,6 +49,7 @@ class MainApp(ctk.CTk):
         self.shared_frames = shared_frames
         self.tk_controls = tk_controls
         self.shared_controls = shared_controls
+        self.lane_queue = lane_queue
 
         self.VIDEO_WIDTH = FRAME_WIDTH_T
         self.VIDEO_HEIGHT = FRAME_HEIGHT_T
@@ -181,9 +183,8 @@ class MainApp(ctk.CTk):
 
         self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
 
-        self.tab2_frame.columnconfigure((0, 1, 2), weight=1)
-        self.tab2_frame.rowconfigure(0, weight=0)
-        self.tab2_frame.rowconfigure(1, weight=1)
+        self.tab2_frame.columnconfigure(0, weight=1)
+        self.tab2_frame.rowconfigure((0, 1, 2), weight=0)
 
         self.central_video_frame_tab2 = VideoFrame(
             master=self.tab2_frame,
@@ -191,11 +192,12 @@ class MainApp(ctk.CTk):
             title="Vídeo Central",
         )
         self.central_video_frame_tab2.grid(
-            row=0, column=1, pady=(10, 5), padx=10, sticky="n"
+            row=0, column=0, pady=(10, 5), padx=10, sticky="n"
         )
 
+
         self.source_frame_tab2 = ctk.CTkFrame(self.tab2_frame)
-        self.source_frame_tab2.grid(row=1, column=1, pady=(5, 15), padx=10, sticky="n")
+        self.source_frame_tab2.grid(row=1, column=0, pady=5, padx=10, sticky="n")
 
         ctk.CTkLabel(self.source_frame_tab2, text="Fonte de Vídeo (Tab 2)").pack(pady=(5, 0))
 
@@ -207,7 +209,7 @@ class MainApp(ctk.CTk):
             self.source_frame_tab2,
             values=sources_tab2,
             variable=ctk.StringVar(value=default_source),
-            width=260
+            width=self.VIDEO_WIDTH
         )
         self.lane_source_combo_tab2.pack(pady=5)
 
@@ -227,6 +229,14 @@ class MainApp(ctk.CTk):
             width=120,
             command=self.refresh_sources_tab2
         ).pack(side="left", padx=5)
+
+        self.manual_controls = ManualControls(
+            self.tab2_frame,
+            self.tk_controls,
+            self.calibration_data,
+            self.lane_queue,
+        )
+        self.manual_controls.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="n")
 
     def apply_lane_source_tab2(self):
         def clean_source(value):
@@ -302,7 +312,7 @@ class MainApp(ctk.CTk):
                     section.set(name, value)
         refresh_json(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
 
-def launch_homepage(shared_frames, tk_controls, shared_controls):
-    app = MainApp(shared_frames, tk_controls, shared_controls)
+def launch_homepage(shared_frames, tk_controls, shared_controls, lane_queue):
+    app = MainApp(shared_frames, tk_controls, shared_controls, lane_queue)
     app.resizable(False, False)
     app.mainloop()
