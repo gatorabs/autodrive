@@ -45,20 +45,9 @@ def data_sender_process(lane_queue,
             except Empty:
                 pass
 
-            if shared_controls.get("MANUAL_MD", False):
-                obj_data["OBJECT_PERSON_DATA"] = 0
-                obj_data["TRAFFIC_LIGHT_DATA"] = 1
-                while not object_queue.empty():
-                    try:
-                        object_queue.get_nowait()
-                    except Empty:
-                        break
-            else:
-                try:
-                    new_obj = object_queue.get_nowait()
-                    obj_data.update(new_obj)
-                except Empty:
-                    pass
+            handle_object_queue(manual_md=shared_controls.get("MANUAL_MD"),
+                                object_queue=object_queue,
+                                obj_data=obj_data)
 
             publish_emergency_stop(obj_data=obj_data,
                                    shared_controls=shared_controls,

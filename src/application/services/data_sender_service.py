@@ -1,4 +1,5 @@
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
+from queue import Empty
 
 def publish_emergency_stop(obj_data, shared_controls, lane_data):
     if (
@@ -22,6 +23,22 @@ def switch_serial_com(serial_comm, new_com, current_com, shared_controls, logger
         )
         return serial_comm, new_com
     return serial_comm, current_com
+
+def handle_object_queue(manual_md, object_queue, obj_data):
+    if manual_md:
+        obj_data["OBJECT_PERSON_DATA"] = 0
+        obj_data["TRAFFIC_LIGHT_DATA"] = 1
+        while not object_queue.empty():
+            try:
+                object_queue.get_nowait()
+            except Empty:
+                break
+    else:
+        try:
+            new_obj = object_queue.get_nowait()
+            obj_data.update(new_obj)
+        except Empty:
+            pass
 
 def publish(lane_data, obj_data, serial_comm, logger, verbose):
     payload = [
