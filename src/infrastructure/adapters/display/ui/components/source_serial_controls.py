@@ -27,10 +27,13 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.security_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.get("SECURITY_COM")))
         self.sender_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.get("SENDER_COM")))
 
-        self.lane_source_var.trace_add("write", lambda *_: self._update_available_sources())
-        self.object_source_var.trace_add("write", lambda *_: self._update_available_sources())
-
         self._build_ui()
+
+    def _on_lane_selected(self, _=None):
+        self._update_available_sources()
+
+    def _on_object_selected(self, _=None):
+        self._update_available_sources()
 
     def _get_valid_com(self, port_name):
         return port_name if port_name in self.com_ports else (self.com_ports[0] if self.com_ports else "")
@@ -44,8 +47,18 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self._create_com_buttons()
 
     def _create_source_comboboxes(self):
-        self.lane_source_combo = self._create_combo_row("Lane Source", self.sources, self.lane_source_var)
-        self.object_source_combo = self._create_combo_row("Object Source", self.sources, self.object_source_var)
+        self.lane_source_combo = self._create_combo_row(
+            "Lane Source",
+            self.sources,
+            self.lane_source_var,
+            command=self._on_lane_selected,
+        )
+        self.object_source_combo = self._create_combo_row(
+            "Object Source",
+            self.sources,
+            self.object_source_var,
+            command=self._on_object_selected,
+        )
 
         # remove selected option from the opposite combobox
         self._update_available_sources()
@@ -68,11 +81,11 @@ class SourceAndSerialControls(ctk.CTkFrame):
         ctk.CTkButton(row, text="Aplicar", width=148, command=self.apply_sender_com).pack(side="left", padx=10)
         ctk.CTkButton(row, text="Atualizar", width=148, command=self.refresh_com_ports).pack(side="left", padx=10)
 
-    def _create_combo_row(self, label_text, values, variable):
+    def _create_combo_row(self, label_text, values, variable, command=None):
         row = ctk.CTkFrame(self)
         row.pack(fill="x", padx=20, pady=2)
         ctk.CTkLabel(row, text=label_text).pack(side="left", padx=(10, 5))
-        combo = ctk.CTkComboBox(row, values=values, variable=variable)
+        combo = ctk.CTkComboBox(row, values=values, variable=variable, command=command)
         combo.pack(side="left", fill="x", expand=True)
         return combo
 
