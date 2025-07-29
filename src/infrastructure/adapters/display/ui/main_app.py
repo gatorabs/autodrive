@@ -183,9 +183,8 @@ class MainApp(ctk.CTk):
 
         self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
 
-        self.tab2_frame.columnconfigure((0, 1, 2), weight=1)
-        self.tab2_frame.rowconfigure(0, weight=0)
-        self.tab2_frame.rowconfigure(1, weight=1)
+        self.tab2_frame.columnconfigure(0, weight=1)
+        self.tab2_frame.rowconfigure((0, 1, 2), weight=1)
 
         self.central_video_frame_tab2 = VideoFrame(
             master=self.tab2_frame,
@@ -193,11 +192,19 @@ class MainApp(ctk.CTk):
             title="Vídeo Central",
         )
         self.central_video_frame_tab2.grid(
-            row=0, column=1, pady=(10, 5), padx=10, sticky="n"
+            row=0, column=0, pady=(10, 5), padx=10, sticky="n"
         )
 
+        self.manual_controls = ManualControls(
+            self.tab2_frame,
+            self.tk_controls,
+            self.calibration_data,
+            self.lane_queue,
+        )
+        self.manual_controls.grid(row=1, column=0, padx=10, pady=5, sticky="n")
+
         self.source_frame_tab2 = ctk.CTkFrame(self.tab2_frame)
-        self.source_frame_tab2.grid(row=1, column=1, pady=(5, 15), padx=10, sticky="n")
+        self.source_frame_tab2.grid(row=2, column=0, pady=(5, 15), padx=10, sticky="n")
 
         ctk.CTkLabel(self.source_frame_tab2, text="Fonte de Vídeo (Tab 2)").pack(pady=(5, 0))
 
@@ -229,14 +236,6 @@ class MainApp(ctk.CTk):
             width=120,
             command=self.refresh_sources_tab2
         ).pack(side="left", padx=5)
-
-        self.manual_controls = ManualControls(
-            self.tab2_frame,
-            self.tk_controls,
-            self.calibration_data,
-            self.lane_queue,
-        )
-        self.manual_controls.grid(row=1, column=0, padx=10, pady=(5, 15), sticky="n")
 
     def apply_lane_source_tab2(self):
         def clean_source(value):
