@@ -25,6 +25,7 @@ from .components.object_roi_section import ObjectRoiSection
 from .components.pid_section import PIDSection
 from .components.extras_controls import ExtrasControls
 from .components.source_serial_controls import SourceAndSerialControls
+from .components.manual_controls import ManualControls
 from src.infrastructure.adapters.video.begin_the_video import (
     detect_camera_indices,
     get_video_files_from_folder,
@@ -36,7 +37,7 @@ logger = Logger("MainUI")
 
 class MainApp(ctk.CTk):
     """Main application window for the UI."""
-    def __init__(self, shared_frames, tk_controls, shared_controls):
+    def __init__(self, shared_frames, tk_controls, shared_controls, lane_queue):
         super().__init__()
         self.protocol("WM_DELETE_WINDOW", self._on_close_request)
 
@@ -48,6 +49,7 @@ class MainApp(ctk.CTk):
         self.shared_frames = shared_frames
         self.tk_controls = tk_controls
         self.shared_controls = shared_controls
+        self.lane_queue = lane_queue
 
         self.VIDEO_WIDTH = FRAME_WIDTH_T
         self.VIDEO_HEIGHT = FRAME_HEIGHT_T
@@ -228,6 +230,14 @@ class MainApp(ctk.CTk):
             command=self.refresh_sources_tab2
         ).pack(side="left", padx=5)
 
+        self.manual_controls = ManualControls(
+            self.tab2_frame,
+            self.tk_controls,
+            self.calibration_data,
+            self.lane_queue,
+        )
+        self.manual_controls.grid(row=1, column=0, padx=10, pady=(5, 15), sticky="n")
+
     def apply_lane_source_tab2(self):
         def clean_source(value):
             return value.replace("Câmera ", "") if value.startswith("Câmera ") else value
@@ -302,7 +312,7 @@ class MainApp(ctk.CTk):
                     section.set(name, value)
         refresh_json(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
 
-def launch_homepage(shared_frames, tk_controls, shared_controls):
-    app = MainApp(shared_frames, tk_controls, shared_controls)
+def launch_homepage(shared_frames, tk_controls, shared_controls, lane_queue):
+    app = MainApp(shared_frames, tk_controls, shared_controls, lane_queue)
     app.resizable(False, False)
     app.mainloop()
