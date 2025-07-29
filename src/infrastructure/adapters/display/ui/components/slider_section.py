@@ -57,7 +57,7 @@ class SliderSection(ctk.CTkFrame):
                 default=default,
                 step=step
             )
-            self.sliders[name] = {"slider": slider, "label": value_label}
+            self.sliders[name] = {"slider": slider, "label": value_label, "step": step}
 
     def add_slider(
         self,
@@ -87,7 +87,11 @@ class SliderSection(ctk.CTkFrame):
         slider.set(default)
         slider.grid(row=0, column=1, padx=5, sticky="ew")
 
-        value_label = ctk.CTkLabel(row, text=str(default))
+        if step < 1:
+            text = f"{default:.2f}"
+        else:
+            text = str(int(default))
+        value_label = ctk.CTkLabel(row, text=text)
         value_label.grid(row=0, column=2, padx=(5, 10))
 
         return slider, value_label
@@ -105,10 +109,26 @@ class SliderSection(ctk.CTkFrame):
         self.tk_controls[name] = stepped_value
         self.refresh_json({name: stepped_value}, CALIBRATION_FILE)
 
-    def get(self, name: str) -> int:
-        return int(self.sliders[name]["slider"].get())
+    def get(self, name: str) -> float:
+        slider_data = self.sliders[name]
+        step = slider_data.get("step", 1.0)
+        value = slider_data["slider"].get()
+        if step < 1:
+            return round(value / step) * step
+        return int(value)
 
     def set(self, name: str, value: float) -> None:
-        self.sliders[name]["slider"].set(value)
-        self.sliders[name]["label"].configure(text=str(int(value)))
-        self.tk_controls[name] = int(value)
+        slider_data = self.sliders[name]
+        step = slider_data.get("step", 1.0)
+
+        stepped_value = round(value / step) * step
+        slider_data["slider"].set(stepped_value)
+
+        label = slider_data["label"]
+        if step < 1:
+            label.configure(text=f"{stepped_value:.2f}")
+            self.tk_controls[name] = stepped_value
+        else:
+            stepped_value = int(stepped_value)
+            label.configure(text=str(stepped_value))
+            self.tk_controls[name] = stepped_value
