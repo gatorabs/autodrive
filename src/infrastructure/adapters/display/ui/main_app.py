@@ -182,6 +182,7 @@ class MainApp(ctk.CTk):
                     self.manual_controls.refresh_from_queue()
             else:
                 self.tab_manager.select_tab(tab_name)
+                self.manual_controls.refresh_from_queue()
 
         self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
 
@@ -306,6 +307,7 @@ class MainApp(ctk.CTk):
 
             else:
                 self.central_video_frame_tab2.update_image(self.shared_frames.get("TAB2_FRAME"))
+                self.manual_controls.refresh_from_queue()
 
         except (KeyError, OSError, UnidentifiedImageError) as e:
             logger.error("Erro ao atualizar frames:", e)

@@ -27,18 +27,15 @@ class ManualControls(SliderSection):
     def refresh_from_queue(self) -> None:
         """Update sliders with the latest values from ``lane_queue``."""
         last_lane = None
-        print("oi")
         while not self.lane_queue.empty():
             try:
                 last_lane = self.lane_queue.get_nowait()
-                print(last_lane)
             except Empty:
                 break
 
         if last_lane:
             self.lane_queue.put(last_lane)
             speed = last_lane.get("CAR_SPEED_DATA", 0)
-            print(speed)
             direction = last_lane.get("CAR_DIRECTION_DATA", 0)
             self.set("MANUAL_SPEED", speed)
             self.set("MANUAL_DIRECTION", direction)
