@@ -19,8 +19,29 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.refresh_json = refresh_json
 
         self.com_ports = SerialCommunicator.list_available_ports()
-        self.detected_cameras = self.tk_controls.get("DETECTED_CAMERAS", [])
+        cams = self.tk_controls.get("DETECTED_CAMERAS", [])
+        self.detected_cameras = [f"Câmera {c}" for c in cams]
+        self.sources = self.detected_cameras + get_video_files_from_folder()
+
+        lane_value = self.init_data.get("LANE_SOURCE")
+        obj_value = self.init_data.get("OBJECT_SOURCE")
+        if str(lane_value).isdigit():
+            lane_value = f"Câmera {lane_value}"
+        if str(obj_value).isdigit():
+            obj_value = f"Câmera {obj_value}"
+
+        self.lane_source_var = ctk.StringVar(value=lane_value)
+        self.object_source_var = ctk.StringVar(value=obj_value)
+        self.security_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.get("SECURITY_COM")))
+        self.sender_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.get("SENDER_COM")))
+
         self._build_ui()
+
+    def _on_lane_selected(self, _=None):
+        self._update_available_sources()
+
+    def _on_object_selected(self, _=None):
+        self._update_available_sources()
 
     def _get_valid_com(self, port_name):
         return port_name if port_name in self.com_ports else (self.com_ports[0] if self.com_ports else "")
@@ -34,10 +55,21 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self._create_com_buttons()
 
     def _create_source_comboboxes(self):
-        sources = self.detected_cameras + get_video_files_from_folder()
+        self.lane_source_combo = self._create_combo_row(
+            "Lane Source",
+            self.sources,
+            self.lane_source_var,
+            command=self._on_lane_selected,
+        )
+        self.object_source_combo = self._create_combo_row(
+            "Object Source",
+            self.sources,
+            self.object_source_var,
+            command=self._on_object_selected,
+        )
 
-        self.lane_source_combo = self._create_combo_row("Lane Source", sources, self.init_data.get("LANE_SOURCE"))
-        self.object_source_combo = self._create_combo_row("Object Source", sources, self.init_data.get("OBJECT_SOURCE"))
+        # remove selected option from the opposite combobox
+        self._update_available_sources()
 
     def _create_source_buttons(self):
         row = ctk.CTkFrame(self, fg_color="transparent")
@@ -47,10 +79,8 @@ class SourceAndSerialControls(ctk.CTkFrame):
         ctk.CTkButton(row, text="Atualizar", width=148, command=self.refresh_sources).pack(side="left", padx=10)
 
     def _create_com_comboboxes(self):
-        self.security_com_combo = self._create_combo_row("Security COM", self.com_ports,
-                                                         self._get_valid_com(self.shared_controls.get("SECURITY_COM")))
-        self.sender_com_combo = self._create_combo_row("Sender COM", self.com_ports,
-                                                       self._get_valid_com(self.shared_controls.get("SENDER_COM")))
+        self.security_com_combo = self._create_combo_row("Security COM", self.com_ports, self.security_com_var)
+        self.sender_com_combo = self._create_combo_row("Sender COM", self.com_ports, self.sender_com_var)
 
     def _create_com_buttons(self):
         row = ctk.CTkFrame(self, fg_color="transparent")
@@ -59,13 +89,29 @@ class SourceAndSerialControls(ctk.CTkFrame):
         ctk.CTkButton(row, text="Aplicar", width=148, command=self.apply_sender_com).pack(side="left", padx=10)
         ctk.CTkButton(row, text="Atualizar", width=148, command=self.refresh_com_ports).pack(side="left", padx=10)
 
-    def _create_combo_row(self, label_text, values, default_value):
+    def _create_combo_row(self, label_text, values, variable, command=None):
         row = ctk.CTkFrame(self)
         row.pack(fill="x", padx=20, pady=2)
         ctk.CTkLabel(row, text=label_text).pack(side="left", padx=(10, 5))
-        combo = ctk.CTkComboBox(row, values=values, variable=ctk.StringVar(value=default_value))
+        combo = ctk.CTkComboBox(row, values=values, variable=variable, command=command)
         combo.pack(side="left", fill="x", expand=True)
         return combo
+
+    def _update_available_sources(self):
+        """Exclude the selected option from the opposite combobox."""
+        lane_selected = self.lane_source_var.get()
+        obj_selected = self.object_source_var.get()
+
+        lane_options = [s for s in self.sources if s != obj_selected]
+        object_options = [s for s in self.sources if s != lane_selected]
+
+        self.lane_source_combo.configure(values=lane_options)
+        self.object_source_combo.configure(values=object_options)
+
+        if lane_selected not in lane_options:
+            self.lane_source_var.set(lane_options[0] if lane_options else "")
+        if obj_selected not in object_options:
+            self.object_source_var.set(object_options[0] if object_options else "")
 
     def apply_sources(self):
         def clean_source(value):
@@ -85,13 +131,20 @@ class SourceAndSerialControls(ctk.CTkFrame):
     def refresh_sources(self):
         cameras = detect_camera_indices()
         videos = get_video_files_from_folder()
-        new_options = [f"Câmera {i}" for i in cameras] + videos
 
-        if not new_options:
+        self.sources = [f"Câmera {i}" for i in cameras] + videos
+
+        current_lane = self.lane_source_var.get()
+        current_object = self.object_source_var.get()
+
+        for current in (current_lane, current_object):
+            if current.startswith("Câmera") and current not in self.sources:
+                self.sources.append(current)
+
+        if not self.sources:
             return
 
-        self.lane_source_combo.configure(values=new_options)
-        self.object_source_combo.configure(values=new_options)
+        self._update_available_sources()
 
     def refresh_com_ports(self):
         self.com_ports = SerialCommunicator.list_available_ports()
