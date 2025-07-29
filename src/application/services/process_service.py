@@ -8,7 +8,7 @@ from src.core.__init__process import (
     shutdown_endpoint,
     manual_video_process
 )
-from src.infrastructure.adapters.display.ui.main_section import launch_homepage
+from src.infrastructure.adapters.display.ui.main_app import launch_homepage
 from src.infrastructure.logging.logger import Logger
 
 logger = Logger("ProcessManager")
