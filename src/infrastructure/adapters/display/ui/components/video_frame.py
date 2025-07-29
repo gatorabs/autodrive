@@ -3,7 +3,7 @@ from PIL import Image
 import customtkinter as ctk
 from customtkinter import CTkImage
 
-from src.infrastructure.adapters.display.ui.constants import FRAME_WIDTH_T, FRAME_HEIGHT_T
+from src.infrastructure.constants.ui_constants.component_constants import FRAME_WIDTH_T, FRAME_HEIGHT_T
 
 class VideoFrame(ctk.CTkFrame):
     """Container for displaying a video frame."""

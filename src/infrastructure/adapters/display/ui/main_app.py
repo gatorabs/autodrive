@@ -6,7 +6,7 @@ from src.infrastructure.adapters.calibration.calibration_repository import load_
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH, DEFAULTS_FILE
 from src.infrastructure.logging.logger import Logger
 
-from .constants import (
+from src.infrastructure.constants.ui_constants.component_constants import (
     FRAME_WIDTH_T,
     FRAME_HEIGHT_T,
     WARP_SECTION_HEIGHT,
