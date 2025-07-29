@@ -26,6 +26,7 @@ from .components.pid_section import PIDSection
 from .components.extras_controls import ExtrasControls
 from .components.source_serial_controls import SourceAndSerialControls
 from .components.manual_controls import ManualControls
+from .components.checkbox_section import CheckboxSection
 from src.infrastructure.adapters.video.begin_the_video import (
     detect_camera_indices,
     get_video_files_from_folder,
@@ -183,7 +184,7 @@ class MainApp(ctk.CTk):
 
         self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
 
-        self.tab2_frame.columnconfigure(0, weight=1)
+        self.tab2_frame.columnconfigure((0, 1), weight=1)
         self.tab2_frame.rowconfigure((0, 1, 2), weight=0)
 
         self.central_video_frame_tab2 = VideoFrame(
@@ -192,12 +193,12 @@ class MainApp(ctk.CTk):
             title="Vídeo Central",
         )
         self.central_video_frame_tab2.grid(
-            row=0, column=0, pady=(10, 5), padx=10, sticky="n"
+            row=0, column=0, columnspan=2, pady=(10, 5), padx=10, sticky="n"
         )
 
 
         self.source_frame_tab2 = ctk.CTkFrame(self.tab2_frame)
-        self.source_frame_tab2.grid(row=1, column=0, pady=5, padx=10, sticky="n")
+        self.source_frame_tab2.grid(row=1, column=0, columnspan=2, pady=5, padx=10, sticky="n")
 
         ctk.CTkLabel(self.source_frame_tab2, text="Fonte de Vídeo (Tab 2)").pack(pady=(5, 0))
 
@@ -230,13 +231,28 @@ class MainApp(ctk.CTk):
             command=self.refresh_sources_tab2
         ).pack(side="left", padx=5)
 
+        controls_row = ctk.CTkFrame(self.tab2_frame, fg_color="transparent")
+        controls_row.grid(row=2, column=0, columnspan=2, padx=10, pady=(5, 10), sticky="nsew")
+        controls_row.grid_columnconfigure(0, weight=1)
+        controls_row.grid_columnconfigure(1, weight=1)
+
         self.manual_controls = ManualControls(
-            self.tab2_frame,
+            controls_row,
             self.tk_controls,
             self.calibration_data,
             self.lane_queue,
+            fg_color="#2b2b2b",
         )
-        self.manual_controls.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="n")
+        self.manual_controls.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+
+        self.toggles_section = CheckboxSection(
+            controls_row,
+            labels=["SEND_LOGS"],
+            tk_controls=self.tk_controls,
+            shared_controls=self.shared_controls,
+            orientation="vertical",
+        )
+        self.toggles_section.grid(row=0, column=1, sticky="nsew")
 
     def apply_lane_source_tab2(self):
         def clean_source(value):
