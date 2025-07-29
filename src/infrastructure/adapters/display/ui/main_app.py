@@ -26,6 +26,7 @@ from .components.pid_section import PIDSection
 from .components.extras_controls import ExtrasControls
 from .components.source_serial_controls import SourceAndSerialControls
 from .components.manual_controls import ManualControls
+from .components.checkbox_section import CheckboxSection
 from src.infrastructure.adapters.video.begin_the_video import (
     detect_camera_indices,
     get_video_files_from_folder,
@@ -184,6 +185,7 @@ class MainApp(ctk.CTk):
         self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
 
         self.tab2_frame.columnconfigure(0, weight=1)
+        self.tab2_frame.columnconfigure(1, weight=0)
         self.tab2_frame.rowconfigure((0, 1, 2), weight=0)
 
         self.central_video_frame_tab2 = VideoFrame(
@@ -235,8 +237,18 @@ class MainApp(ctk.CTk):
             self.tk_controls,
             self.calibration_data,
             self.lane_queue,
+            fg_color="#2b2b2b",
         )
         self.manual_controls.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="n")
+
+        self.toggles_section = CheckboxSection(
+            self.tab2_frame,
+            labels=["SEND_LOGS"],
+            tk_controls=self.tk_controls,
+            shared_controls=self.shared_controls,
+            orientation="vertical",
+        )
+        self.toggles_section.grid(row=3, column=0, sticky="n")
 
     def apply_lane_source_tab2(self):
         def clean_source(value):
