@@ -203,9 +203,12 @@ class MainApp(ctk.CTk):
 
         ctk.CTkLabel(self.source_frame_tab2, text="Fonte de Vídeo (Tab 2)").pack(pady=(5, 0))
 
-        sources_tab2 = self.tk_controls.get("DETECTED_CAMERAS", []) + get_video_files_from_folder()
+        cams = self.tk_controls.get("DETECTED_CAMERAS", [])
+        sources_tab2 = [f"Câmera {c}" for c in cams] + get_video_files_from_folder()
 
         default_source = self.init_data.get("LANE_SOURCE_TAB2", "")
+        if str(default_source).isdigit():
+            default_source = f"Câmera {default_source}"
 
         self.lane_source_combo_tab2 = ctk.CTkComboBox(
             self.source_frame_tab2,

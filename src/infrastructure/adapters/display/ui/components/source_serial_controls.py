@@ -19,11 +19,19 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.refresh_json = refresh_json
 
         self.com_ports = SerialCommunicator.list_available_ports()
-        self.detected_cameras = self.tk_controls.get("DETECTED_CAMERAS", [])
+        cams = self.tk_controls.get("DETECTED_CAMERAS", [])
+        self.detected_cameras = [f"Câmera {c}" for c in cams]
         self.sources = self.detected_cameras + get_video_files_from_folder()
 
-        self.lane_source_var = ctk.StringVar(value=self.init_data.get("LANE_SOURCE"))
-        self.object_source_var = ctk.StringVar(value=self.init_data.get("OBJECT_SOURCE"))
+        lane_value = self.init_data.get("LANE_SOURCE")
+        obj_value = self.init_data.get("OBJECT_SOURCE")
+        if str(lane_value).isdigit():
+            lane_value = f"Câmera {lane_value}"
+        if str(obj_value).isdigit():
+            obj_value = f"Câmera {obj_value}"
+
+        self.lane_source_var = ctk.StringVar(value=lane_value)
+        self.object_source_var = ctk.StringVar(value=obj_value)
         self.security_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.get("SECURITY_COM")))
         self.sender_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.get("SENDER_COM")))
 
