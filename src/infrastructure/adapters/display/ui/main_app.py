@@ -184,7 +184,8 @@ class MainApp(ctk.CTk):
 
         self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
 
-        self.tab2_frame.columnconfigure((0, 1), weight=1)
+        self.tab2_frame.columnconfigure(0, weight=1)
+        self.tab2_frame.columnconfigure(1, weight=0)
         self.tab2_frame.rowconfigure((0, 1, 2), weight=0)
 
         self.central_video_frame_tab2 = VideoFrame(
