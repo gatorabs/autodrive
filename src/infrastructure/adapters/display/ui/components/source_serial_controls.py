@@ -20,6 +20,12 @@ class SourceAndSerialControls(ctk.CTkFrame):
 
         self.com_ports = SerialCommunicator.list_available_ports()
         self.detected_cameras = self.tk_controls.get("DETECTED_CAMERAS", [])
+
+        self.lane_source_var = ctk.StringVar(value=self.init_data.get("LANE_SOURCE"))
+        self.object_source_var = ctk.StringVar(value=self.init_data.get("OBJECT_SOURCE"))
+        self.security_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.get("SECURITY_COM")))
+        self.sender_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.get("SENDER_COM")))
+
         self._build_ui()
 
     def _get_valid_com(self, port_name):
@@ -36,8 +42,8 @@ class SourceAndSerialControls(ctk.CTkFrame):
     def _create_source_comboboxes(self):
         sources = self.detected_cameras + get_video_files_from_folder()
 
-        self.lane_source_combo = self._create_combo_row("Lane Source", sources, self.init_data.get("LANE_SOURCE"))
-        self.object_source_combo = self._create_combo_row("Object Source", sources, self.init_data.get("OBJECT_SOURCE"))
+        self.lane_source_combo = self._create_combo_row("Lane Source", sources, self.lane_source_var)
+        self.object_source_combo = self._create_combo_row("Object Source", sources, self.object_source_var)
 
     def _create_source_buttons(self):
         row = ctk.CTkFrame(self, fg_color="transparent")
@@ -47,10 +53,8 @@ class SourceAndSerialControls(ctk.CTkFrame):
         ctk.CTkButton(row, text="Atualizar", width=148, command=self.refresh_sources).pack(side="left", padx=10)
 
     def _create_com_comboboxes(self):
-        self.security_com_combo = self._create_combo_row("Security COM", self.com_ports,
-                                                         self._get_valid_com(self.shared_controls.get("SECURITY_COM")))
-        self.sender_com_combo = self._create_combo_row("Sender COM", self.com_ports,
-                                                       self._get_valid_com(self.shared_controls.get("SENDER_COM")))
+        self.security_com_combo = self._create_combo_row("Security COM", self.com_ports, self.security_com_var)
+        self.sender_com_combo = self._create_combo_row("Sender COM", self.com_ports, self.sender_com_var)
 
     def _create_com_buttons(self):
         row = ctk.CTkFrame(self, fg_color="transparent")
@@ -59,11 +63,11 @@ class SourceAndSerialControls(ctk.CTkFrame):
         ctk.CTkButton(row, text="Aplicar", width=148, command=self.apply_sender_com).pack(side="left", padx=10)
         ctk.CTkButton(row, text="Atualizar", width=148, command=self.refresh_com_ports).pack(side="left", padx=10)
 
-    def _create_combo_row(self, label_text, values, default_value):
+    def _create_combo_row(self, label_text, values, variable):
         row = ctk.CTkFrame(self)
         row.pack(fill="x", padx=20, pady=2)
         ctk.CTkLabel(row, text=label_text).pack(side="left", padx=(10, 5))
-        combo = ctk.CTkComboBox(row, values=values, variable=ctk.StringVar(value=default_value))
+        combo = ctk.CTkComboBox(row, values=values, variable=variable)
         combo.pack(side="left", fill="x", expand=True)
         return combo
 
