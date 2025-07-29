@@ -91,7 +91,7 @@ class SliderSection(ctk.CTkFrame):
             text = f"{default:.3f}"
         else:
             text = str(int(default))
-        value_label = ctk.CTkLabel(row, text=text)
+        value_label = ctk.CTkLabel(row, text=text, width=40)
         value_label.grid(row=0, column=2, padx=(5, 10))
 
         return slider, value_label
