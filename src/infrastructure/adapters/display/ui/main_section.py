@@ -127,7 +127,8 @@ class SliderSection(ctk.CTkFrame):
         if step < 1:
             label.configure(text=f"{stepped_value:.2f}")
         else:
-            label.configure(text=str(int(stepped_value)))
+            stepped_value = int(stepped_value)
+            label.configure(text=str(stepped_value))
 
         # Atualiza controle e persiste com refresh_json
         self.tk_controls[name] = stepped_value
