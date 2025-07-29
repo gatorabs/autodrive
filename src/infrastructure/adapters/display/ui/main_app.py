@@ -179,6 +179,7 @@ class MainApp(ctk.CTk):
                     self.shared_controls["MANUAL_MD"] = True
                     refresh_json({"MANUAL_MD": True}, DEFAULT_UI_PATH)
                     self.tab_manager.select_tab(tab_name)
+                    self.manual_controls.refresh_from_queue()
             else:
                 self.tab_manager.select_tab(tab_name)
 
