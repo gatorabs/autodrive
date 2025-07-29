@@ -211,7 +211,7 @@ class MainApp(ctk.CTk):
             variable=ctk.StringVar(value=default_source),
             width=self.VIDEO_WIDTH
         )
-        self.lane_source_combo_tab2.pack(pady=5, padx=5)
+        self.lane_source_combo_tab2.pack(pady=5)
 
         button_row = ctk.CTkFrame(self.source_frame_tab2, fg_color="transparent")
         button_row.pack(pady=(5, 0))
@@ -235,7 +235,6 @@ class MainApp(ctk.CTk):
             self.tk_controls,
             self.calibration_data,
             self.lane_queue,
-            width=self.VIDEO_WIDTH,
         )
         self.manual_controls.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="n")
 
