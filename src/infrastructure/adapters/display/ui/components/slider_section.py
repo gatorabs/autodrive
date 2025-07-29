@@ -88,7 +88,7 @@ class SliderSection(ctk.CTkFrame):
         slider.grid(row=0, column=1, padx=5, sticky="ew")
 
         if step < 1:
-            text = f"{default:.2f}"
+            text = f"{default:.3f}"
         else:
             text = str(int(default))
         value_label = ctk.CTkLabel(row, text=text)
@@ -101,7 +101,7 @@ class SliderSection(ctk.CTkFrame):
 
         label = self.sliders[name]["label"]
         if step < 1:
-            label.configure(text=f"{stepped_value:.2f}")
+            label.configure(text=f"{stepped_value:.3f}")
         else:
             stepped_value = int(stepped_value)
             label.configure(text=str(stepped_value))
@@ -126,7 +126,7 @@ class SliderSection(ctk.CTkFrame):
 
         label = slider_data["label"]
         if step < 1:
-            label.configure(text=f"{stepped_value:.2f}")
+            label.configure(text=f"{stepped_value:.3f}")
             self.tk_controls[name] = stepped_value
         else:
             stepped_value = int(stepped_value)

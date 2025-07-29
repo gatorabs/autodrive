@@ -5,8 +5,8 @@ class PIDSection(SliderSection):
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
         sliders_config = [
             SliderConfig("KP", "KP", 0.0, 5.0, 0.01),
-            SliderConfig("KI", "KI", 0.0, 10.0, 0.01),
-            SliderConfig("KD", "KD", 0.0, 10.0, 0.01),
+            SliderConfig("KI", "KI", 0.0, 10.0, 0.001),
+            SliderConfig("KD", "KD", 0.0, 10.0, 0.001),
         ]
         super().__init__(
             master=master,
