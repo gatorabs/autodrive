@@ -61,7 +61,6 @@ def data_sender_process(lane_queue,
 
             last_send = now
 
-
     except Exception as e:
         logger.error(f"Erro inesperado no loop: {e}")
     finally:

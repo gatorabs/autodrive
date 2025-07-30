@@ -297,6 +297,7 @@ class MainApp(ctk.CTk):
 
         if direction is not None:
             self.manual_controls.set("MANUAL_DIRECTION", direction)
+            self.steering_wheel.set_angle(direction, trigger_command=False)
         if speed is not None:
             self.manual_controls.set("MANUAL_SPEED", speed)
 
