@@ -185,7 +185,7 @@ class MainApp(ctk.CTk):
                 self.tab_manager.select_tab(tab_name)
                 self._sync_manual_controls()
 
-        self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
+        self.tab_manager.create_tab("Manual Mode", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
 
         self.tab2_frame.columnconfigure(0, weight=1)
         self.tab2_frame.columnconfigure(1, weight=0)
@@ -194,7 +194,7 @@ class MainApp(ctk.CTk):
         self.central_video_frame_tab2 = VideoFrame(
             master=self.tab2_frame,
             shared_controls=self.shared_controls,
-            title="Vídeo Central",
+            title="Vídeo",
         )
         self.central_video_frame_tab2.grid(
             row=0, column=0, pady=(10, 5), padx=10, sticky="n"
