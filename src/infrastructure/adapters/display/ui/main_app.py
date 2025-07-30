@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from PIL import UnidentifiedImageError
 from CTkMessagebox import CTkMessagebox
+from queue import Empty
 
 from src.infrastructure.adapters.calibration.calibration_repository import load_data, refresh_json
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH, DEFAULTS_FILE
@@ -179,8 +180,10 @@ class MainApp(ctk.CTk):
                     self.shared_controls["MANUAL_MD"] = True
                     refresh_json({"MANUAL_MD": True}, DEFAULT_UI_PATH)
                     self.tab_manager.select_tab(tab_name)
+                    self._sync_manual_controls()
             else:
                 self.tab_manager.select_tab(tab_name)
+                self._sync_manual_controls()
 
         self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
 
@@ -277,6 +280,23 @@ class MainApp(ctk.CTk):
         current = self.lane_source_combo_tab2.get()
         if current not in new_options:
             self.lane_source_combo_tab2.set(new_options[0])
+
+    def _sync_manual_controls(self):
+        """Update manual sliders with the latest data from ``lane_queue``."""
+        last_data = None
+        while True:
+            try:
+                last_data = self.lane_queue.get_nowait()
+            except Empty:
+                break
+
+        if last_data:
+            direction = last_data.get("CAR_DIRECTION_DATA")
+            speed = last_data.get("CAR_SPEED_DATA")
+            if direction is not None:
+                self.manual_controls.set("MANUAL_DIRECTION", direction)
+            if speed is not None:
+                self.manual_controls.set("MANUAL_SPEED", speed)
 
     def on_home_selected(self, tab_name):
         if self.tk_controls.get("MANUAL_MD", False):
