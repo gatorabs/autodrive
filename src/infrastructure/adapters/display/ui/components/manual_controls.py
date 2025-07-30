@@ -21,7 +21,6 @@ class ManualControls(SliderSection):
             "CAR_SPEED_DATA": self.tk_controls.get("MANUAL_SPEED", 0),
             "CAR_DIRECTION_DATA": self.tk_controls.get("MANUAL_DIRECTION", 0),
         }
+        self.car_data = lane_data
         if name == "MANUAL_DIRECTION" and self._on_direction_change_cb:
             self._on_direction_change_cb(lane_data["CAR_DIRECTION_DATA"])
-        self.car_data = lane_data
-        print(lane_data)

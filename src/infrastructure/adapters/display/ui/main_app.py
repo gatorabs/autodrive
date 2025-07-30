@@ -297,14 +297,17 @@ class MainApp(ctk.CTk):
 
         if direction is not None:
             self.manual_controls.set("MANUAL_DIRECTION", direction)
-            self.steering_wheel.set_angle(direction, trigger_command=False)
         if speed is not None:
             self.manual_controls.set("MANUAL_SPEED", speed)
 
     def _on_wheel_change(self, angle: float):
+        """Callback when the steering wheel is moved."""
+        step = self.manual_controls.sliders["MANUAL_DIRECTION"].get("step", 1)
         self.manual_controls.set("MANUAL_DIRECTION", angle)
+        self.manual_controls._on_slider_change("MANUAL_DIRECTION", angle, step)
 
     def _on_slider_direction_change(self, angle: float):
+        """Callback when the direction slider changes."""
         self.steering_wheel.set_angle(angle, trigger_command=False)
 
     def on_home_selected(self, tab_name):
