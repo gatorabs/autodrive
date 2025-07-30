@@ -242,7 +242,7 @@ class MainApp(ctk.CTk):
             self.tab2_frame,
             self.tk_controls,
             self.calibration_data,
-            self.shared_controls["CAR_INFO"],
+            self.shared_controls,
             fg_color="#2b2b2b",
         )
         self.manual_controls.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="n")
