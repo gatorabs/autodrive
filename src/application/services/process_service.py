@@ -119,7 +119,8 @@ class ProcessManager:
                         target=manual_video_process,
                         kwargs={
                             "shared_controls": self.shared_controls,
-                            "shared_frames": self.shared_frames
+                            "shared_frames": self.shared_frames,
+                            "lane_queue": self.lane_queue,
                         }
                     )
                     self.manual_proc.start()

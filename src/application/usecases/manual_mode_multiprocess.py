@@ -1,6 +1,6 @@
 from src.core.__init__manual import *
 
-def manual_video_process(shared_controls, shared_frames):
+def manual_video_process(shared_controls, shared_frames, lane_queue):
     logger = Logger("ManualProcess")
     current_source = None
     video_proc = None
@@ -21,7 +21,11 @@ def manual_video_process(shared_controls, shared_frames):
                 logger.error("Frame não capturado. Cheque o vídeo ou câmera.")
                 continue
 
-            publish(frame=frame, shared_frames=shared_frames)
+            publish(frame=frame,
+                    shared_frames=shared_frames,
+                    lane_queue=lane_queue,
+                    lane_data=shared_controls["CAR_INFO"],
+                    logger=logger)
 
     except Exception as e:
         logger.error(f"Erro no modo manual: {e}")

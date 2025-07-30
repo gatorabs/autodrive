@@ -5,9 +5,8 @@ from queue import Empty
 class ManualControls(SliderSection):
     """Sliders to manually control car direction and speed."""
 
-    def __init__(self, master, tk_controls, calibration_data, lane_queue, **kwargs):
-        self.lane_queue = lane_queue
-
+    def __init__(self, master, tk_controls, calibration_data, car_data, **kwargs):
+        self.car_data = car_data
         sliders = [
             SliderConfig("MANUAL_DIRECTION", "Dire\u00e7\u00e3o", 0, 180),
             SliderConfig("MANUAL_SPEED", "Velocidade", 0, 255),
@@ -21,5 +20,4 @@ class ManualControls(SliderSection):
             "CAR_SPEED_DATA": self.tk_controls.get("MANUAL_SPEED", 0),
             "CAR_DIRECTION_DATA": self.tk_controls.get("MANUAL_DIRECTION", 0),
         }
-        if not self.lane_queue.full():
-            self.lane_queue.put(lane_data)
+        self.car_data = lane_data
