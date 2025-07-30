@@ -1,7 +1,6 @@
 import customtkinter as ctk
 from PIL import UnidentifiedImageError
 from CTkMessagebox import CTkMessagebox
-from queue import Empty
 
 from src.infrastructure.adapters.calibration.calibration_repository import load_data, refresh_json
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH, DEFAULTS_FILE
@@ -35,7 +34,7 @@ from src.infrastructure.adapters.video.begin_the_video import (
 )
 from .components.floating_widget import FloatingWidget
 from .components.tab_manager import TabManager
-from .components.task_manager_tab import TaskManagerTab
+from src.infrastructure.adapters.display.ui.pages.task_manager_tab import TaskManagerTab
 
 logger = Logger("MainUI")
 
