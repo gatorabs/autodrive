@@ -35,6 +35,7 @@ from src.infrastructure.adapters.video.begin_the_video import (
 )
 from .components.floating_widget import FloatingWidget
 from .components.tab_manager import TabManager
+from .components.task_manager_tab import TaskManagerTab
 
 logger = Logger("MainUI")
 
@@ -96,6 +97,7 @@ class MainApp(ctk.CTk):
         self._build_home(self.home_frame)
 
         self._build_tab2_frame()
+        self._build_task_manager_frame()
         self.update_loop()
 
     def _on_close_request(self):
@@ -263,6 +265,10 @@ class MainApp(ctk.CTk):
             command=self._on_wheel_change
         )
         self.steering_wheel.grid(row=4, column=0, pady=(10, 10))
+
+    def _build_task_manager_frame(self):
+        self.task_manager_frame = TaskManagerTab(self)
+        self.tab_manager.create_tab("Task Manager", self.task_manager_frame, on_right=True)
 
     def apply_lane_source_tab2(self):
         def clean_source(value):
