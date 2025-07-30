@@ -28,6 +28,7 @@ from .components.extras_controls import ExtrasControls
 from .components.source_serial_controls import SourceAndSerialControls
 from .components.manual_controls import ManualControls
 from .components.checkbox_section import CheckboxSection
+from .components.steering_wheel import SteeringWheel
 from src.infrastructure.adapters.video.begin_the_video import (
     detect_camera_indices,
     get_video_files_from_folder,
@@ -189,7 +190,7 @@ class MainApp(ctk.CTk):
 
         self.tab2_frame.columnconfigure(0, weight=1)
         self.tab2_frame.columnconfigure(1, weight=0)
-        self.tab2_frame.rowconfigure((0, 1, 2), weight=0)
+        self.tab2_frame.rowconfigure((0, 1, 2, 3, 4), weight=0)
 
         self.central_video_frame_tab2 = VideoFrame(
             master=self.tab2_frame,
@@ -243,6 +244,7 @@ class MainApp(ctk.CTk):
             self.tk_controls,
             self.calibration_data,
             self.shared_controls["CAR_INFO"],
+            on_direction_change=self._on_slider_direction_change,
             fg_color="#2b2b2b",
         )
         self.manual_controls.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="n")
@@ -255,6 +257,12 @@ class MainApp(ctk.CTk):
             orientation="vertical",
         )
         self.toggles_section.grid(row=3, column=0, sticky="n")
+
+        self.steering_wheel = SteeringWheel(
+            self.tab2_frame,
+            command=self._on_wheel_change
+        )
+        self.steering_wheel.grid(row=4, column=0, pady=(10, 10))
 
     def apply_lane_source_tab2(self):
         def clean_source(value):
@@ -291,6 +299,14 @@ class MainApp(ctk.CTk):
             self.manual_controls.set("MANUAL_DIRECTION", direction)
         if speed is not None:
             self.manual_controls.set("MANUAL_SPEED", speed)
+
+    def _on_wheel_change(self, angle: float):
+        """Callback when the steering wheel is moved."""
+        self.manual_controls.set("MANUAL_DIRECTION", angle)
+
+    def _on_slider_direction_change(self, angle: float):
+        """Callback when the direction slider changes."""
+        self.steering_wheel.set_angle(angle, trigger_command=False)
 
     def on_home_selected(self, tab_name):
         if self.tk_controls.get("MANUAL_MD", False):

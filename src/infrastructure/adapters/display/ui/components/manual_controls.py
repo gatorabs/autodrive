@@ -1,14 +1,15 @@
 from .slider_section import SliderSection, SliderConfig
 import customtkinter as ctk
-from queue import Empty
 
 class ManualControls(SliderSection):
     """Sliders to manually control car direction and speed."""
 
-    def __init__(self, master, tk_controls, calibration_data, car_data, **kwargs):
+    def __init__(self, master, tk_controls, calibration_data, car_data,
+                 on_direction_change=None, **kwargs):
         self.car_data = car_data
+        self._on_direction_change_cb = on_direction_change
         sliders = [
-            SliderConfig("MANUAL_DIRECTION", "Dire\u00e7\u00e3o", 0, 180),
+            SliderConfig("MANUAL_DIRECTION", "Direção", 0, 180),
             SliderConfig("MANUAL_SPEED", "Velocidade", 0, 255),
         ]
 
@@ -21,3 +22,5 @@ class ManualControls(SliderSection):
             "CAR_DIRECTION_DATA": self.tk_controls.get("MANUAL_DIRECTION", 0),
         }
         self.car_data = lane_data
+        if name == "MANUAL_DIRECTION" and self._on_direction_change_cb:
+            self._on_direction_change_cb(lane_data["CAR_DIRECTION_DATA"])
