@@ -10,7 +10,11 @@ class SteeringWheel(ctk.CTkFrame):
         self.size = size
         self.angle = 90
         self._creating = True
-        self.canvas = ctk.CTkCanvas(self, width=size, height=size, highlightthickness=0)
+        self.canvas = ctk.CTkCanvas(self,
+                                    width=size,
+                                    height=size,
+                                    highlightthickness=0)
+        self.canvas.configure(bg="#2b2b2b")
         self.canvas.pack()
         self.radius = size / 2 - 10
         self.center = (size / 2, size / 2)

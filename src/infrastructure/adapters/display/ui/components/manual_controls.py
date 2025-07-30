@@ -5,9 +5,10 @@ from queue import Empty
 class ManualControls(SliderSection):
     """Sliders to manually control car direction and speed."""
 
-    def __init__(self, master, tk_controls, calibration_data, shared_controls, **kwargs):
+    def __init__(self, master, tk_controls, calibration_data, shared_controls, on_direction_change, **kwargs):
         self.shared_controls = shared_controls
         self.car_data = shared_controls.get("CAR_INFO", {})
+        self._on_direction_change_cb = on_direction_change
         sliders = [
             SliderConfig("MANUAL_DIRECTION", "Dire\u00e7\u00e3o", 0, 180),
             SliderConfig("MANUAL_SPEED", "Velocidade", 0, 255),
@@ -23,3 +24,5 @@ class ManualControls(SliderSection):
         }
         self.shared_controls["CAR_INFO"] = lane_data
         self.car_data = lane_data
+        if name == "MANUAL_DIRECTION" and self._on_direction_change_cb:
+            self._on_direction_change_cb(lane_data["CAR_DIRECTION_DATA"])
