@@ -46,7 +46,7 @@ class MainApp(ctk.CTk):
 
         self.calibration_data = load_data(CALIBRATION_FILE)
         self.init_data = load_data(DEFAULT_UI_PATH)
-        self.title("Visualizador de Frames com Filtros")
+        self.title("Autonomous Team")
 
         self.DEFAULTS_FILE = DEFAULTS_FILE
         self.shared_frames = shared_frames
@@ -186,7 +186,7 @@ class MainApp(ctk.CTk):
                 self.tab_manager.select_tab(tab_name)
                 self._sync_manual_controls()
 
-        self.tab_manager.create_tab("Tab 2", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
+        self.tab_manager.create_tab("Manual Mode", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
 
         self.tab2_frame.columnconfigure(0, weight=1)
         self.tab2_frame.columnconfigure(1, weight=0)
@@ -205,7 +205,7 @@ class MainApp(ctk.CTk):
         self.source_frame_tab2 = ctk.CTkFrame(self.tab2_frame)
         self.source_frame_tab2.grid(row=1, column=0, pady=5, padx=10, sticky="n")
 
-        ctk.CTkLabel(self.source_frame_tab2, text="Fonte de Vídeo (Tab 2)").pack(pady=(5, 0))
+        ctk.CTkLabel(self.source_frame_tab2, text="Fonte de Vídeo").pack(pady=(5, 0))
 
         cams = self.tk_controls.get("DETECTED_CAMERAS", [])
         sources_tab2 = [f"Câmera {c}" for c in cams] + get_video_files_from_folder()
