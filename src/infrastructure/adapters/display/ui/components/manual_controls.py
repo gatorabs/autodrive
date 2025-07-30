@@ -1,14 +1,15 @@
 from .slider_section import SliderSection, SliderConfig
 import customtkinter as ctk
-from queue import Empty
 
 class ManualControls(SliderSection):
     """Sliders to manually control car direction and speed."""
 
-    def __init__(self, master, tk_controls, calibration_data, car_data, **kwargs):
+    def __init__(self, master, tk_controls, calibration_data, car_data,
+                 on_direction_change=None, **kwargs):
         self.car_data = car_data
+        self._on_direction_change_cb = on_direction_change
         sliders = [
-            SliderConfig("MANUAL_DIRECTION", "Dire\u00e7\u00e3o", 0, 180),
+            SliderConfig("MANUAL_DIRECTION", "Direção", 0, 180),
             SliderConfig("MANUAL_SPEED", "Velocidade", 0, 255),
         ]
 
@@ -16,8 +17,9 @@ class ManualControls(SliderSection):
 
     def _on_slider_change(self, name: str, value: float, step: float) -> None:
         super()._on_slider_change(name, value, step)
-        lane_data = {
-            "CAR_SPEED_DATA": self.tk_controls.get("MANUAL_SPEED", 0),
-            "CAR_DIRECTION_DATA": self.tk_controls.get("MANUAL_DIRECTION", 0),
-        }
-        self.car_data = lane_data
+        if isinstance(self.car_data, dict):
+            self.car_data["CAR_SPEED_DATA"] = self.tk_controls.get("MANUAL_SPEED", 0)
+            self.car_data["CAR_DIRECTION_DATA"] = self.tk_controls.get("MANUAL_DIRECTION", 0)
+
+        if name == "MANUAL_DIRECTION" and self._on_direction_change_cb:
+            self._on_direction_change_cb(self.car_data.get("CAR_DIRECTION_DATA", 0))
