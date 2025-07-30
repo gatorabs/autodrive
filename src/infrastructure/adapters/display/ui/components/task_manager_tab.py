@@ -4,25 +4,34 @@ import tkinter as tk
 from tkinter import ttk
 
 class TaskManagerTab(ctk.CTkFrame):
-    """Exibe os processos python em um Treeview."""
+    """Exibe processos python em uma tabela estilizada."""
 
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
-        # Configura o estilo do Treeview para combinar com o tema do CustomTkinter
+        # Frame interno para centralizar e adicionar margem
+        self.outer_frame = ctk.CTkFrame(self, fg_color="transparent")
+        # expand=True faz com que a moldura ocupe o espaço disponível; padx/pady adicionam margem
+        self.outer_frame.pack(expand=True, padx=20, pady=20, anchor="center")
+        # Permitir expansão da Treeview dentro do frame
+        self.outer_frame.rowconfigure(0, weight=1)
+        self.outer_frame.columnconfigure(0, weight=1)
+
+        # Configura estilo escuro e borda
         style = ttk.Style()
         style.theme_use("default")
-        # Cores básicas (podem ser ajustadas conforme necessário)
         style.configure(
             "Treeview",
-            background="#2b2b2b",         # cor de fundo das células
+            background="#2b2b2b",
             fieldbackground="#2b2b2b",
-            foreground="#f5f5f5",         # cor do texto
-            rowheight=24                  # altura das linhas
+            foreground="#f5f5f5",
+            rowheight=28,
+            borderwidth=1,
+            relief="solid",              # borda para simular divisórias externas
         )
         style.configure(
             "Treeview.Heading",
-            background="#1f1f1f",         # cor de fundo do cabeçalho
+            background="#1f1f1f",
             foreground="#f5f5f5",
             font=("Arial", 12, "bold")
         )
@@ -32,41 +41,48 @@ class TaskManagerTab(ctk.CTkFrame):
             foreground=[("selected", "#ffffff")]
         )
 
-        # Define as colunas da tabela
+        # Define colunas
         columns = ("ProcessName", "Id", "Priority", "Memory (MB)")
-        self.tree = ttk.Treeview(self, columns=columns, show="headings")
+        self.tree = ttk.Treeview(self.outer_frame, columns=columns, show="headings")
         for col in columns:
             self.tree.heading(col, text=col)
             self.tree.column(col, anchor="w", stretch=True)
 
-        # Adiciona uma barra de rolagem vertical ao Treeview
-        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        # Barra de rolagem vertical
+        scrollbar = ttk.Scrollbar(self.outer_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
 
-        self.tree.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        # Posiciona Treeview e scrollbar usando grid para alinhar
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
 
-        # Carrega os dados iniciais
+        # Configura faixas alternadas para dar sensação de linhas divisórias
+        self.tree.tag_configure("evenrow", background="#333333")
+        self.tree.tag_configure("oddrow", background="#2b2b2b")
+
         self.update_table()
 
     def update_table(self):
-        """Atualiza o conteúdo do Treeview com processos python atuais."""
-        # Remove entradas antigas
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        """Só atualiza a tabela se o frame estiver visível (ou seja, na aba ativa)."""
+        # Se o frame não estiver mapeado, não faz nada agora
+        if self.winfo_ismapped():
+            # Remove itens antigos
+            for item in self.tree.get_children():
+                self.tree.delete(item)
 
-        # Percorre os processos e adiciona linhas apenas para executáveis python
-        for proc in psutil.process_iter(["name", "pid", "nice", "memory_info"]):
-            name = proc.info.get("name", "")
-            if "python" in name.lower():
-                mem = proc.info["memory_info"].rss / (1024 * 1024)  # MB
-                values = (
-                    name,
-                    proc.info["pid"],
-                    proc.info["nice"],
-                    f"{mem:.2f}",
-                )
-                self.tree.insert("", "end", values=values)
+            # Percorre processos; insere linhas e aplica tag de faixa
+            for index, proc in enumerate(psutil.process_iter(["name", "pid", "nice", "memory_info"])):
+                name = proc.info.get("name", "")
+                if "python" in name.lower():
+                    mem = proc.info["memory_info"].rss / (1024 * 1024)
+                    values = (
+                        name,
+                        proc.info["pid"],
+                        proc.info["nice"],
+                        f"{mem:.2f}",
+                    )
+                    tag = "evenrow" if index % 2 == 0 else "oddrow"
+                    self.tree.insert("", "end", values=values, tags=(tag,))
 
-        # Agenda nova atualização
+        # Agenda próxima atualização (mesmo que invisível, para recarregar logo que ficar visível)
         self.after(2000, self.update_table)
