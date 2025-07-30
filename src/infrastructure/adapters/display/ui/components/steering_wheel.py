@@ -24,9 +24,10 @@ class SteeringWheel(ctk.CTkFrame):
         self.canvas.delete("all")
         x0, y0 = 5, 5
         x1, y1 = self.size - 5, self.size - 5
-        self.canvas.create_oval(x0, y0, x1, y1, outline="white", width=2)
+        wheel_color = "#bfbfbf"
+        self.canvas.create_oval(x0, y0, x1, y1, outline=wheel_color, width=2)
         # inner circle for aesthetics
-        self.canvas.create_oval(x0 + 15, y0 + 15, x1 - 15, y1 - 15, outline="white", width=1)
+        self.canvas.create_oval(x0 + 15, y0 + 15, x1 - 15, y1 - 15, outline=wheel_color, width=1)
         self._draw_indicator()
 
     def _draw_indicator(self):
@@ -40,14 +41,14 @@ class SteeringWheel(ctk.CTkFrame):
 
     def _on_drag(self, event):
         dx = event.x - self.center[0]
-        dy = self.center[1] - event.y
+        dy = event.y - self.center[1]
         if dx == 0 and dy == 0:
             return
-        angle = math.degrees(math.atan2(dy, dx))
+        angle = math.degrees(math.atan2(-dy, dx))
         if angle < 0:
             angle += 360
         if angle > 180:
-            angle = 180
+            angle = 360 - angle
         self.set_angle(angle)
 
     def set_angle(self, angle, trigger_command=True):

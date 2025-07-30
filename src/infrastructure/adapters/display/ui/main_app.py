@@ -302,7 +302,9 @@ class MainApp(ctk.CTk):
 
     def _on_wheel_change(self, angle: float):
         """Callback when the steering wheel is moved."""
+        step = self.manual_controls.sliders["MANUAL_DIRECTION"].get("step", 1)
         self.manual_controls.set("MANUAL_DIRECTION", angle)
+        self.manual_controls._on_slider_change("MANUAL_DIRECTION", angle, step)
 
     def _on_slider_direction_change(self, angle: float):
         """Callback when the direction slider changes."""
