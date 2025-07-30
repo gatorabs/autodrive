@@ -282,21 +282,15 @@ class MainApp(ctk.CTk):
             self.lane_source_combo_tab2.set(new_options[0])
 
     def _sync_manual_controls(self):
-        """Update manual sliders with the latest data from ``lane_queue``."""
-        last_data = None
-        while True:
-            try:
-                last_data = self.lane_queue.get_nowait()
-            except Empty:
-                break
+        last_data = self.shared_controls.get("CAR_INFO", {})
 
-        if last_data:
-            direction = last_data.get("CAR_DIRECTION_DATA")
-            speed = last_data.get("CAR_SPEED_DATA")
-            if direction is not None:
-                self.manual_controls.set("MANUAL_DIRECTION", direction)
-            if speed is not None:
-                self.manual_controls.set("MANUAL_SPEED", speed)
+        direction = last_data.get("CAR_DIRECTION_DATA")
+        speed = last_data.get("CAR_SPEED_DATA")
+
+        if direction is not None:
+            self.manual_controls.set("MANUAL_DIRECTION", direction)
+        if speed is not None:
+            self.manual_controls.set("MANUAL_SPEED", speed)
 
     def on_home_selected(self, tab_name):
         if self.tk_controls.get("MANUAL_MD", False):
