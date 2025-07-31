@@ -18,11 +18,8 @@ from src.infrastructure.constants.ui_constants.component_constants import (
     GAP,
     EXTRA_MARGIN,
 )
-from .components.video_frame import VideoFrame
 from src.infrastructure.adapters.display.ui.pages.home.home_tab import HomeTab
-from src.infrastructure.adapters.display.ui.pages.manual_mode.sections.manual_controls_section import ManualControls
-from .components.checkbox import CheckboxSection
-from .components.steering_wheel import SteeringWheel
+from src.infrastructure.adapters.display.ui.pages.manual_mode.manual_mode_tab import ManualModeTab
 from src.infrastructure.adapters.video.begin_the_video import (
     detect_camera_indices,
     get_video_files_from_folder,
@@ -87,7 +84,7 @@ class MainApp(ctk.CTk):
 
         self._build_home()
 
-        self._build_tab2_frame()
+        self._build_manual_tab()
         self._build_task_manager_frame()
         self.update_loop()
 
@@ -130,10 +127,16 @@ class MainApp(ctk.CTk):
         self.object_roi_controls = self.home_frame.object_roi_controls
         self.extras_controls = self.home_frame.extras_controls
 
-    def _build_tab2_frame(self):
-        self.tab2_frame = ctk.CTkFrame(self)
+    def _build_manual_tab(self):
+        self.manual_tab = ManualModeTab(
+            self,
+            self.tk_controls,
+            self.calibration_data,
+            self.shared_controls,
+            self.init_data,
+        )
 
-        def on_tab2_selected(tab_name):
+        def on_manual_selected(tab_name):
             if not self.tk_controls.get("MANUAL_MD", False):
                 box = CTkMessagebox(
                     title="Atenção",
@@ -153,93 +156,26 @@ class MainApp(ctk.CTk):
                 self.tab_manager.select_tab(tab_name)
                 self._sync_manual_controls()
 
-        self.tab_manager.create_tab("Manual Mode", self.tab2_frame, on_right=True, on_select=on_tab2_selected)
-
-        self.tab2_frame.columnconfigure(0, weight=1)
-        self.tab2_frame.columnconfigure(1, weight=0)
-        self.tab2_frame.rowconfigure((0, 1, 2, 3, 4), weight=0)
-
-        self.central_video_frame_tab2 = VideoFrame(
-            master=self.tab2_frame,
-            shared_controls=self.shared_controls,
-            title="Vídeo Central",
-        )
-        self.central_video_frame_tab2.grid(
-            row=0, column=0, pady=(10, 5), padx=10, sticky="n"
+        self.tab_manager.create_tab(
+            "Manual Mode", self.manual_tab, on_right=True, on_select=on_manual_selected
         )
 
+        self.central_video_frame_manual_tab = self.manual_tab.central_video_frame_manual_tab
+        self.lane_source_combo_manual_tab = self.manual_tab.lane_source_combo_manual_tab
+        self.manual_controls = self.manual_tab.manual_controls
+        self.toggles_section = self.manual_tab.toggles_section
+        self.steering_wheel = self.manual_tab.steering_wheel
 
-        self.source_frame_tab2 = ctk.CTkFrame(self.tab2_frame)
-        self.source_frame_tab2.grid(row=1, column=0, pady=5, padx=10, sticky="n")
-
-        ctk.CTkLabel(self.source_frame_tab2, text="Fonte de Vídeo").pack(pady=(5, 0))
-
-        cams = self.tk_controls.get("DETECTED_CAMERAS", [])
-        sources_tab2 = [f"Câmera {c}" for c in cams] + get_video_files_from_folder()
-
-        default_source = self.init_data.get("LANE_SOURCE_TAB2", "")
-        if str(default_source).isdigit():
-            default_source = f"Câmera {default_source}"
-
-        self.lane_source_combo_tab2 = ctk.CTkComboBox(
-            self.source_frame_tab2,
-            values=sources_tab2,
-            variable=ctk.StringVar(value=default_source),
-            width=self.VIDEO_WIDTH
-        )
-        self.lane_source_combo_tab2.pack(pady=5)
-
-        button_row = ctk.CTkFrame(self.source_frame_tab2, fg_color="transparent")
-        button_row.pack(pady=(5, 0))
-
-        ctk.CTkButton(
-            button_row,
-            text="Aplicar",
-            width=120,
-            command=self.apply_lane_source_tab2
-        ).pack(side="left", padx=5)
-
-        ctk.CTkButton(
-            button_row,
-            text="Atualizar",
-            width=120,
-            command=self.refresh_sources_tab2
-        ).pack(side="left", padx=5)
-
-        self.manual_controls = ManualControls(
-            self.tab2_frame,
-            self.tk_controls,
-            self.calibration_data,
-            self.shared_controls,
-            on_direction_change=self._on_slider_direction_change,
-            fg_color="#2b2b2b",
-        )
-        self.manual_controls.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="n")
-
-        self.toggles_section = CheckboxSection(
-            self.tab2_frame,
-            labels=["SEND_LOGS"],
-            tk_controls=self.tk_controls,
-            shared_controls=self.shared_controls,
-            orientation="vertical",
-        )
-        self.toggles_section.grid(row=3, column=0, sticky="n")
-
-        self.steering_wheel = SteeringWheel(
-            self.tab2_frame,
-            command=self._on_wheel_change
-        )
-        self.steering_wheel.grid(row=4, column=0, pady=(10, 10))
 
     def _build_task_manager_frame(self):
         self.task_manager_frame = TaskManagerTab(self)
         self.tab_manager.create_tab("Task Manager", self.task_manager_frame, on_right=True)
 
-    def apply_lane_source_tab2(self):
+    def apply_lane_source_manual_tab(self):
         def clean_source(value):
             return value.replace("Câmera ", "") if value.startswith("Câmera ") else value
 
-        selected_source = clean_source(self.lane_source_combo_tab2.get())
+        selected_source = clean_source(self.lane_source_combo_manual_tab.get())
         self.tk_controls["LANE_SOURCE_TAB2"] = selected_source
         self.shared_controls["LANE_SOURCE_TAB2"] = selected_source
 
@@ -247,7 +183,7 @@ class MainApp(ctk.CTk):
             "LANE_SOURCE_TAB2": selected_source
         }, DEFAULT_UI_PATH)
 
-    def refresh_sources_tab2(self):
+    def refresh_sources_manual_tab(self):
         cameras = detect_camera_indices()
         videos = get_video_files_from_folder()
         new_options = [f"Câmera {i}" for i in cameras] + videos
@@ -255,10 +191,10 @@ class MainApp(ctk.CTk):
         if not new_options:
             return
 
-        self.lane_source_combo_tab2.configure(values=new_options)
-        current = self.lane_source_combo_tab2.get()
+        self.lane_source_combo_manual_tab.configure(values=new_options)
+        current = self.lane_source_combo_manual_tab.get()
         if current not in new_options:
-            self.lane_source_combo_tab2.set(new_options[0])
+            self.lane_source_combo_manual_tab.set(new_options[0])
 
     def _sync_manual_controls(self):
         last_data = self.shared_controls.get("CAR_INFO", {})
@@ -304,7 +240,9 @@ class MainApp(ctk.CTk):
                 self.object_frame.update_image(self.shared_frames.get("OBJECT_FRAME"))
 
             else:
-                self.central_video_frame_tab2.update_image(self.shared_frames.get("TAB2_FRAME"))
+                self.central_video_frame_manual_tab.update_image(
+                    self.shared_frames.get("TAB2_FRAME")
+                )
 
         except (KeyError, OSError, UnidentifiedImageError) as e:
             logger.error("Erro ao atualizar frames:", e)
