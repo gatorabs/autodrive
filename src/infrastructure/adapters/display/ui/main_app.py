@@ -19,12 +19,7 @@ from src.infrastructure.constants.ui_constants.component_constants import (
     EXTRA_MARGIN,
 )
 from .components.video_frame import VideoFrame
-from src.infrastructure.adapters.display.ui.pages.home.sections.filter_section import FilterControls
-from src.infrastructure.adapters.display.ui.pages.home.sections.warp_section import WarpControls
-from src.infrastructure.adapters.display.ui.pages.home.sections.object_roi_section import ObjectRoiSection
-from src.infrastructure.adapters.display.ui.pages.home.sections.pid_section import PIDSection
-from src.infrastructure.adapters.display.ui.pages.home.sections.extras_section import ExtrasControls
-from src.infrastructure.adapters.display.ui.pages.home.sections.source_serial_section import SourceAndSerialControls
+from src.infrastructure.adapters.display.ui.pages.home.home_tab import HomeTab
 from src.infrastructure.adapters.display.ui.pages.manual_mode.sections.manual_controls_section import ManualControls
 from .components.checkbox import CheckboxSection
 from .components.steering_wheel import SteeringWheel
@@ -32,7 +27,6 @@ from src.infrastructure.adapters.video.begin_the_video import (
     detect_camera_indices,
     get_video_files_from_folder,
 )
-from .components.floating_widget import FloatingWidget
 from .components.tab_manager import TabManager
 from src.infrastructure.adapters.display.ui.pages.task_manager.task_manager_tab import TaskManagerTab
 
@@ -90,10 +84,8 @@ class MainApp(ctk.CTk):
         self.grid_columnconfigure((0,1,2), weight=1)
 
         self.tab_manager = TabManager(self)
-        self.home_frame = ctk.CTkFrame(self)
 
-        self.tab_manager.create_tab("Home", self.home_frame, on_right=False, on_select=self.on_home_selected)
-        self._build_home(self.home_frame)
+        self._build_home()
 
         self._build_tab2_frame()
         self._build_task_manager_frame()
@@ -114,55 +106,29 @@ class MainApp(ctk.CTk):
             refresh_json({"MANUAL_MD": False}, DEFAULT_UI_PATH)
             self.destroy()
 
-    def _build_home(self, parent):
-        parent.grid_rowconfigure((0, 1), weight=0)
-        parent.grid_columnconfigure((0, 1, 2), weight=1, uniform="col")
+    def _build_home(self):
+        self.home_frame = HomeTab(
+            self,
+            self.tk_controls,
+            self.calibration_data,
+            self.shared_controls,
+            self.init_data,
+        )
 
-        self.floating_widget = FloatingWidget(self, self.tk_controls)
+        self.tab_manager.create_tab(
+            "Home", self.home_frame, on_right=False, on_select=self.on_home_selected
+        )
 
-        VIDEO_WIDTH, VIDEO_HEIGHT = FRAME_WIDTH_T, FRAME_HEIGHT_T
-
-        def _add_video_frame(col, name):
-            container = ctk.CTkFrame(parent, width=VIDEO_WIDTH, height=VIDEO_HEIGHT, fg_color="transparent")
-            container.grid(row=0, column=col, padx=10, pady=(10, 2), sticky="nsew")
-            container.grid_propagate(False)
-            video = VideoFrame(container, self.shared_controls, name)
-            video.pack(expand=True, fill="both")
-            return video
-
-        self.normal_frame = _add_video_frame(0, "NORMAL_FRAME")
-        self.edges_frame = _add_video_frame(1, "EDGES_FRAME")
-        self.object_frame = _add_video_frame(2, "OBJECT_FRAME")
-
-        def _make_section(master, height, ControlClass, *args):
-            sec = ctk.CTkFrame(master, height=height, fg_color="transparent")
-            sec.pack(fill="x", pady=5, padx=10)
-            sec.pack_propagate(False)
-            ctrl = ControlClass(sec, *args)
-            ctrl.pack(expand=True, fill="both")
-            return ctrl
-
-        col0 = ctk.CTkFrame(parent, fg_color="transparent")
-        col0.grid(row=1, column=0, sticky="nsew")
-        self.warp_controls = _make_section(col0, 300, WarpControls, self.tk_controls, self.calibration_data)
-        self.pid_controls = _make_section(col0, 165, PIDSection, self.tk_controls, self.calibration_data)
-
-        col1 = ctk.CTkFrame(parent, fg_color="transparent")
-        col1.grid(row=1, column=1, sticky="nsew")
-        self.filters = _make_section(col1, 110, FilterControls, self.tk_controls, self.calibration_data)
-        self.sources_controls = _make_section(col1, 250,
-                                              SourceAndSerialControls,
-                                              self.tk_controls,
-                                              self.calibration_data,
-                                              self.shared_controls,
-                                              self.init_data
-                                              )
-
-        col2 = ctk.CTkFrame(parent, fg_color="transparent")
-        col2.grid(row=1, column=2, sticky="nsew")
-        self.object_roi_controls = _make_section(col2, 165, ObjectRoiSection, self.tk_controls, self.calibration_data)
-        self.extras_controls = _make_section(col2, 280, ExtrasControls,
-                                             self.tk_controls, self.shared_controls, self.shared_controls)
+        self.floating_widget = self.home_frame.floating_widget
+        self.normal_frame = self.home_frame.normal_frame
+        self.edges_frame = self.home_frame.edges_frame
+        self.object_frame = self.home_frame.object_frame
+        self.warp_controls = self.home_frame.warp_controls
+        self.pid_controls = self.home_frame.pid_controls
+        self.filters = self.home_frame.filters
+        self.sources_controls = self.home_frame.sources_controls
+        self.object_roi_controls = self.home_frame.object_roi_controls
+        self.extras_controls = self.home_frame.extras_controls
 
     def _build_tab2_frame(self):
         self.tab2_frame = ctk.CTkFrame(self)
