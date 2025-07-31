@@ -19,14 +19,14 @@ from src.infrastructure.constants.ui_constants.component_constants import (
     EXTRA_MARGIN,
 )
 from .components.video_frame import VideoFrame
-from .components.filter_controls import FilterControls
-from .components.warp_controls import WarpControls
-from .components.object_roi_section import ObjectRoiSection
-from .components.pid_section import PIDSection
-from .components.extras_controls import ExtrasControls
-from .components.source_serial_controls import SourceAndSerialControls
-from .components.manual_controls import ManualControls
-from .components.checkbox_section import CheckboxSection
+from src.infrastructure.adapters.display.ui.pages.home.sections.filter_section import FilterControls
+from src.infrastructure.adapters.display.ui.pages.home.sections.warp_section import WarpControls
+from src.infrastructure.adapters.display.ui.pages.home.sections.object_roi_section import ObjectRoiSection
+from src.infrastructure.adapters.display.ui.pages.home.sections.pid_section import PIDSection
+from src.infrastructure.adapters.display.ui.pages.home.sections.extras_section import ExtrasControls
+from src.infrastructure.adapters.display.ui.pages.home.sections.source_serial_section import SourceAndSerialControls
+from src.infrastructure.adapters.display.ui.pages.manual_mode.sections.manual_controls_section import ManualControls
+from .components.checkbox import CheckboxSection
 from .components.steering_wheel import SteeringWheel
 from src.infrastructure.adapters.video.begin_the_video import (
     detect_camera_indices,
@@ -34,7 +34,7 @@ from src.infrastructure.adapters.video.begin_the_video import (
 )
 from .components.floating_widget import FloatingWidget
 from .components.tab_manager import TabManager
-from src.infrastructure.adapters.display.ui.pages.task_manager_tab import TaskManagerTab
+from src.infrastructure.adapters.display.ui.pages.task_manager.task_manager_tab import TaskManagerTab
 
 logger = Logger("MainUI")
 
