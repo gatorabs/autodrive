@@ -221,6 +221,10 @@ class MainApp(ctk.CTk):
     def _on_slider_direction_change(self, angle: float):
         self.steering_wheel.set_angle(angle, trigger_command=False)
 
+    def on_tab_change(self, previous, current):
+        if previous == "Home" and current != "Home":
+            self.floating_widget.close_modal()
+
     def on_home_selected(self, tab_name):
         if self.tk_controls.get("MANUAL_MD", False):
             box = CTkMessagebox(
