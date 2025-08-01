@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from .slider_section import SliderSection, SliderConfig
+from src.infrastructure.adapters.display.ui.components.slider import SliderSection, SliderConfig
 
 class FilterControls(SliderSection):
     """Sliders for basic image filter configuration."""

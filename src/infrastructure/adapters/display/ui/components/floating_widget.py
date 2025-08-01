@@ -38,6 +38,10 @@ class FloatingWidget(ctk.CTkFrame):
         else:
             self._start_opening()
 
+    def close_modal(self):
+        if self.modal_open:
+            self._start_closing()
+
     def _start_opening(self):
         if self.modal:
             self.modal.destroy()
