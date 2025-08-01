@@ -1,3 +1,6 @@
+import ctypes
+import sys
+
 import customtkinter as ctk
 from PIL import UnidentifiedImageError
 from CTkMessagebox import CTkMessagebox
@@ -26,6 +29,9 @@ from src.infrastructure.adapters.video.begin_the_video import (
 )
 from .components.tab_manager import TabManager
 from src.infrastructure.adapters.display.ui.pages.task_manager.task_manager_tab import TaskManagerTab
+from .helpers.main_app_helper import enable_windows_dpi_awareness
+
+enable_windows_dpi_awareness()
 
 logger = Logger("MainUI")
 
@@ -168,6 +174,7 @@ class MainApp(ctk.CTk):
 
 
     def _build_task_manager_frame(self):
+        ctk.set_widget_scaling(1.0)
         self.task_manager_frame = TaskManagerTab(self)
         self.tab_manager.create_tab("Task Manager", self.task_manager_frame, on_right=True)
 
