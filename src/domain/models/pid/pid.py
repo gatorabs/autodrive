@@ -10,12 +10,12 @@ class PIDController:
         self.max_output = max_output
         self.integral = 0
         self.last_error = 0
-        self.last_time = time.time()
+        self.last_time = time.monotonic()
         self.logger = logger
         logger.info("Inicializando com PID V1.")
 
     def calculate(self, input_val):
-        now = time.time()
+        now = time.monotonic()
         delta_time = now - self.last_time
         if delta_time <= 0:
             delta_time = 1e-3

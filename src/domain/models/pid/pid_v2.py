@@ -11,7 +11,7 @@ class PIDV2Controller:
         self.max_output = max_output
         self.integral = 0
         self.last_error = 0
-        self.last_time = time.time()
+        self.last_time = time.monotonic()
         self.dt_filtered = dt_filtered
         self.deriv_filtered = deriv_filtered
         self.deriv_alpha = deriv_alpha
@@ -19,7 +19,7 @@ class PIDV2Controller:
         logger.info("Inicializando com PID V2.")
 
     def calculate(self, input_val):
-        now = time.time()
+        now = time.monotonic()
         raw_dt = now - self.last_time
         raw_dt = min(raw_dt, 0.1)  # evita dt muito grande
         self.dt_filtered = 0.8 * self.dt_filtered + 0.2 * raw_dt

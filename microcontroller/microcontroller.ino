@@ -20,97 +20,71 @@ LightController light;
 Servo servo;
 
 int idleServo = 87;
-
-char canMessage = 'N'; 
-bool obstacleDetected = false;
-
-String inputString = "";
-bool packetComplete = false;
-
 int direction = 0;
 int speedValue = 0;
 int extraValue = 0;
+bool obstacleDetected = false;
 
 void setup() {
   Serial.begin(115200);
-
   pinMode(LED_PIN, OUTPUT);
 
-  bool canOK = can.setup(53, 18);
-  if (!canOK) {
+  if (!can.setup(53, 18)) {
     digitalWrite(LED_PIN, HIGH);
   } else {
     digitalWrite(LED_PIN, LOW);
   }
 
-  digitalWrite(LED_PIN, LOW);
   buzzer.setup();
   light.setup();
-
   for (int i = 0; i < 4; i++) {
     motors[i].begin();
   }
 
   servo.attach(SERVO_PIN);
   servo.write(idleServo);
-
-  inputString.reserve(50);
 }
-
 
 void loop() {
-  while (Serial.available()) {
-    char inChar = (char)Serial.read();
+  // Buffer fixo onde será lido até o caractere '#'
+  static char buf[50];
+  size_t len = Serial.readBytesUntil('#', buf, sizeof(buf) - 1);
+  if (len == 0) return;    // nada novo chegou
 
-    if (inChar == '#') {
-      packetComplete = true;
-      break;
-    } else {
-      inputString += inChar;
-    }
-  }
-
-  if (packetComplete) {
-    parseAndExecute(inputString);
-    inputString = "";
-    packetComplete = false;
-  }
+  buf[len] = '\0';         // marca fim da string
+  parseAndExecute(buf);
 }
 
-void parseAndExecute(String data) {
+void parseAndExecute(char *data) {
   int values[3];
-  int index = 0;
-  char *token = strtok((char*)data.c_str(), ",");
+  int idx = 0;
 
-  while (token != NULL && index < 3) {
-    values[index++] = atoi(token);
-    token = strtok(NULL, ",");
+  // tokenização segura em buffer mutável
+  char *token = strtok(data, ",");
+  while (token != nullptr && idx < 3) {
+    values[idx++] = atoi(token);
+    token = strtok(nullptr, ",");
   }
 
-  if (index == 3) {
-    direction = values[0];
-    speedValue = constrain(values[1], 0, 255);
-    extraValue = values[2];
+  // se não vieram exatamente 3 valores, aborta
+  if (idx != 3) return;
 
-    int mappedDirection = constrain(direction, 0, 180);  
-    servo.write(mappedDirection); 
+  direction  = constrain(values[0], 0, 180);
+  speedValue = constrain(values[1], 0, 255);
+  extraValue = values[2];
 
-    //canMessage = can.readCanMessage();
-    //obstacleDetected = (canMessage == 'F');
+  servo.write(direction);
 
-    if (obstacleDetected || speedValue == 0) {
-      digitalWrite(LED_PIN, HIGH);  
-      for (int i = 0; i < 4; i++) {
-        motors[i].stop();
-      }
-      return;
-    }
-
-
-    digitalWrite(LED_PIN, LOW);
-
+  if (obstacleDetected || speedValue == 0) {
+    digitalWrite(LED_PIN, HIGH);
     for (int i = 0; i < 4; i++) {
-      motors[i].turnFront(speedValue);
+      motors[i].stop();
     }
+    return;
+  }
+
+  digitalWrite(LED_PIN, LOW);
+  for (int i = 0; i < 4; i++) {
+    motors[i].turnFront(speedValue);
   }
 }

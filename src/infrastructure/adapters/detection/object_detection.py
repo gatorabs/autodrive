@@ -24,11 +24,12 @@ class ObjectDetector:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Usando dispositivo {self.device}")
 
-        self.model = YOLO('yolov8n.pt')
         try:
+            self.model = YOLO('yolov8n.pt')
             self.model.to(self.device)
         except Exception as e:
-            logger.error(f"Não foi possível mover o modelo para o dispositivo desejado: {e}")
+            logger.error(f"Falha ao carregar modelo YOLO: {e}")
+            raise
 
         self.shared_serial_data[1] = 0  # semáforo
         self.shared_serial_data[2] = 0  # pessoa
