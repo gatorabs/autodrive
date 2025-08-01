@@ -79,6 +79,10 @@ class FloatingWidget(ctk.CTkFrame):
             self.button2.pack_forget()
         self._animate_close()
 
+    def close_modal(self):
+        if self.modal_open:
+            self._start_closing()
+
     def _animate_close(self):
         if not self.modal:
             return

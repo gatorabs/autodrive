@@ -37,6 +37,7 @@ class TabManager(ctk.CTkFrame):
             self.select_tab(name)
 
     def select_tab(self, name):
+        prev_name = self.active
         if self.active:
             prev = self.tabs.get(self.active)
             if prev:
@@ -46,3 +47,6 @@ class TabManager(ctk.CTkFrame):
         if frm:
             frm.grid(row=1, column=0, columnspan=3, sticky="nsew")
             self.active = name
+
+        if hasattr(self.master, "on_tab_change"):
+            self.master.on_tab_change(prev_name, name)
