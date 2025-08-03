@@ -77,12 +77,24 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
             else:
                 roi_display = roi.copy()
 
+            roi_h, roi_w = roi_display.shape[:2]
+            pts1 = np.float32([[tl_x, tl_y], [bl_x, bl_y], [tr_x, tr_y], [br_x, br_y]])
+            pts2 = np.float32([[0, 0], [0, roi_h], [roi_w, 0], [roi_w, roi_h]])
+            inv_M = cv.getPerspectiveTransform(pts2, pts1)
+
+            def draw_line_set(lines, color):
+                for start, end in lines:
+                    pts = np.array([start, end], dtype=np.float32).reshape(-1, 1, 2)
+                    transformed = cv.perspectiveTransform(pts, inv_M).reshape(-1, 2)
+                    start_t = tuple(np.int32(transformed[0]))
+                    end_t = tuple(np.int32(transformed[1]))
+                    cv.line(frame, start_t, end_t, color, 1)
+                    cv.line(roi_display, start, end, color, 1)
+
             if left_lines:
-                for start, end in left_lines:
-                    cv.line(roi_display, start, end, (255, 0, 0), 1)
+                draw_line_set(left_lines, (255, 0, 0))
             if right_lines:
-                for start, end in right_lines:
-                    cv.line(roi_display, start, end, (0, 255, 0), 1)
+                draw_line_set(right_lines, (0, 255, 0))
 
         if show_info:
             debug_lines = [
