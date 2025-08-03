@@ -13,6 +13,6 @@ def preprocess(frame, tk_controls, morph_kernel):
     edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, morph_kernel)
 
     warp_points = get_warp_points_from_controls(tk_controls)
-    warped_roi  = bird_eye_full(edges, warp_points, draw_on=frame)
+    warped_roi, _  = bird_eye_full(edges, warp_points, draw_on=frame)
 
     return edges, warp_points, warped_roi, side, num_lines

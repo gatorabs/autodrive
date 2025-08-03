@@ -2,6 +2,8 @@ import cv2 as cv
 import numpy as np
 import math
 
+from src.application.services.lane_detection_service import bird_eye_full
+
 
 def draw_overlays(frame, distances, warp_points=None, edges=None,
                   has_ref=False, show_info=None, fps=0, ms=0, mapped_direction=90,
@@ -72,15 +74,7 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
                        font, font_scale, font_color, thickness)
 
         if roi is not None and show_roi_lines:
-            if len(roi.shape) == 2:
-                roi_display = cv.cvtColor(roi, cv.COLOR_GRAY2BGR)
-            else:
-                roi_display = roi.copy()
-
-            roi_h, roi_w = roi_display.shape[:2]
-            pts1 = np.float32([[tl_x, tl_y], [bl_x, bl_y], [tr_x, tr_y], [br_x, br_y]])
-            pts2 = np.float32([[0, 0], [0, roi_h], [roi_w, 0], [roi_w, roi_h]])
-            inv_M = cv.getPerspectiveTransform(pts2, pts1)
+            _, inv_M = bird_eye_full(frame, warp_points, draw_on=None)
 
             def draw_line_set(lines, color):
                 for start, end in lines:

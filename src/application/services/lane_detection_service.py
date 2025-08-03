@@ -35,12 +35,6 @@ def publish(frame_display,
     }
 
 def compute_distances(warped_roi, side, num_lines):
-    """Compute average distances from the ROI center to lane markers.
-
-    Returns the average left/right distances, a flag indicating if a
-    reference was detected and the line segments sampled for each side.
-    The actual drawing of these lines is delegated to the UI layer.
-    """
     if num_lines <= 0:
         interval = 1
     else:
@@ -96,6 +90,7 @@ def bird_eye_full(frame, warp_points, draw_on=None):
     ])
 
     M = cv.getPerspectiveTransform(pts1, pts2)
+    inv_M = cv.getPerspectiveTransform(pts2, pts1)
     warped = cv.warpPerspective(frame, M, (max_width, max_height))
 
-    return warped
+    return warped, inv_M
