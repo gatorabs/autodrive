@@ -57,7 +57,7 @@ def get_warp_points_from_controls(ctrl):
         ctrl["br_x"], ctrl["br_y"]
     )
 
-def bird_eye_full(frame, warp_points, draw_on=None):
+def bird_eye_full(frame, warp_points, draw_on=None, inv_matrix=False):
     h, w = frame.shape[:2]
 
     tl_x, tl_y, tr_x, tr_y, bl_x, bl_y, br_x, br_y = warp_points
@@ -89,8 +89,10 @@ def bird_eye_full(frame, warp_points, draw_on=None):
         [max_width, max_height]
     ])
 
+    inv_M = None
     M = cv.getPerspectiveTransform(pts1, pts2)
-    inv_M = cv.getPerspectiveTransform(pts2, pts1)
     warped = cv.warpPerspective(frame, M, (max_width, max_height))
 
+    if inv_matrix:
+        inv_M = cv.getPerspectiveTransform(pts2, pts1)
     return warped, inv_M
