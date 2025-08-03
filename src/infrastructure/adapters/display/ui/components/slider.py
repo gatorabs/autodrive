@@ -58,7 +58,13 @@ class SliderSection(ctk.CTkFrame):
                 default=default,
                 step=step
             )
-            self.sliders[name] = {"slider": slider, "label": value_label, "step": step}
+            self.sliders[name] = {
+                "slider": slider,
+                "label": value_label,
+                "step": step,
+                "from": min_val,
+                "to": max_val,
+            }
 
     def add_slider(
         self,

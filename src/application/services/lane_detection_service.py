@@ -95,4 +95,5 @@ def bird_eye_full(frame, warp_points, draw_on=None, inv_matrix=False):
 
     if inv_matrix:
         inv_M = cv.getPerspectiveTransform(pts2, pts1)
-    return warped, inv_M
+
+    return warped, max_height, inv_M
