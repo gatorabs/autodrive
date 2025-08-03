@@ -93,7 +93,7 @@ def lane_detection_process(lane_queue,
                 "CAR_DIRECTION_DATA": mapped_direction
                          }
 
-            frame_display, _ = draw_overlays(
+            frame_display, roi_display = draw_overlays(
                 frame=frame,
                 distances=(avg_left, avg_right),
                 warp_points=warp_points,
@@ -110,7 +110,7 @@ def lane_detection_process(lane_queue,
 
             toggle_named_window(is_enabled=tk_controls.get("SHOW_ROI"),
                                 window_name="Lane Debug",
-                                frame=frame_display)
+                                frame=roi_display)
 
             frame_count, fps, avg_time, total_processing_time = update_processing_time(
                 logger=logger,
