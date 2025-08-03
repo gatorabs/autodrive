@@ -1,4 +1,3 @@
-from flask import Response, stream_with_context, jsonify
 from src.infrastructure.adapters.video.video_utility_process import generate_placeholder_image
 from src.infrastructure.adapters.web_server import app_settings
 from flask import Response, jsonify

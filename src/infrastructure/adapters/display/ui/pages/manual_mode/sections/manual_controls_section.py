@@ -1,6 +1,4 @@
 from src.infrastructure.adapters.display.ui.components.slider import SliderSection, SliderConfig
-import customtkinter as ctk
-from queue import Empty
 
 class ManualControls(SliderSection):
     """Sliders to manually control car direction and speed."""

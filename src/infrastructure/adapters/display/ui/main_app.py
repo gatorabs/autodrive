@@ -256,7 +256,7 @@ class MainApp(ctk.CTk):
                 )
 
         except (KeyError, OSError, UnidentifiedImageError) as e:
-            logger.error("Erro ao atualizar frames:", e)
+            logger.error(f"Erro ao atualizar frames: {e}")
 
         self.after(33, self.update_loop)
 

@@ -11,8 +11,6 @@ from src.core.__init__process import (
 from src.infrastructure.adapters.display.ui.main_app import launch_homepage
 from src.infrastructure.logging.logger import Logger
 
-logger = Logger("ProcessManager")
-
 class ProcessManager:
     def __init__(self, shared_controls, shared_frames, tk_controls, user_flags):
         self.shared_controls = shared_controls
@@ -27,7 +25,7 @@ class ProcessManager:
         self.lane_proc = None
         self.object_proc = None
         self.manual_proc = None
-        self.logger = logger
+        self.logger = Logger("ProcessManager")
 
     def create_all_processes(self):
         self._add_ui_process()
@@ -84,7 +82,7 @@ class ProcessManager:
                         }
                     )
                     self.lane_proc.start()
-                    logger.info("Inicializando Lane process.")
+                    self.logger.info("Inicializando Lane process.")
                 if self.object_proc is None or not self.object_proc.is_alive():
                     self.object_proc = mp.Process(
                         name="object",
@@ -98,7 +96,7 @@ class ProcessManager:
                         }
                     )
                     self.object_proc.start()
-                    logger.info("Inicializando Object process.")
+                    self.logger.info("Inicializando Object process.")
 
             else:
                 if self.lane_proc and self.lane_proc.is_alive():
@@ -124,7 +122,7 @@ class ProcessManager:
                         }
                     )
                     self.manual_proc.start()
-                    logger.info("Inicializando Manual Process.")
+                    self.logger.info("Inicializando Manual Process.")
 
         return (self.lane_proc, self.object_proc, self.manual_proc), current_manual_mode
 
