@@ -24,7 +24,6 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
     wheel_thickness = draw_overlays.font_props["wheel-thickness"]
 
     overlay = frame.copy()
-    roi_display = None
 
     # área de perspectiva e faixas amarelas.
     if warp_points and edges is not None:
