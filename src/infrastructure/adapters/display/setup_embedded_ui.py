@@ -73,7 +73,7 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
                        font, font_scale, font_color, thickness)
 
         if roi is not None and show_roi_lines:
-            _, inv_M = bird_eye_full(frame, warp_points, draw_on=None, inv_matrix=True)
+            _, _, inv_M = bird_eye_full(frame, warp_points, draw_on=None, inv_matrix=True)
 
             def draw_line_set(lines, color):
                 for start, end in lines:

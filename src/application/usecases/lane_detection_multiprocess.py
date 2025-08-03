@@ -48,9 +48,10 @@ def lane_detection_process(lane_queue,
                  warp_points,
                  warped_roi,
                  side,
-                 num_lines) = preprocess(frame=frame,
-                                         tk_controls=tk_controls,
-                                         morph_kernel=morph_kernel)
+                 num_lines,
+                 max_height) = preprocess(frame=frame,
+                                          tk_controls=tk_controls,
+                                          morph_kernel=morph_kernel)
             except cv.error as e:
                 logger.error(f"Erro no preprocess: {e}")
                 continue
@@ -128,6 +129,7 @@ def lane_detection_process(lane_queue,
                 lane_data=lane_data,
                 fps=fps,
                 avg_time=avg_time,
+                max_height=max_height,
                 logger=logger
             )
 

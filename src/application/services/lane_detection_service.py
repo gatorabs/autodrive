@@ -10,6 +10,7 @@ def publish(frame_display,
             lane_data,
             fps,
             avg_time,
+            max_height,
             logger):
 
     """
@@ -28,6 +29,7 @@ def publish(frame_display,
     if not lane_queue.full():
         lane_queue.put(lane_data)
 
+    shared_controls["MAX_HEIGHT"] = max_height
     shared_controls["CAR_INFO"]  = lane_data
     shared_controls["TIME_INFO"] = {
         'fps': round(fps, 0),
@@ -95,4 +97,5 @@ def bird_eye_full(frame, warp_points, draw_on=None, inv_matrix=False):
 
     if inv_matrix:
         inv_M = cv.getPerspectiveTransform(pts2, pts1)
-    return warped, inv_M
+
+    return warped, max_height, inv_M
