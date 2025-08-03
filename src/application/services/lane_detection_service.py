@@ -35,25 +35,17 @@ def publish(frame_display,
     }
 
 def compute_distances(warped_roi, side, num_lines):
-    """Compute average distances from the ROI center to lane markers.
-
-    Returns the average left/right distances, a flag indicating if a
-    reference was detected and the line segments sampled for each side.
-    The actual drawing of these lines is delegated to the UI layer.
-    """
     if num_lines <= 0:
         interval = 1
     else:
         interval = max(1, round(warped_roi.shape[0] / num_lines))
-
-    avg_left, avg_right, left_lines, right_lines = calculate_center_distance(
-        warped_roi, interval)
+    avg_left, avg_right = calculate_center_distance(warped_roi, interval)
 
     lost_ref = ((side == 1 and avg_right == float('inf')) or
-                (side == 0 and avg_left == float('inf')))
+                (side == 0 and avg_left  == float('inf')))
     has_ref = not lost_ref
 
-    return avg_left, avg_right, has_ref, left_lines, right_lines
+    return avg_left, avg_right, has_ref
 
 def get_warp_points_from_controls(ctrl):
     return (

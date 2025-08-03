@@ -60,14 +60,9 @@ def lane_detection_process(lane_queue,
                                                       shared_controls=shared_controls,
                                                       logger=logger)
 
-            (avg_left,
-             avg_right,
-             has_ref,
-             left_lines,
-             right_lines) = compute_distances(
-                warped_roi=warped_roi,
-                side=side,
-                num_lines=num_lines)
+            avg_left, avg_right, has_ref = compute_distances(warped_roi=warped_roi,
+                                                             side=side,
+                                                             num_lines=num_lines)
 
             update_pid_from_controls(
                 pid=pid,
@@ -101,12 +96,8 @@ def lane_detection_process(lane_queue,
                 has_ref=has_ref,
                 mapped_direction=mapped_direction,
                 show_info=tk_controls.get("SHOW_INFO"),
-                show_roi_lines=tk_controls.get("SHOW_LINES"),
                 fps=fps,
-                ms=avg_time,
-                roi=warped_roi,
-                left_lines=left_lines,
-                right_lines=right_lines
+                ms=avg_time
             )
 
             toggle_named_window(is_enabled=tk_controls.get("SHOW_ROI"),

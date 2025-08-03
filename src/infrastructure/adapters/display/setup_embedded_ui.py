@@ -2,10 +2,8 @@ import cv2 as cv
 import numpy as np
 import math
 
-
 def draw_overlays(frame, distances, warp_points=None, edges=None,
-                  has_ref=False, show_info=None, fps=0, ms=0, mapped_direction=90,
-                  roi=None, left_lines=None, right_lines=None, show_roi_lines=False):
+                  has_ref=False, show_info=None, fps=0, ms=0, mapped_direction=90):
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {
             "font": cv.QT_FONT_NORMAL,
@@ -22,7 +20,6 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
     wheel_thickness = draw_overlays.font_props["wheel-thickness"]
 
     overlay = frame.copy()
-    roi_display = None
 
     # área de perspectiva e faixas amarelas.
     if warp_points and edges is not None:
@@ -70,31 +67,6 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
                        f"L:{avg_left:.1f} R:{avg_right:.1f}",
                        (center_x - 60, mid_y - radius - 10),
                        font, font_scale, font_color, thickness)
-
-        if roi is not None and show_roi_lines:
-            if len(roi.shape) == 2:
-                roi_display = cv.cvtColor(roi, cv.COLOR_GRAY2BGR)
-            else:
-                roi_display = roi.copy()
-
-            roi_h, roi_w = roi_display.shape[:2]
-            pts1 = np.float32([[tl_x, tl_y], [bl_x, bl_y], [tr_x, tr_y], [br_x, br_y]])
-            pts2 = np.float32([[0, 0], [0, roi_h], [roi_w, 0], [roi_w, roi_h]])
-            inv_M = cv.getPerspectiveTransform(pts2, pts1)
-
-            def draw_line_set(lines, color):
-                for start, end in lines:
-                    pts = np.array([start, end], dtype=np.float32).reshape(-1, 1, 2)
-                    transformed = cv.perspectiveTransform(pts, inv_M).reshape(-1, 2)
-                    start_t = tuple(np.int32(transformed[0]))
-                    end_t = tuple(np.int32(transformed[1]))
-                    cv.line(frame, start_t, end_t, color, 1)
-
-            if left_lines:
-                draw_line_set(left_lines, (255, 0, 0))
-            if right_lines:
-                draw_line_set(right_lines, (0, 255, 0))
-
         if show_info:
             debug_lines = [
                 f"Mapped Dir: {mapped_direction}",
