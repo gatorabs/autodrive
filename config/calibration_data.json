@@ -20,5 +20,6 @@
     "br_x": 440,
     "br_y": 220,
     "Distance": 80,
-    "Lines": 10
+    "Lines": 10,
+    "SHOW_ROI_LINES": false
 }
