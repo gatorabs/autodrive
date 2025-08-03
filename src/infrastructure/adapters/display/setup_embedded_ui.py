@@ -5,7 +5,7 @@ import math
 
 def draw_overlays(frame, distances, warp_points=None, edges=None,
                   has_ref=False, show_info=None, fps=0, ms=0, mapped_direction=90,
-                  roi=None, left_lines=None, right_lines=None):
+                  roi=None, left_lines=None, right_lines=None, show_roi_lines=False):
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {
             "font": cv.QT_FONT_NORMAL,
@@ -71,7 +71,7 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
                        (center_x - 60, mid_y - radius - 10),
                        font, font_scale, font_color, thickness)
 
-        if roi is not None:
+        if roi is not None and show_roi_lines:
             if len(roi.shape) == 2:
                 roi_display = cv.cvtColor(roi, cv.COLOR_GRAY2BGR)
             else:
@@ -89,7 +89,6 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
                     start_t = tuple(np.int32(transformed[0]))
                     end_t = tuple(np.int32(transformed[1]))
                     cv.line(frame, start_t, end_t, color, 1)
-                    cv.line(roi_display, start, end, color, 1)
 
             if left_lines:
                 draw_line_set(left_lines, (255, 0, 0))
@@ -127,4 +126,4 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
                            (x + padding, text_y),
                            font, font_scale, font_color, thickness)
 
-    return frame, roi_display
+    return frame

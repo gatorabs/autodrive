@@ -15,7 +15,7 @@ class ExtrasControls(SliderSection):
         super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
         self.checkbox_section = CheckboxSection(
             self,
-            labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID"],
+            labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID", "SHOW_LINES"],
             tk_controls=self.tk_controls,
             shared_controls=shared_controls,
             orientation="grid",
