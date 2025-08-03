@@ -42,4 +42,4 @@ class ExtrasControls(SliderSection):
                     slider_data["to"] = max_height
                     if self.tk_controls.get("Lines", 0) > max_height:
                         self.set("Lines", max_height)
-        self.after(200, self._update_lines_slider)
+        self.after(800, self._update_lines_slider)
