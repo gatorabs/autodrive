@@ -60,9 +60,14 @@ def lane_detection_process(lane_queue,
                                                       shared_controls=shared_controls,
                                                       logger=logger)
 
-            avg_left, avg_right, has_ref = compute_distances(warped_roi=warped_roi,
-                                                             side=side,
-                                                             num_lines=num_lines)
+            (avg_left,
+             avg_right,
+             has_ref,
+             left_lines,
+             right_lines) = compute_distances(
+                warped_roi=warped_roi,
+                side=side,
+                num_lines=num_lines)
 
             update_pid_from_controls(
                 pid=pid,
@@ -88,7 +93,7 @@ def lane_detection_process(lane_queue,
                 "CAR_DIRECTION_DATA": mapped_direction
                          }
 
-            frame_display = draw_overlays(
+            frame_display, warped_roi_display = draw_overlays(
                 frame=frame,
                 distances=(avg_left, avg_right),
                 warp_points=warp_points,
@@ -97,12 +102,15 @@ def lane_detection_process(lane_queue,
                 mapped_direction=mapped_direction,
                 show_info=tk_controls.get("SHOW_INFO"),
                 fps=fps,
-                ms=avg_time
+                ms=avg_time,
+                roi=warped_roi,
+                left_lines=left_lines,
+                right_lines=right_lines
             )
 
             toggle_named_window(is_enabled=tk_controls.get("SHOW_ROI"),
                                 window_name="Warped Roi",
-                                frame=warped_roi)
+                                frame=warped_roi_display)
 
             frame_count, fps, avg_time, total_processing_time = update_processing_time(
                 logger=logger,

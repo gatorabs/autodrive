@@ -2,8 +2,10 @@ import cv2 as cv
 import numpy as np
 import math
 
+
 def draw_overlays(frame, distances, warp_points=None, edges=None,
-                  has_ref=False, show_info=None, fps=0, ms=0, mapped_direction=90):
+                  has_ref=False, show_info=None, fps=0, ms=0, mapped_direction=90,
+                  roi=None, left_lines=None, right_lines=None):
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {
             "font": cv.QT_FONT_NORMAL,
@@ -20,6 +22,7 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
     wheel_thickness = draw_overlays.font_props["wheel-thickness"]
 
     overlay = frame.copy()
+    roi_display = None
 
     # área de perspectiva e faixas amarelas.
     if warp_points and edges is not None:
@@ -67,6 +70,20 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
                        f"L:{avg_left:.1f} R:{avg_right:.1f}",
                        (center_x - 60, mid_y - radius - 10),
                        font, font_scale, font_color, thickness)
+
+        if roi is not None:
+            if len(roi.shape) == 2:
+                roi_display = cv.cvtColor(roi, cv.COLOR_GRAY2BGR)
+            else:
+                roi_display = roi.copy()
+
+            if left_lines:
+                for start, end in left_lines:
+                    cv.line(roi_display, start, end, (255, 0, 0), 1)
+            if right_lines:
+                for start, end in right_lines:
+                    cv.line(roi_display, start, end, (0, 255, 0), 1)
+
         if show_info:
             debug_lines = [
                 f"Mapped Dir: {mapped_direction}",
@@ -98,4 +115,4 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
                            (x + padding, text_y),
                            font, font_scale, font_color, thickness)
 
-    return frame
+    return frame, roi_display
