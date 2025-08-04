@@ -11,12 +11,6 @@ PRIORITY_MAP = {
 
 
 def get_active_python_processes():
-    """Return information about active Python processes and system usage.
-
-    Returns:
-        dict: A dictionary containing system CPU usage, total RAM of Python
-        processes, count of processes, and a list of process details.
-    """
     system_cpu = psutil.cpu_percent(interval=None)
     cores = psutil.cpu_count(logical=True) or 1
 
