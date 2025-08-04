@@ -1,5 +1,5 @@
 import customtkinter as ctk
-import psutil
+from src.application.services.python_process_service import get_active_python_processes
 from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -156,45 +156,35 @@ class TaskManagerTab(ctk.CTkFrame):
             self.after(2000, self.update_table)
             return
 
-        # Obtém uso de CPU do sistema (todos os núcleos)
-        system_cpu = psutil.cpu_percent(interval=None)
-        cores = psutil.cpu_count(logical=True) or 1
+        data = get_active_python_processes()
 
         for item in self.tree.get_children():
             self.tree.delete(item)
 
         labels, mems, cpus, ios = [], [], [], []
-        for proc in psutil.process_iter(
-            ["name", "pid", "nice", "memory_info", "io_counters"]
-        ):
-            info = proc.info
-            name = info.get("name") or ""
-            if "python" in name.lower():
-                pid = info["pid"]
-                nice = info["nice"]
-                prio = self.PRIORITY_MAP.get(nice, str(nice))
-                mem = info["memory_info"].rss / (1024 * 1024)
-                raw_cpu = proc.cpu_percent(interval=None)
-                # Normaliza uso de CPU ao total de núcleos
-                cpu = raw_cpu / cores
-                io_ct = info.get("io_counters")
-                io_sum = ((io_ct.read_bytes + io_ct.write_bytes) / (1024 * 1024)) if io_ct else 0
+        for proc in data["processes"]:
+            pid = proc["pid"]
+            prio = proc["priority"]
+            mem = proc["memory_mb"]
+            cpu = proc["cpu_percent"]
+            io_sum = proc["io_mb"]
 
-                labels.append(str(pid))
-                mems.append(mem)
-                cpus.append(cpu)
-                ios.append(io_sum)
+            labels.append(str(pid))
+            mems.append(mem)
+            cpus.append(cpu)
+            ios.append(io_sum)
 
-                values = (name, pid, prio, f"{mem:.2f}")
-                tags = [prio]
-                row_tag = "evenrow" if len(labels) % 2 == 0 else "oddrow"
-                tags.append(row_tag)
-                self.tree.insert("", "end", values=values, tags=tags)
+            values = (proc["name"], pid, prio, f"{mem:.2f}")
+            tags = [prio]
+            row_tag = "evenrow" if len(labels) % 2 == 0 else "oddrow"
+            tags.append(row_tag)
+            self.tree.insert("", "end", values=values, tags=tags)
 
-        # Atualiza resumo com uso real de CPU do sistema
-        total_mem = sum(mems)
         self.summary_label.configure(
-            text=f"Python processes: {len(labels)} | Total RAM: {total_mem:.2f} MB | System CPU: {system_cpu:.1f}%"
+            text=(
+                f"Python processes: {data['process_count']} | Total RAM: {data['total_ram_mb']:.2f} MB | "
+                f"System CPU: {data['system_cpu']:.1f}%"
+            ),
         )
 
         metric = self.metric_var.get()
@@ -221,3 +211,4 @@ class TaskManagerTab(ctk.CTkFrame):
 
         # Agenda próxima atualização
         self.after(2000, self.update_table)
+

@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 from src.infrastructure.adapters.web_server.routes.V1.dashboard_controller_v1 import car_api_info, video_api_info
+from src.infrastructure.adapters.web_server.routes.V1.dashboard_controller_v2 import process_api_info
 from src.infrastructure.adapters.web_server.routes.V1.app_controller import shutdown_server
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.logging.werkzeug_filters import SuppressCodesFilter
@@ -23,6 +24,7 @@ def create_app(frames_dict, controls_dict):
     shutdown_server(app)
     car_api_info(app, shared_controls)
     video_api_info(app, shared_frames, logger)
+    process_api_info(app)
 
     return app
 
