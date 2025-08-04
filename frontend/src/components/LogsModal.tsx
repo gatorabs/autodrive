@@ -130,7 +130,7 @@ const LogsModal = ({ logs, onClearLogs }: LogsModalProps) => {
               <span>Logs do Sistema ({logs.length})</span>
             </span>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={exportLogs}>
+              <Button variant="default" size="sm" onClick={exportLogs}>
                 <Download className="h-4 w-4 mr-1" />
                 Exportar
               </Button>
