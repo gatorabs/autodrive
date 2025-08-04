@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from src.application.services.python_process_service import get_active_python_processes
+from src.application.services.process_service import ProcessManager
 from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -156,7 +156,7 @@ class TaskManagerTab(ctk.CTkFrame):
             self.after(2000, self.update_table)
             return
 
-        data = get_active_python_processes()
+        data = ProcessManager.get_active_python_processes()
 
         for item in self.tree.get_children():
             self.tree.delete(item)
