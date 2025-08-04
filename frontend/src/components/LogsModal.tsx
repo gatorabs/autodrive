@@ -114,6 +114,8 @@ const LogsModal = ({ logs, onClearLogs }: LogsModalProps) => {
     URL.revokeObjectURL(url);
   };
 
+  const totalProcessCpu = systemInfo.processes
+    .reduce((acc, proc) => acc + proc.cpu_percent, 0);
 
   return (
     <Dialog>
@@ -242,8 +244,8 @@ const LogsModal = ({ logs, onClearLogs }: LogsModalProps) => {
                   <div className="text-xs text-gray-400">Processos Python</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-400">{systemInfo.system_cpu}%</div>
-                  <div className="text-xs text-gray-400">CPU Sistema</div>
+                  <div className="text-2xl font-bold text-green-400">{totalProcessCpu.toFixed(1)}%</div>
+                  <div className="text-xs text-gray-400">CPU Total</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-purple-400">{formatBytes(systemInfo.total_ram_mb)}</div>
