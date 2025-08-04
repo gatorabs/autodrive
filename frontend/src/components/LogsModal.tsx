@@ -122,7 +122,7 @@ const LogsModal = ({ logs, onClearLogs }: LogsModalProps) => {
           <FileText className="h-6 w-6" />
         </div>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] bg-gray-900 text-white border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[80vh] bg-gray-900 text-white overflow-hidden flex flex-col border-gray-700">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span className="flex items-center space-x-2">
@@ -191,7 +191,7 @@ const LogsModal = ({ logs, onClearLogs }: LogsModalProps) => {
             </div>
 
             {/* Lista de logs */}
-            <ScrollArea className="h-96 bg-gray-800 rounded-lg p-4">
+            <ScrollArea className="h-80 bg-gray-800 rounded-lg p-4">
               <div className="space-y-2">
                 {filteredLogs.length === 0 ? (
                   <div className="text-center text-gray-400 py-8">
@@ -253,7 +253,7 @@ const LogsModal = ({ logs, onClearLogs }: LogsModalProps) => {
             </div>
 
             {/* Lista de processos */}
-            <ScrollArea className="h-96 bg-gray-800 rounded-lg p-4">
+            <ScrollArea className="h-80 bg-gray-800 rounded-lg p-4">
               <div className="space-y-2">
                 {systemInfo.processes.map((process) => (
                   <div key={process.pid} className="border border-gray-700 rounded-lg p-3 bg-gray-750">
