@@ -9,7 +9,6 @@ PRIORITY_MAP = {
     256: "REALTIME"
 }
 
-
 def get_active_python_processes():
     system_cpu = psutil.cpu_percent(interval=None)
     cores = psutil.cpu_count(logical=True) or 1

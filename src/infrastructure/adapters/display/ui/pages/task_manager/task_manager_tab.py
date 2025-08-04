@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from src.application.services.python_process_service import get_active_python_processes
+from src.domain.services.os.python_process_service import get_active_python_processes
 from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
