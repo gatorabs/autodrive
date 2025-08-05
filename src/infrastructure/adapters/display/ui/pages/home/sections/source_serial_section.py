@@ -129,14 +129,23 @@ class SourceAndSerialControls(ctk.CTkFrame):
         }, DEFAULT_UI_PATH)
 
     def refresh_sources(self):
-        cameras = detect_camera_indices()
+        current_lane = self.lane_source_var.get()
+        current_object = self.object_source_var.get()
+
+        exclude = []
+        for current in (current_lane, current_object):
+            if current.startswith("Câmera "):
+                try:
+                    exclude.append(int(current.replace("Câmera ", "")))
+                except ValueError:
+                    continue
+
+        cameras = detect_camera_indices(exclude_indices=exclude)
         videos = get_video_files_from_folder()
 
         self.sources = [f"Câmera {i}" for i in cameras] + videos
 
-        current_lane = self.lane_source_var.get()
-        current_object = self.object_source_var.get()
-
+        # keep currently selected cameras even if excluded from detection
         for current in (current_lane, current_object):
             if current.startswith("Câmera") and current not in self.sources:
                 self.sources.append(current)
