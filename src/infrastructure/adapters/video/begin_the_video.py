@@ -7,18 +7,7 @@ from src.infrastructure.logging.logger import Logger
 logger = Logger("FLAGS", verbose=True)
 
 
-def detect_camera_indices(max_tested=2, exclude_indices=None):
-    """Detect available camera indices.
-
-    Parameters
-    ----------
-    max_tested : int
-        Number of camera indices to test, not counting excluded ones.
-    exclude_indices : list[int | str] | None
-        Camera indices that should be ignored during detection. Useful when a
-        camera is already in use elsewhere and should not be probed again.
-    """
-
+def detect_camera_indices(max_tested=3, exclude_indices=None):
     exclude_set = {str(i) for i in (exclude_indices or [])}
     available = []
 
