@@ -6,10 +6,16 @@ from src.infrastructure.logging.logger import Logger
 
 logger = Logger("FLAGS", verbose=True)
 
-def detect_camera_indices(max_tested=2):
+
+def detect_camera_indices(max_tested=3, exclude_indices=None):
+    exclude_set = {str(i) for i in (exclude_indices or [])}
     available = []
-    for i in range(max_tested):
-        with open(os.devnull, 'w') as fnull, contextlib.redirect_stderr(fnull):
+
+    # test additional indices so that `max_tested` usable cameras are checked
+    for i in range(max_tested + len(exclude_set)):
+        if str(i) in exclude_set:
+            continue
+        with open(os.devnull, "w") as fnull, contextlib.redirect_stderr(fnull):
             cap = cv2.VideoCapture(i)
             if cap is not None and cap.read()[0]:
                 available.append(str(i))

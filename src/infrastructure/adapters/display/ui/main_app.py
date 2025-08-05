@@ -191,15 +191,26 @@ class MainApp(ctk.CTk):
         }, DEFAULT_UI_PATH)
 
     def refresh_sources_manual_tab(self):
-        cameras = detect_camera_indices()
+        current = self.lane_source_combo_manual_tab.get()
+
+        exclude = []
+        if current.startswith("Câmera "):
+            try:
+                exclude.append(int(current.replace("Câmera ", "")))
+            except ValueError:
+                pass
+
+        cameras = detect_camera_indices(exclude_indices=exclude)
         videos = get_video_files_from_folder()
         new_options = [f"Câmera {i}" for i in cameras] + videos
+
+        if current.startswith("Câmera") and current not in new_options:
+            new_options.append(current)
 
         if not new_options:
             return
 
         self.lane_source_combo_manual_tab.configure(values=new_options)
-        current = self.lane_source_combo_manual_tab.get()
         if current not in new_options:
             self.lane_source_combo_manual_tab.set(new_options[0])
 
