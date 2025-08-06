@@ -31,6 +31,14 @@ class VideoFrame(ctk.CTkFrame):
             self.image_label.image = self.placeholder_ctk_image
             self._close_modal()
             return
+        if self.modal and self.modal.winfo_exists():
+            if image_bytes:
+                image = Image.open(io.BytesIO(image_bytes))
+                self.current_image_full = image
+                modal_img = CTkImage(light_image=image, size=image.size)
+                self.modal_image_label.configure(image=modal_img)
+                self.modal_image_label.image = modal_img
+            return
         if image_bytes:
             image = Image.open(io.BytesIO(image_bytes))
             self.current_image_full = image
@@ -38,10 +46,6 @@ class VideoFrame(ctk.CTkFrame):
             ctk_image = CTkImage(light_image=resized, size=(FRAME_WIDTH_T, FRAME_HEIGHT_T))
             self.image_label.configure(image=ctk_image, text="")
             self.image_label.image = ctk_image
-            if self.modal and self.modal.winfo_exists():
-                modal_img = CTkImage(light_image=image, size=image.size)
-                self.modal_image_label.configure(image=modal_img)
-                self.modal_image_label.image = modal_img
 
     def _open_modal(self, _event=None):
         if self.current_image_full is None:
@@ -57,9 +61,16 @@ class VideoFrame(ctk.CTkFrame):
         self.modal_image_label.pack()
         self.modal_image_label.image = modal_img
         ctk.CTkButton(self.modal, text="Fechar", command=self._close_modal).pack(pady=10)
+        self.image_label.configure(image=self.placeholder_ctk_image, text="")
+        self.image_label.image = self.placeholder_ctk_image
 
     def _close_modal(self):
         if self.modal and self.modal.winfo_exists():
             self.modal.destroy()
         self.modal = None
         self.modal_image_label = None
+        if self.current_image_full:
+            resized = self.current_image_full.resize((FRAME_WIDTH_T, FRAME_HEIGHT_T))
+            ctk_image = CTkImage(light_image=resized, size=(FRAME_WIDTH_T, FRAME_HEIGHT_T))
+            self.image_label.configure(image=ctk_image, text="")
+            self.image_label.image = ctk_image
