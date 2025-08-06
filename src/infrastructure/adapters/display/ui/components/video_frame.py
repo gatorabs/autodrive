@@ -56,11 +56,11 @@ class VideoFrame(ctk.CTkFrame):
         self.modal.title(self.label.cget("text"))
         self.modal.attributes("-topmost", True)
         self.modal.grab_set()
+        self.modal.protocol("WM_DELETE_WINDOW", self._close_modal)
         modal_img = CTkImage(light_image=self.current_image_full, size=self.current_image_full.size)
         self.modal_image_label = ctk.CTkLabel(self.modal, text="", image=modal_img)
         self.modal_image_label.pack()
         self.modal_image_label.image = modal_img
-        ctk.CTkButton(self.modal, text="Fechar", command=self._close_modal).pack(pady=10)
         self.image_label.configure(image=self.placeholder_ctk_image, text="")
         self.image_label.image = self.placeholder_ctk_image
 
