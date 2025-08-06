@@ -20,13 +20,46 @@ class VideoFrame(ctk.CTkFrame):
         self.image_label = ctk.CTkLabel(self, text="", image=self.placeholder_ctk_image)
         self.image_label.pack()
 
+        self.image_label.bind("<Button-1>", self._open_modal)
+        self.modal = None
+        self.modal_image_label = None
+        self.current_image_full = None
+
     def update_image(self, image_bytes):
         if self.shared_controls.get("WEBVIEW"):
             self.image_label.configure(image=self.placeholder_ctk_image, text="Webview ATIVO.")
             self.image_label.image = self.placeholder_ctk_image
+            self._close_modal()
             return
         if image_bytes:
-            image = Image.open(io.BytesIO(image_bytes)).resize((FRAME_WIDTH_T, FRAME_HEIGHT_T))
-            ctk_image = CTkImage(light_image=image, size=(FRAME_WIDTH_T, FRAME_HEIGHT_T))
+            image = Image.open(io.BytesIO(image_bytes))
+            self.current_image_full = image
+            resized = image.resize((FRAME_WIDTH_T, FRAME_HEIGHT_T))
+            ctk_image = CTkImage(light_image=resized, size=(FRAME_WIDTH_T, FRAME_HEIGHT_T))
             self.image_label.configure(image=ctk_image, text="")
             self.image_label.image = ctk_image
+            if self.modal and self.modal.winfo_exists():
+                modal_img = CTkImage(light_image=image, size=image.size)
+                self.modal_image_label.configure(image=modal_img)
+                self.modal_image_label.image = modal_img
+
+    def _open_modal(self, _event=None):
+        if self.current_image_full is None:
+            return
+        if self.modal and self.modal.winfo_exists():
+            return
+        self.modal = ctk.CTkToplevel(self)
+        self.modal.title(self.label.cget("text"))
+        self.modal.attributes("-topmost", True)
+        self.modal.grab_set()
+        modal_img = CTkImage(light_image=self.current_image_full, size=self.current_image_full.size)
+        self.modal_image_label = ctk.CTkLabel(self.modal, text="", image=modal_img)
+        self.modal_image_label.pack()
+        self.modal_image_label.image = modal_img
+        ctk.CTkButton(self.modal, text="Fechar", command=self._close_modal).pack(pady=10)
+
+    def _close_modal(self):
+        if self.modal and self.modal.winfo_exists():
+            self.modal.destroy()
+        self.modal = None
+        self.modal_image_label = None
