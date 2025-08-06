@@ -54,7 +54,7 @@ class VideoFrame(ctk.CTkFrame):
             return
         self.modal = ctk.CTkToplevel(self)
         self.modal.title(self.label.cget("text"))
-        self.modal.attributes("-topmost", True)
+        self.modal.transient(self.winfo_toplevel())
         self.modal.resizable(False, False)
         self.modal.grab_set()
         self.modal.protocol("WM_DELETE_WINDOW", self._close_modal)
