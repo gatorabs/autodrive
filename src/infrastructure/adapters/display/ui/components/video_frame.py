@@ -56,7 +56,6 @@ class VideoFrame(ctk.CTkFrame):
         self.modal.title(self.label.cget("text"))
         self.modal.transient(self.winfo_toplevel())
         self.modal.resizable(False, False)
-        self.modal.grab_set()
         self.modal.protocol("WM_DELETE_WINDOW", self._close_modal)
         modal_img = CTkImage(light_image=self.current_image_full, size=self.current_image_full.size)
         self.modal_image_label = ctk.CTkLabel(self.modal, text="", image=modal_img)
