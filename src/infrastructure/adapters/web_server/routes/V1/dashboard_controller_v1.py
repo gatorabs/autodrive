@@ -2,6 +2,7 @@ from src.infrastructure.adapters.video.video_utility_process import generate_pla
 from src.infrastructure.adapters.web_server import app_settings
 from flask import Response, jsonify
 import time
+import cv2
 
 def car_api_info(app, shared_controls):
     @app.route('/api/car-info')
@@ -50,9 +51,19 @@ def video_api_info(app, shared_frames, logger):
 
             try:
                 frame = shared_frames.get(key)
-                if frame:
+                if frame is not None:
+                    if isinstance(frame, (bytes, bytearray)):
+                        encoded = frame
+                    else:
+                        ok, buffer = cv2.imencode('.jpg', frame)
+                        if not ok:
+                            logger.error("Falha ao codificar frame para streaming")
+                            yield yield_placeholder()
+                            continue
+                        encoded = buffer.tobytes()
+
                     yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                           b'Content-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
                 else:
                     yield yield_placeholder()
             except Exception as e:

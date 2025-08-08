@@ -1,4 +1,6 @@
 import io
+import cv2
+import numpy as np
 from PIL import Image
 import customtkinter as ctk
 from customtkinter import CTkImage
@@ -25,27 +27,37 @@ class VideoFrame(ctk.CTkFrame):
         self.modal_image_label = None
         self.current_image_full = None
 
-    def update_image(self, image_bytes):
+    def update_image(self, frame):
         if self.shared_controls.get("WEBVIEW"):
             self.image_label.configure(image=self.placeholder_ctk_image, text="Webview ATIVO.")
             self.image_label.image = self.placeholder_ctk_image
             self._close_modal()
             return
         if self.modal and self.modal.winfo_exists():
-            if image_bytes:
-                image = Image.open(io.BytesIO(image_bytes))
-                self.current_image_full = image
-                modal_img = CTkImage(light_image=image, size=image.size)
-                self.modal_image_label.configure(image=modal_img)
-                self.modal_image_label.image = modal_img
+            if frame is not None:
+                image = self._to_pil_image(frame)
+                if image:
+                    self.current_image_full = image
+                    modal_img = CTkImage(light_image=image, size=image.size)
+                    self.modal_image_label.configure(image=modal_img)
+                    self.modal_image_label.image = modal_img
             return
-        if image_bytes:
-            image = Image.open(io.BytesIO(image_bytes))
-            self.current_image_full = image
-            resized = image.resize((FRAME_WIDTH_T, FRAME_HEIGHT_T))
-            ctk_image = CTkImage(light_image=resized, size=(FRAME_WIDTH_T, FRAME_HEIGHT_T))
-            self.image_label.configure(image=ctk_image, text="")
-            self.image_label.image = ctk_image
+        if frame is not None:
+            image = self._to_pil_image(frame)
+            if image:
+                self.current_image_full = image
+                resized = image.resize((FRAME_WIDTH_T, FRAME_HEIGHT_T))
+                ctk_image = CTkImage(light_image=resized, size=(FRAME_WIDTH_T, FRAME_HEIGHT_T))
+                self.image_label.configure(image=ctk_image, text="")
+                self.image_label.image = ctk_image
+
+    def _to_pil_image(self, frame):
+        if isinstance(frame, (bytes, bytearray)):
+            return Image.open(io.BytesIO(frame))
+        if isinstance(frame, np.ndarray):
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            return Image.fromarray(rgb)
+        return None
 
     def _open_modal(self, _event=None):
         if self.current_image_full is None:
