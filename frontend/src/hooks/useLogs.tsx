@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from "sonner";
 
 export interface LogEntry {
   id: string;
@@ -27,7 +28,13 @@ export const useLogs = () => {
       details
     };
     
-    setLogs(prev => [newLog, ...prev].slice(0, 1000)); // Manter apenas os últimos 1000 logs
+    setLogs(prev => {
+      const updated = [newLog, ...prev];
+      if (updated.length > 150) {
+        return updated.slice(0, 150);
+      }
+      return updated;
+    });
   }, []);
 
   const clearLogs = useCallback(() => {
