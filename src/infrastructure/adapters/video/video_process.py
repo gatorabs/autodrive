@@ -1,5 +1,5 @@
+import os
 import cv2
-import time
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 
 class VideoProcessor:
@@ -7,22 +7,28 @@ class VideoProcessor:
         self.video_source = video_source
         self.frame_width = frame_width
         self.frame_height = frame_height
-        self.prev_time = time.time()
 
-        if isinstance(video_source, str) and video_source.isdigit():
-            self.is_video = False
-            self.cap = cv2.VideoCapture(int(video_source), cv2.CAP_DSHOW)
-        elif isinstance(video_source, int):
-            self.is_video = False
-            self.cap = cv2.VideoCapture(video_source, cv2.CAP_DSHOW)
+        self.is_cam = False
+        self.cam_index = None
+
+        try:
+            self.cam_index = int(video_source)
+            self.is_cam = True
+        except (TypeError, ValueError):
+            self.is_cam = False
+
+        self.is_file = not self.is_cam
+
+        if self.is_cam:
+            api = cv2.CAP_DSHOW if os.name == "nt" else cv2.CAP_ANY
+            self.cap = cv2.VideoCapture(self.cam_index, api)
         else:
-            self.is_video = True
             self.cap = cv2.VideoCapture(video_source)
 
         if not self.cap.isOpened():
-            raise Exception(f"Não foi possível abrir a fonte de vídeo: {video_source}")
+            raise RuntimeError(f"Não foi possível abrir a fonte de vídeo: {video_source}")
 
-        if not self.is_video:
+        if self.is_cam:
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.frame_width)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.frame_height)
 
@@ -36,13 +42,13 @@ class VideoProcessor:
         ret, frame = self.cap.read()
 
         if not ret:
-            if self.is_video:
+            if self.is_file:
                 self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 ret, frame = self.cap.read()
                 if not ret:
-                    raise Exception("Erro ao reiniciar o vídeo")
+                    raise RuntimeError("Erro ao reiniciar o vídeo")
             else:
-                raise Exception("Erro ao capturar frame da câmera")
+                raise RuntimeError("Erro ao capturar frame da câmera")
 
         if self.resize_needed:
             frame = cv2.resize(frame, (self.frame_width, self.frame_height))
