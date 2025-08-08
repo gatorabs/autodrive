@@ -3,6 +3,11 @@ from ultralytics import YOLO
 import torch
 from src.application.services.object_detection_service import process_traffic_light_roi, publish_results
 from src.infrastructure.adapters.video.video_process import VideoProcessor
+from src.infrastructure.constants.video_constants import (
+    FRAME_WIDTH,
+    FRAME_HEIGHT,
+    CPU_INFERENCE_IMG_SIZE,
+)
 
 TARGET_CLASSES = {0, 9}
 
@@ -19,7 +24,11 @@ class ObjectDetector:
         self.tk_controls = tk_controls
         self.logger = logger
 
-        self.video_processor = VideoProcessor(video_source=camera_source)
+        self.video_processor = VideoProcessor(
+            video_source=camera_source,
+            frame_width=FRAME_WIDTH,
+            frame_height=FRAME_HEIGHT,
+        )
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Usando dispositivo {self.device}")
@@ -27,9 +36,20 @@ class ObjectDetector:
         try:
             self.model = YOLO('yolov8n.pt')
             self.model.to(self.device)
+            self.model.eval()
         except Exception as e:
             logger.error(f"Falha ao carregar modelo YOLO: {e}")
             raise
+
+        self.inference_kwargs = {
+            "classes": list(TARGET_CLASSES),
+            "verbose": False,
+        }
+
+        if self.device == "cuda":
+            self.inference_kwargs["half"] = True  # FP16 na GPU
+        else:
+            self.inference_kwargs["imgsz"] = CPU_INFERENCE_IMG_SIZE
 
         self.shared_serial_data[1] = 0  # semáforo
         self.shared_serial_data[2] = 0  # pessoa
@@ -41,7 +61,8 @@ class ObjectDetector:
             self.logger.error(f"Erro ao capturar frame: {e}")
             return
 
-        results = self.model(frame, classes=list(TARGET_CLASSES), verbose=False)
+        with torch.inference_mode():
+            results = self.model(frame, **self.inference_kwargs)
 
         person_detected = False
         traffic_light_state = 2
