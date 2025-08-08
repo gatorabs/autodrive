@@ -98,7 +98,7 @@ class SliderSection(ctk.CTkFrame):
             text = f"{default:.3f}"
         else:
             text = str(int(default))
-        value_entry = ctk.CTkEntry(row, width=60)
+        value_entry = ctk.CTkEntry(row, width=50)
         value_entry.insert(0, text)
         value_entry.grid(row=0, column=2, padx=(5, 10))
         value_entry.bind(
