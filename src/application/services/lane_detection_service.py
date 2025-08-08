@@ -3,13 +3,9 @@ import cv2 as cv
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 
-_encoder_pool = ThreadPoolExecutor(max_workers=2)
+from src.infrastructure.adapters.video.video_utility_process import encode_frame
 
-def _encode_jpeg(frame):
-    ok, buffer = cv.imencode('.jpg', frame)
-    if not ok:
-        raise RuntimeError("cv.imencode falhou")
-    return buffer.tobytes()
+_encoder_pool = ThreadPoolExecutor(max_workers=2)
 
 def publish(frame_display,
             edges,
@@ -22,12 +18,13 @@ def publish(frame_display,
             max_height,
             logger):
     """
-    Codifica quadros de exibição em JPEG em paralelo, envia comandos de direção para a fila
-    e atualiza a memória compartilhada com bytes de quadro e telemetria.
+    Codifica quadros de exibição em paralelo usando a função de encode genérica,
+    envia comandos de direção para a fila e atualiza a memória compartilhada com
+    bytes de quadro e telemetria.
     """
     try:
-        future_display = _encoder_pool.submit(_encode_jpeg, frame_display)
-        future_edges   = _encoder_pool.submit(_encode_jpeg, edges)
+        future_display = _encoder_pool.submit(encode_frame, frame_display)
+        future_edges   = _encoder_pool.submit(encode_frame, edges)
 
         shared_frames["NORMAL_FRAME"] = future_display.result()
         shared_frames["EDGES_FRAME"]  = future_edges.result()

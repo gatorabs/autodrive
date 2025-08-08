@@ -26,11 +26,14 @@ interface SystemInfo {
 interface LogsModalProps {
   logs: LogEntry[];
   onClearLogs: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const LogsModal = ({ logs, onClearLogs }: LogsModalProps) => {
+const LogsModal = ({ logs, onClearLogs, open, onOpenChange }: LogsModalProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [isOpen, setIsOpen] = useState(false);
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({
     process_count: 0,
     processes: [],
@@ -85,10 +88,11 @@ const LogsModal = ({ logs, onClearLogs }: LogsModalProps) => {
   };
 
   useEffect(() => {
+    if (!open) return;
     fetchProcesses();
-    const interval = setInterval(fetchProcesses, 5000);
+    const interval = setInterval(fetchProcesses, 8000);
     return () => clearInterval(interval);
-  }, []);
+  }, [open]);
 
   const filteredLogs = logs.filter(log => {
     const categoryMatch = selectedCategory === 'all' || log.category === selectedCategory;
@@ -118,7 +122,7 @@ const LogsModal = ({ logs, onClearLogs }: LogsModalProps) => {
     .reduce((acc, proc) => acc + proc.cpu_percent, 0);
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <div className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors duration-100 cursor-pointer flex items-center justify-center">
           <FileText className="h-6 w-6" />

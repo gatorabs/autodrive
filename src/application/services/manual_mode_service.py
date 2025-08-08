@@ -1,9 +1,8 @@
-import cv2
+from src.infrastructure.adapters.video.video_utility_process import encode_frame
 
 def publish(frame, shared_frames, lane_queue, lane_data, logger):
     try:
-        _, buffer = cv2.imencode('.jpg', frame)
-        shared_frames["TAB2_FRAME"] = buffer.tobytes()
+        shared_frames["TAB2_FRAME"] = encode_frame(frame)
     except Exception as e:
         logger.error(f"Erro ao codificar frames: {e}")
 

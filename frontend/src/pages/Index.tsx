@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import PerformanceMonitor from "@/components/PerformanceMonitor";
 import LogsModal from "@/components/LogsModal";
 import { useLogsContext } from "@/contexts/LogsContext";
+const RIGHT_SIGNAL_THRESH = 100;
+const LEFT_SIGNAL_THRESH = 80;
 
 const Index = () => {
   const [servoAngle, setServoAngle] = useState(0);
@@ -25,6 +27,7 @@ const Index = () => {
   const [previousDirection, setPreviousDirection] = useState(null);
   const [connectionError, setConnectionError] = useState(false);
   const { logs, addLog, clearLogs } = useLogsContext();
+  const [logsModalOpen, setLogsModalOpen] = useState(false);
   const connectionErrorRef = useRef(false);
 
   var rightSignalThresh = 100;
@@ -38,7 +41,12 @@ const Index = () => {
         const speed = data.car_info.CAR_SPEED_DATA;
         const running = data.running;
         const direction = data.car_info.CAR_DIRECTION_DATA;
-
+        const enrich = (base: string) => {
+          if (logsModalOpen && data.time_info) {
+            return `${base} | FPS: ${data.time_info.fps} | FrameTime: ${data.time_info.total_processing_time}ms`;
+          }
+          return base;
+        }; 
         setServoAngle(direction);
         setSystemRunning(running);
         setMotorRPM(speed);
@@ -46,14 +54,14 @@ const Index = () => {
         if (connectionErrorRef.current) {
           connectionErrorRef.current = false;
           setConnectionError(false);
-          addLog('success', 'system', 'Conexão restabelecida', 'Veículo voltou a responder.');
+          addLog('success', 'system', 'Conexão restabelecida', enrich('Veículo voltou a responder.'));
         }
 
         if (previousRunning !== running) {
           if (running) {
-            addLog('success', 'system', 'Sistema ativado', 'O veículo autônomo está ativo.');
+            addLog('success', 'system', 'Sistema ativado', enrich('O veículo autônomo está ativo.'));
           } else {
-            addLog('warning', 'system', 'Sistema desativado', 'O veículo autônomo foi desativado.');
+            addLog('warning', 'system', 'Sistema desativado', enrich('O veículo autônomo foi desativado.'));
           }
           setPreviousRunning(running);
         }
@@ -61,11 +69,11 @@ const Index = () => {
         // Verifica e loga somente se houve alteração no RPM
         if (previousRPM !== speed) {
           if (speed > 0) {
-            addLog('success', 'motor', 'Motor DC rodando', `RPM: ${speed}`);
+            addLog('success', 'motor', 'Motor DC rodando', enrich(`RPM: ${speed}`));
           } else if (speed === 0) {
-            addLog('warning', 'motor', 'Motor DC parado', 'RPM: 0');
+            addLog('warning', 'motor', 'Motor DC parado', enrich('RPM: 0'));
           } else if (speed < 0) {
-            addLog('error', 'motor', 'Motor DC em valor negativo inesperado', `RPM: ${speed}`);
+            addLog('error', 'motor', 'Motor DC em valor negativo inesperado', enrich(`RPM: ${speed}`));
           }
           setPreviousRPM(speed);
         }
@@ -106,13 +114,13 @@ const Index = () => {
             'Não foi possível obter dados do veículo. Verifique se o servidor está ativo.'
           );
           connectionErrorRef.current = true;
-          setConnectionError(true); 
+          setConnectionError(true);
         }
       });
   }, 500);
 
     return () => clearInterval(interval);
-  }, [previousRPM, previousRunning, previousDirection, addLog]);
+  }, [previousRPM, previousRunning, previousDirection, addLog, logsModalOpen]);
 
   useEffect(() => {
     if (!previousRunning && systemRunning) {
@@ -121,7 +129,7 @@ const Index = () => {
       });
     }
     setPreviousRunning(systemRunning);
-  }, [systemRunning]);
+  }, [previousRunning, systemRunning]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -140,7 +148,12 @@ const Index = () => {
             <div className="flex space-x-4">
               <TurnSignal direction="left" active={turnSignals.left} />
               <TurnSignal direction="right" active={turnSignals.right} />
-              <LogsModal logs={logs} onClearLogs={clearLogs} />
+              <LogsModal
+                logs={logs}
+                onClearLogs={clearLogs}
+                open={logsModalOpen}
+                onOpenChange={setLogsModalOpen}
+              />
             </div>
           </div>
         </header>

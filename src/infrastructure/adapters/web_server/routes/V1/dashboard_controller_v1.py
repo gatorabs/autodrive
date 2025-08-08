@@ -1,8 +1,7 @@
-from src.infrastructure.adapters.video.video_utility_process import generate_placeholder_image
+from src.infrastructure.adapters.video.video_utility_process import generate_placeholder_image, encode_frame
 from src.infrastructure.adapters.web_server import app_settings
 from flask import Response, jsonify
 import time
-import cv2
 
 def car_api_info(app, shared_controls):
     @app.route('/api/car-info')
@@ -27,7 +26,7 @@ def video_api_info(app, shared_frames, logger):
         )
 
     def generate_feed(shared_frames, key, logger):
-        interval = 0.05
+        interval = 0.03
         last_time = time.time()
 
         def yield_placeholder():
@@ -52,16 +51,7 @@ def video_api_info(app, shared_frames, logger):
             try:
                 frame = shared_frames.get(key)
                 if frame is not None:
-                    if isinstance(frame, (bytes, bytearray)):
-                        encoded = frame
-                    else:
-                        ok, buffer = cv2.imencode('.jpg', frame)
-                        if not ok:
-                            logger.error("Falha ao codificar frame para streaming")
-                            yield yield_placeholder()
-                            continue
-                        encoded = buffer.tobytes()
-
+                    encoded = encode_frame(frame)
                     yield (b'--frame\r\n'
                            b'Content-Type: image/jpeg\r\n\r\n' + encoded + b'\r\n')
                 else:
