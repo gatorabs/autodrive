@@ -1,6 +1,15 @@
 from src.infrastructure.adapters.detection.lane_detection import calculate_center_distance
 import cv2 as cv
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor
+
+_encoder_pool = ThreadPoolExecutor(max_workers=2)
+
+def _encode_jpeg(frame):
+    ok, buffer = cv.imencode('.jpg', frame)
+    if not ok:
+        raise RuntimeError("cv.imencode falhou")
+    return buffer.tobytes()
 
 def publish(frame_display,
             edges,
@@ -12,17 +21,16 @@ def publish(frame_display,
             avg_time,
             max_height,
             logger):
-
     """
-    Codifica quadros de exibição em JPEG, envia comandos de direção para a fila
+    Codifica quadros de exibição em JPEG em paralelo, envia comandos de direção para a fila
     e atualiza a memória compartilhada com bytes de quadro e telemetria.
     """
-
     try:
-        _, jpeg_display = cv.imencode('.jpg', frame_display)
-        _, jpeg_edges   = cv.imencode('.jpg', edges)
-        shared_frames["NORMAL_FRAME"] = jpeg_display.tobytes()
-        shared_frames["EDGES_FRAME"]   = jpeg_edges.tobytes()
+        future_display = _encoder_pool.submit(_encode_jpeg, frame_display)
+        future_edges   = _encoder_pool.submit(_encode_jpeg, edges)
+
+        shared_frames["NORMAL_FRAME"] = future_display.result()
+        shared_frames["EDGES_FRAME"]  = future_edges.result()
     except Exception as e:
         logger.error(f"Erro ao codificar frames: {e}")
 
