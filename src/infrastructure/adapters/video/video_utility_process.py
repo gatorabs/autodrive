@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 from src.infrastructure.adapters.video.video_process import VideoProcessor
+from src.infrastructure.utils.frame_encoder import encode_frame
 
 def toggle_named_window(is_enabled: bool, window_name: str, frame=None):
     if is_enabled and frame is not None:
@@ -16,8 +17,7 @@ def generate_placeholder_image():
     img = np.zeros((270, 480, 3), dtype=np.uint8)
     cv.putText(img, "Carregando Detector...", (50, 135),
                 cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-    ret, jpeg = cv.imencode('.jpg', img)
-    return jpeg.tobytes()
+    return encode_frame(img)
 
 def switch_video_source(video_processor, current_source, new_source, logger):
     if new_source != current_source:
