@@ -3,7 +3,7 @@ import cv2 as cv
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 
-from src.infrastructure.utils.frame_encoder import encode_frame
+from src.infrastructure.adapters.video.video_utility_process import encode_frame
 
 _encoder_pool = ThreadPoolExecutor(max_workers=2)
 

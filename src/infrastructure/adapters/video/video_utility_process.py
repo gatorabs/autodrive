@@ -1,7 +1,10 @@
+import io
+from typing import Union
+
 import cv2 as cv
 import numpy as np
+from PIL import Image
 from src.infrastructure.adapters.video.video_process import VideoProcessor
-from src.infrastructure.utils.frame_encoder import encode_frame
 
 def toggle_named_window(is_enabled: bool, window_name: str, frame=None):
     if is_enabled and frame is not None:
@@ -12,6 +15,17 @@ def toggle_named_window(is_enabled: bool, window_name: str, frame=None):
                 cv.destroyWindow(window_name)
         except cv.error:
             pass
+
+def encode_frame(frame: Union[np.ndarray, bytes, bytearray]) -> bytes:
+    if isinstance(frame, (bytes, bytearray)):
+        return bytes(frame)
+    if isinstance(frame, np.ndarray):
+        rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+        image = Image.fromarray(rgb)
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG")
+        return buffer.getvalue()
+    raise TypeError("Frame must be a numpy array or bytes")
 
 def generate_placeholder_image():
     img = np.zeros((270, 480, 3), dtype=np.uint8)

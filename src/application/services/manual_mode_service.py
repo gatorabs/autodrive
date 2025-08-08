@@ -1,4 +1,4 @@
-from src.infrastructure.utils.frame_encoder import encode_frame
+from src.infrastructure.adapters.video.video_utility_process import encode_frame
 
 def publish(frame, shared_frames, lane_queue, lane_data, logger):
     try:
