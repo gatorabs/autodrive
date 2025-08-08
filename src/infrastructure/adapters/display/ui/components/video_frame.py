@@ -27,10 +27,13 @@ class VideoFrame(ctk.CTkFrame):
         self.modal_image_label = None
         self.current_image_full = None
 
+        self.after(500, self._check_webview_flag)
+
     def update_image(self, frame):
         if self.shared_controls.get("WEBVIEW"):
             self.image_label.configure(image=self.placeholder_ctk_image, text="Webview ATIVO.")
             self.image_label.image = self.placeholder_ctk_image
+            self.current_image_full = None
             self._close_modal()
             return
         if self.modal and self.modal.winfo_exists():
@@ -86,3 +89,11 @@ class VideoFrame(ctk.CTkFrame):
             ctk_image = CTkImage(light_image=resized, size=(FRAME_WIDTH_T, FRAME_HEIGHT_T))
             self.image_label.configure(image=ctk_image, text="")
             self.image_label.image = ctk_image
+
+    def _check_webview_flag(self):
+        if self.shared_controls.get("WEBVIEW"):
+            self.image_label.configure(image=self.placeholder_ctk_image, text="Webview ATIVO.")
+            self.image_label.image = self.placeholder_ctk_image
+            self.current_image_full = None
+            self._close_modal()
+        self.after(200, self._check_webview_flag)
