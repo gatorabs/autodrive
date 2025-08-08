@@ -26,7 +26,7 @@ def video_api_info(app, shared_frames, logger):
         )
 
     def generate_feed(shared_frames, key, logger):
-        interval = 0.05
+        interval = 0.03
         last_time = time.time()
 
         def yield_placeholder():
