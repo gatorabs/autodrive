@@ -47,13 +47,6 @@ def process_traffic_light_roi(roi):
     return active_color, color_bgr, traffic_light_state
 
 def publish_results(shared_serial_data, shared_frames, person_detected, traffic_light_state, frame):
-    """Publica os resultados de detecção.
-
-    A codificação do frame é adiada para o momento do consumo, evitando
-    processamento desnecessário quando o uso é local. Consumidores que
-    necessitam de bytes (ex.: streaming) devem realizar a codificação.
-    """
-
     shared_serial_data[2] = 1 if person_detected else 0
     shared_serial_data[1] = traffic_light_state
 
