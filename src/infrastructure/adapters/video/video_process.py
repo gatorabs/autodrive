@@ -22,6 +22,16 @@ class VideoProcessor:
         if not self.cap.isOpened():
             raise Exception(f"Não foi possível abrir a fonte de vídeo: {video_source}")
 
+        if not self.is_video:
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.frame_width)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.frame_height)
+
+        actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.resize_needed = (
+                actual_width != self.frame_width or actual_height != self.frame_height
+        )
+
     def get_frame(self):
         ret, frame = self.cap.read()
 
@@ -34,7 +44,8 @@ class VideoProcessor:
             else:
                 raise Exception("Erro ao capturar frame da câmera")
 
-        frame = cv2.resize(frame, (self.frame_width, self.frame_height))
+        if self.resize_needed:
+            frame = cv2.resize(frame, (self.frame_width, self.frame_height))
         return frame
 
     def release(self):
