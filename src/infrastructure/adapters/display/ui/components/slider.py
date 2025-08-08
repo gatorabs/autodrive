@@ -103,7 +103,7 @@ class SliderSection(ctk.CTkFrame):
         value_entry.grid(row=0, column=2, padx=(5, 10))
         value_entry.bind(
             "<Return>",
-            lambda event, n=name: self._on_value_edit(n),
+            lambda event, n=name: self._on_value_submit(event, n),
         )
         value_entry.bind(
             "<FocusOut>",
@@ -157,3 +157,8 @@ class SliderSection(ctk.CTkFrame):
         value = max(min(value, to), from_)
         slider_data["slider"].set(value)
         self._on_slider_change(name, value, step)
+
+    def _on_value_submit(self, event: Any, name: str) -> None:
+        """Validate the typed value and move focus away from the entry."""
+        self._on_value_edit(name)
+        event.widget.master.focus_set()
