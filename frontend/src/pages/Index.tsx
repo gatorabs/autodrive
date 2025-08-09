@@ -34,16 +34,24 @@ const Index = () => {
   const { logs, addLog, clearLogs } = useLogsContext();
   const [logsModalOpen, setLogsModalOpen] = useState(false);
   const connectionErrorRef = useRef(false);
-
   const navigate = useNavigate();
 
-  const handleManualModeConfirm = () => {
+  const handleManualModeConfirm = async () => {
     setIsManualModeModalOpen(false);
+    try {
+      await fetch('http://192.168.15.12:5000/api/v2/manual-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: true })
+      });
+    } catch (err) {
+      console.error('Erro ao ativar modo manual:', err);
+    }
     navigate('/manual-mode');
   };
 
-  var rightSignalThresh = 100;
-  var leftSignalThresh = 80;
+  const rightSignalThresh = 100;
+  const leftSignalThresh = 80;
 
   useEffect(() => {
   const interval = setInterval(() => {

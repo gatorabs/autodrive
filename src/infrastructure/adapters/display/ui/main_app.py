@@ -257,11 +257,22 @@ class MainApp(ctk.CTk):
 
     def update_loop(self):
         try:
+            shared_manual = self.shared_controls.get("MANUAL_MD", False)
+            tk_manual = self.tk_controls.get("MANUAL_MD", False)
+
+            if shared_manual != tk_manual:
+                self.tk_controls["MANUAL_MD"] = shared_manual
+                refresh_json({"MANUAL_MD": shared_manual}, DEFAULT_UI_PATH)
+                if shared_manual:
+                    self.tab_manager.select_tab("Manual Mode")
+                    self._sync_manual_controls()
+                else:
+                    self.tab_manager.select_tab("Home")
+
             if not self.tk_controls.get("MANUAL_MD", False):
                 self.normal_frame.update_image(self.shared_frames.get("NORMAL_FRAME"))
                 self.edges_frame.update_image(self.shared_frames.get("EDGES_FRAME"))
                 self.object_frame.update_image(self.shared_frames.get("OBJECT_FRAME"))
-
             else:
                 self.central_video_frame_manual_tab.update_image(
                     self.shared_frames.get("TAB2_FRAME")

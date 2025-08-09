@@ -12,6 +12,19 @@ const ManualMode = () => {
     const [frameTime, setFrameTime] = useState(0);
     const [isRunning, setIsRunning] = useState(true);
 
+    const handleBack = async () => {
+        try {
+            await fetch('http://192.168.15.12:5000/api/v2/manual-mode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active: false })
+            });
+        } catch (err) {
+            console.error('Erro ao desativar modo manual:', err);
+        }
+        navigate('/');
+    };
+
     const handleJoystickMove = (data: { x: number; y: number }) => {
         setJoystickData(data);
         // Aqui você pode enviar os dados do joystick para o backend
@@ -51,7 +64,7 @@ const ManualMode = () => {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate('/')}
+                                onClick={handleBack}
                                 className="bg-gray-700 text-gray-300 hover:bg-gray-700"
                             >
                                 <ArrowLeft className="h-4 w-4 mr-2" />
