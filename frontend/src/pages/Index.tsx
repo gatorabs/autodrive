@@ -166,12 +166,12 @@ const Index = () => {
                 open={logsModalOpen}
                 onOpenChange={setLogsModalOpen}
               />
-              <Button
-                variant="outline"
-                size="sm"
+              <div
                 onClick={() => setIsManualModeModalOpen(true)}
-                className="bg-gray-700 text-gray-300 hover:bg-gray-700 h-10 w-10"
-              ><Cog className="h-4 w-4" /></Button>
+                className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors duration-100 cursor-pointer flex items-center justify-center"
+              >
+                <Cog className="h-6 w-6" />
+              </div>
             </div>
           </div>
         </header>

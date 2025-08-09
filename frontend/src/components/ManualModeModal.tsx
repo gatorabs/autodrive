@@ -57,7 +57,7 @@ const ManualModeModal: React.FC<ManualModeModalProps> = ({
           <Button
             variant="outline"
             onClick={onClose}
-            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+            className="bg-gray-700 text-gray-300 hover:bg-gray-700"
           >
             Cancelar
           </Button>

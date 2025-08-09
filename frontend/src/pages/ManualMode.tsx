@@ -26,7 +26,7 @@ const ManualMode = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/')}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                className="bg-gray-700 text-gray-300 hover:bg-gray-700"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar
