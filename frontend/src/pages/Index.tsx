@@ -5,7 +5,6 @@ import CANModule from "@/components/CANModule";
 import TurnSignal from "@/components/TurnSignal";
 import { toast } from "sonner";
 import ManualModeModal from "@/components/ManualModeModal";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Cog } from "lucide-react";
 import PerformanceMonitor from "@/components/PerformanceMonitor";
@@ -35,8 +34,6 @@ const Index = () => {
   const [logsModalOpen, setLogsModalOpen] = useState(false);
   const connectionErrorRef = useRef(false);
 
-  const navigate = useNavigate();
-
   const handleManualModeConfirm = async () => {
     setIsManualModeModalOpen(false);
     try {
@@ -48,7 +45,7 @@ const Index = () => {
     } catch (err) {
       console.error('Erro ao ativar modo manual:', err);
     }
-    navigate('/manual-mode');
+    window.location.href = '/manual-mode';
   };
 
   var rightSignalThresh = 100;
