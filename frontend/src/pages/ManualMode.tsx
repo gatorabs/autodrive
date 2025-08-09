@@ -10,6 +10,7 @@ const ManualMode = () => {
     const [joystickData, setJoystickData] = useState({ x: 0, y: 0 });
     const [fps, setFps] = useState(0);
     const [frameTime, setFrameTime] = useState(0);
+    const [isRunning, setIsRunning] = useState(true);
 
     const handleJoystickMove = (data: { x: number; y: number }) => {
         setJoystickData(data);
@@ -26,10 +27,14 @@ const ManualMode = () => {
                         setFps(data.time_info.fps);
                         setFrameTime(data.time_info.total_processing_time);
                     }
+                    if (typeof data.running === 'boolean') {
+                        setIsRunning(data.running);
+                    }
                 })
                 .catch(() => {
                     setFps(0);
                     setFrameTime(0);
+                    setIsRunning(false);
                 });
         }, 500);
 
@@ -57,8 +62,9 @@ const ManualMode = () => {
 
                         <div className="flex items-center space-x-4">
                             <div className="bg-orange-500/20 border border-orange-500/30 px-4 py-2 rounded-md">
-                                <span className="text-orange-300">● Modo Manual Ativo</span>
-                            </div>
+                                <span className={isRunning ? 'text-orange-300' : 'text-red-400'}>
+                                    ● {isRunning ? 'Modo Manual Ativo' : 'Sistema Inativo'}
+                                </span>                            </div>
                             <PerformanceMonitor fps={fps} frameTime={frameTime} />
                         </div>
                     </div>
