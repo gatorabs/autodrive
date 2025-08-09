@@ -4,6 +4,10 @@ import MotorStatus from "@/components/MotorStatus";
 import CANModule from "@/components/CANModule";
 import TurnSignal from "@/components/TurnSignal";
 import { toast } from "sonner";
+import ManualModeModal from "@/components/ManualModeModal";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Cog } from "lucide-react";
 import PerformanceMonitor from "@/components/PerformanceMonitor";
 import LogsModal from "@/components/LogsModal";
 import { useLogsContext } from "@/contexts/LogsContext";
@@ -14,6 +18,7 @@ const Index = () => {
   const [servoAngle, setServoAngle] = useState(0);
   const [motorRPM, setMotorRPM] = useState(0);
   const [fps, setFps] = useState(0);
+  const [isManualModeModalOpen, setIsManualModeModalOpen] = useState(false);
   const [frameTime, setFrameTime] = useState(0);
   const [canModules, setCanModules] = useState([
     { id: 1, name: "Módulo Principal", connected: false },
@@ -29,6 +34,13 @@ const Index = () => {
   const { logs, addLog, clearLogs } = useLogsContext();
   const [logsModalOpen, setLogsModalOpen] = useState(false);
   const connectionErrorRef = useRef(false);
+
+  const navigate = useNavigate();
+
+  const handleManualModeConfirm = () => {
+    setIsManualModeModalOpen(false);
+    navigate('/manual-mode');
+  };
 
   var rightSignalThresh = 100;
   var leftSignalThresh = 80;
@@ -154,6 +166,12 @@ const Index = () => {
                 open={logsModalOpen}
                 onOpenChange={setLogsModalOpen}
               />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsManualModeModalOpen(true)}
+                className="bg-gray-700 text-gray-300 hover:bg-gray-700 h-10 w-10"
+              ><Cog className="h-4 w-4" /></Button>
             </div>
           </div>
         </header>
@@ -203,6 +221,11 @@ const Index = () => {
           </div>
         </div>
       </div>
+      <ManualModeModal
+        isOpen={isManualModeModalOpen}
+        onClose={() => setIsManualModeModalOpen(false)}
+        onConfirm={handleManualModeConfirm}
+      />
     </div>
   );
 };
