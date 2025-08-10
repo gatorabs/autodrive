@@ -12,11 +12,6 @@ const ManualMode = () => {
     const [frameTime, setFrameTime] = useState(0);
     const [isRunning, setIsRunning] = useState(true);
 
-    const [isLoading, setIsLoading] = useState(true);
-    const [hasError, setHasError] = useState(false);
-    const [imgKey, setImgKey] = useState(0);
-    const streamUrl = 'http://192.168.15.12:5000/video_feed/TAB2_FRAME';
-
     const handleBack = async () => {
         try {
             await fetch('http://192.168.15.12:5000/api/v2/manual-mode', {
@@ -63,34 +58,6 @@ const ManualMode = () => {
         return () => clearInterval(interval);
     }, [navigate]);
 
-    useEffect(() => {
-        const checkInterval = setInterval(() => {
-            const testImg = new Image();
-            testImg.src = streamUrl + `?check=${Date.now()}`;
-            testImg.onload = () => {
-                if (hasError) {
-                    setHasError(false);
-                    setIsLoading(true);
-                    setImgKey(prev => prev + 1);
-                }
-            };
-            testImg.onerror = () => {
-                if (!hasError) {
-                    setHasError(true);
-                    setIsLoading(false);
-                }
-            };
-        }, 3000);
-
-        return () => clearInterval(checkInterval);
-    }, [streamUrl, hasError]);
-
-    useEffect(() => {
-        setIsLoading(true);
-        setHasError(false);
-        setImgKey(prev => prev + 1);
-    }, []);
-
     return (
         <div className="min-h-screen bg-gray-900 text-white">
             <div className="container mx-auto p-4">
@@ -133,54 +100,29 @@ const ManualMode = () => {
                             </div>
 
                             <div className="aspect-video bg-gray-900 relative flex items-center justify-center">
-                                {isLoading && !hasError && (
-                                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/60">
-                                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+                                <img
+                                    src="http://192.168.15.12:5000/video_feed/TAB2_FRAME"
+                                    alt="Feed da câmera frontal"
+                                    className="absolute inset-0 w-full h-full object-contain"
+                                />
+
+                                {/* Camera info overlay */}
+                                <div className="absolute top-4 left-4 bg-black/50 px-3 py-2 rounded text-sm">
+                                    <div>CAM-01 | 1920x1080 | 30fps</div>
+                                    <div className="text-green-400">MANUAL MODE</div>
+                                </div>
+
+                                {/* Timestamp */}
+                                <div className="absolute bottom-4 right-4 bg-black/50 px-3 py-2 rounded text-sm font-mono">
+                                    {new Date().toLocaleTimeString()}
+                                </div>
+
+                                {/* Center crosshair */}
+                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                    <div className="w-8 h-8 border-2 border-red-400 rounded-full opacity-60">
+                                        <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-red-400 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
                                     </div>
-                                )}
-
-                                {hasError ? (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-red-400 bg-black/70 z-10">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                        <span>Sem sinal de vídeo</span>
-                                    </div>
-                                ) : (
-                                    <img
-                                        key={imgKey}
-                                        src={`${streamUrl}?refresh=${imgKey}`}
-                                        alt="Feed da câmera frontal"
-                                        className="absolute inset-0 w-full h-full object-contain"
-                                        onLoad={() => setIsLoading(false)}
-                                        onError={() => {
-                                            setHasError(true);
-                                            setIsLoading(false);
-                                        }}
-                                    />
-                                )}
-
-                                {!hasError && (
-                                    <>
-                                        {/* Camera info overlay */}
-                                        <div className="absolute top-4 left-4 bg-black/50 px-3 py-2 rounded text-sm">
-                                            <div>CAM-01 | 1920x1080 | 30fps</div>
-                                            <div className="text-green-400">MANUAL MODE</div>
-                                        </div>
-
-                                        {/* Timestamp */}
-                                        <div className="absolute bottom-4 right-4 bg-black/50 px-3 py-2 rounded text-sm font-mono">
-                                            {new Date().toLocaleTimeString()}
-                                        </div>
-
-                                        {/* Center crosshair */}
-                                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                                            <div className="w-8 h-8 border-2 border-red-400 rounded-full opacity-60">
-                                                <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-red-400 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
+                                </div>
                             </div>
                         </div>
                     </div>
