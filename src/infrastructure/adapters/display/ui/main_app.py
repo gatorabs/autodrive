@@ -269,6 +269,11 @@ class MainApp(ctk.CTk):
                 else:
                     self.tab_manager.select_tab("Home")
 
+            if self.tk_controls.get("MANUAL_MD", False):
+                car_info = self.shared_controls.get("CAR_INFO", {})
+                if car_info != getattr(self.manual_controls, "car_data", {}):
+                    self._sync_manual_controls()
+
             if not self.tk_controls.get("MANUAL_MD", False):
                 self.normal_frame.update_image(self.shared_frames.get("NORMAL_FRAME"))
                 self.edges_frame.update_image(self.shared_frames.get("EDGES_FRAME"))
