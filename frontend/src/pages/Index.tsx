@@ -58,6 +58,10 @@ const Index = () => {
     fetch("http://192.168.15.12:5000/api/car-info")
       .then(res => res.json())
       .then(data => {
+        if (data.manual_mode && data.webview) {
+          navigate('/manual-mode');
+          return;
+        }
         const speed = data.car_info.CAR_SPEED_DATA;
         const running = data.running;
         const direction = data.car_info.CAR_DIRECTION_DATA;
@@ -140,7 +144,7 @@ const Index = () => {
   }, 500);
 
     return () => clearInterval(interval);
-  }, [previousRPM, previousRunning, previousDirection, addLog, logsModalOpen]);
+  }, [previousRPM, previousRunning, previousDirection, addLog, logsModalOpen, navigate]);
 
   useEffect(() => {
     if (!previousRunning && systemRunning) {

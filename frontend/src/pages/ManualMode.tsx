@@ -36,6 +36,10 @@ const ManualMode = () => {
             fetch('http://192.168.15.12:5000/api/car-info')
                 .then(res => res.json())
                 .then(data => {
+                    if (!data.manual_mode && data.webview) {
+                        navigate('/');
+                        return;
+                    }
                     if (data.time_info) {
                         setFps(data.time_info.fps);
                         setFrameTime(data.time_info.total_processing_time);
@@ -52,7 +56,7 @@ const ManualMode = () => {
         }, 500);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [navigate]);
 
     return (
         <div className="min-h-screen bg-gray-900 text-white">
