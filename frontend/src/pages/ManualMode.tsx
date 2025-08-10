@@ -32,8 +32,11 @@ const ManualMode = () => {
 
     const handleJoystickMove = (data: { x: number; y: number }) => {
         setJoystickData(data);
-        // Aqui você pode enviar os dados do joystick para o backend
-        console.log('Joystick movement:', data);
+        fetch('http://192.168.15.12:5000/api/v2/manual-controls', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).catch(err => console.error('Erro ao enviar joystick:', err));
     };
 
     useEffect(() => {
