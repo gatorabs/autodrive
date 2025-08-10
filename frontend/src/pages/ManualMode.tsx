@@ -110,7 +110,6 @@ const ManualMode = () => {
                                 <ArrowLeft className="h-4 w-4 mr-2" />
                                 Voltar
                             </Button>
-                            <h1 className="text-3xl font-bold">Modo Manual</h1>
                         </div>
 
                         <div className="flex items-center space-x-4">
@@ -126,8 +125,8 @@ const ManualMode = () => {
                 {/* Main Content */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Main Camera Feed */}
-                    <div className="lg:col-span-2">
-                        <div className="bg-gray-800 rounded-lg overflow-hidden">
+                    <div className="lg:col-span-2 h-full">
+                        <div className="bg-gray-800 rounded-lg overflow-hidden h-full flex flex-col">
                             <div className="bg-gray-700 px-4 py-2 border-b border-gray-600">
                                 <h3 className="font-semibold flex items-center">
                                     <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
@@ -135,7 +134,7 @@ const ManualMode = () => {
                                 </h3>
                             </div>
 
-                            <div className="aspect-video bg-gray-900 relative flex items-center justify-center">
+                            <div className="bg-gray-900 relative flex-1 flex items-center justify-center">
                                 {isLoading && !hasError && (
                                     <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/60">
                                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
@@ -237,21 +236,6 @@ const ManualMode = () => {
                                     <span className="text-green-400">Operacional</span>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Emergency Controls */}
-                        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
-                            <h4 className="text-red-300 font-semibold mb-2">Controles de Emergência</h4>
-                            <Button
-                                variant="destructive"
-                                className="w-full bg-red-600 hover:bg-red-700"
-                                onClick={() => {
-                                    setJoystickData({ x: 0, y: 0 });
-                                    // Aqui você pode adicionar lógica de parada de emergência
-                                }}
-                            >
-                                PARADA DE EMERGÊNCIA
-                            </Button>
                         </div>
                     </div>
                 </div>
