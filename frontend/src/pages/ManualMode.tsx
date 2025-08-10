@@ -100,33 +100,27 @@ const ManualMode = () => {
                             </div>
 
                             <div className="aspect-video bg-gray-900 relative flex items-center justify-center">
-                                {/* Simulated camera feed */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900">
-                                    {/* Grid overlay for camera feed simulation */}
-                                    <div className="absolute inset-0 opacity-20">
-                                        <div className="grid grid-cols-8 grid-rows-6 h-full">
-                                            {Array.from({ length: 48 }).map((_, i) => (
-                                                <div key={i} className="border border-gray-600"></div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                <img
+                                    src="http://192.168.15.12:5000/video_feed/TAB2_FRAME"
+                                    alt="Feed da câmera frontal"
+                                    className="absolute inset-0 w-full h-full object-contain"
+                                />
 
-                                    {/* Camera info overlay */}
-                                    <div className="absolute top-4 left-4 bg-black/50 px-3 py-2 rounded text-sm">
-                                        <div>CAM-01 | 1920x1080 | 30fps</div>
-                                        <div className="text-green-400">MANUAL MODE</div>
-                                    </div>
+                                {/* Camera info overlay */}
+                                <div className="absolute top-4 left-4 bg-black/50 px-3 py-2 rounded text-sm">
+                                    <div>CAM-01 | 1920x1080 | 30fps</div>
+                                    <div className="text-green-400">MANUAL MODE</div>
+                                </div>
 
-                                    {/* Timestamp */}
-                                    <div className="absolute bottom-4 right-4 bg-black/50 px-3 py-2 rounded text-sm font-mono">
-                                        {new Date().toLocaleTimeString()}
-                                    </div>
+                                {/* Timestamp */}
+                                <div className="absolute bottom-4 right-4 bg-black/50 px-3 py-2 rounded text-sm font-mono">
+                                    {new Date().toLocaleTimeString()}
+                                </div>
 
-                                    {/* Center crosshair */}
-                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                                        <div className="w-8 h-8 border-2 border-red-400 rounded-full opacity-60">
-                                            <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-red-400 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
-                                        </div>
+                                {/* Center crosshair */}
+                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                    <div className="w-8 h-8 border-2 border-red-400 rounded-full opacity-60">
+                                        <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-red-400 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
                                     </div>
                                 </div>
                             </div>
