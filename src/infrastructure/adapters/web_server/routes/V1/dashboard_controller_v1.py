@@ -10,6 +10,8 @@ def car_api_info(app, shared_controls):
             return jsonify({"error": "Server is shutting down"}), 503
         info = {
             "running": shared_controls.get("RUNNING", False),
+            "manual_mode": shared_controls.get("MANUAL_MD", False),
+            "webview": shared_controls.get("WEBVIEW", False),
             "car_info": shared_controls.get("CAR_INFO", {}),
             "time_info": shared_controls.get("TIME_INFO", [])
         }

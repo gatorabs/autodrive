@@ -34,22 +34,34 @@ const Index = () => {
   const { logs, addLog, clearLogs } = useLogsContext();
   const [logsModalOpen, setLogsModalOpen] = useState(false);
   const connectionErrorRef = useRef(false);
-
   const navigate = useNavigate();
 
-  const handleManualModeConfirm = () => {
+  const handleManualModeConfirm = async () => {
     setIsManualModeModalOpen(false);
+    try {
+      await fetch('http://192.168.15.12:5000/api/v2/manual-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: true })
+      });
+    } catch (err) {
+      console.error('Erro ao ativar modo manual:', err);
+    }
     navigate('/manual-mode');
   };
 
-  var rightSignalThresh = 100;
-  var leftSignalThresh = 80;
+  const rightSignalThresh = 100;
+  const leftSignalThresh = 80;
 
   useEffect(() => {
   const interval = setInterval(() => {
     fetch("http://192.168.15.12:5000/api/car-info")
       .then(res => res.json())
       .then(data => {
+        if (data.manual_mode && data.webview) {
+          navigate('/manual-mode');
+          return;
+        }
         const speed = data.car_info.CAR_SPEED_DATA;
         const running = data.running;
         const direction = data.car_info.CAR_DIRECTION_DATA;
@@ -132,7 +144,7 @@ const Index = () => {
   }, 500);
 
     return () => clearInterval(interval);
-  }, [previousRPM, previousRunning, previousDirection, addLog, logsModalOpen]);
+  }, [previousRPM, previousRunning, previousDirection, addLog, logsModalOpen, navigate]);
 
   useEffect(() => {
     if (!previousRunning && systemRunning) {
