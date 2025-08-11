@@ -5,8 +5,14 @@ def manual_video_process(shared_controls, shared_frames, lane_queue):
     current_source = None
     video_proc = None
 
+    total_processing_time = 0
+    frame_count = 0
+    avg_time = 0
+    fps = 0
+
     try:
         while shared_controls.get("MANUAL_MD", False):
+            start_time = time.time()
             new_source = shared_controls.get("LANE_SOURCE_TAB2")
 
             video_proc, current_source = switch_video_source(
@@ -21,11 +27,23 @@ def manual_video_process(shared_controls, shared_frames, lane_queue):
                 logger.error("Frame não capturado. Cheque o vídeo ou câmera.")
                 continue
 
-            publish(frame=frame,
-                    shared_frames=shared_frames,
-                    lane_queue=lane_queue,
-                    lane_data=shared_controls["CAR_INFO"],
-                    logger=logger)
+            frame_count, fps, avg_time, total_processing_time = update_processing_time(
+                logger=logger,
+                start_time=start_time,
+                total_time=total_processing_time,
+                frame_count=frame_count
+            )
+
+            publish(
+                frame=frame,
+                shared_frames=shared_frames,
+                lane_queue=lane_queue,
+                lane_data=shared_controls["CAR_INFO"],
+                fps=fps,
+                avg_time=avg_time,
+                shared_controls=shared_controls,
+                logger=logger
+            )
 
     except Exception as e:
         logger.error(f"Erro no modo manual: {e}")

@@ -104,10 +104,10 @@ class MainApp(ctk.CTk):
         )
 
         if box.get() == "Sim":
-            self.shared_controls["MANUAL_MD"] = False
             self.shared_controls["WEBVIEW"] = False
+            self.shared_controls["MANUAL_MD"] = False
             self.shared_controls["RUNNING"] = False
-            refresh_json({"MANUAL_MD": False}, DEFAULT_UI_PATH)
+            refresh_json({"MANUAL_MD": False, "WEBVIEW": False}, DEFAULT_UI_PATH)
             self.destroy()
 
     def _build_home(self):
