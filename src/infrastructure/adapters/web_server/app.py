@@ -24,7 +24,7 @@ def create_app(frames_dict, controls_dict):
     shutdown_server(app)
     car_api_info(app, shared_controls)
     video_api_info(app, shared_frames, logger)
-    process_api_info(app)
+    process_api_info(app, shared_controls)
 
     return app
 

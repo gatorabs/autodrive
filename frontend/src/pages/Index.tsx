@@ -4,6 +4,10 @@ import MotorStatus from "@/components/MotorStatus";
 import CANModule from "@/components/CANModule";
 import TurnSignal from "@/components/TurnSignal";
 import { toast } from "sonner";
+import ManualModeModal from "@/components/ManualModeModal";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Cog } from "lucide-react";
 import PerformanceMonitor from "@/components/PerformanceMonitor";
 import LogsModal from "@/components/LogsModal";
 import { useLogsContext } from "@/contexts/LogsContext";
@@ -14,6 +18,7 @@ const Index = () => {
   const [servoAngle, setServoAngle] = useState(0);
   const [motorRPM, setMotorRPM] = useState(0);
   const [fps, setFps] = useState(0);
+  const [isManualModeModalOpen, setIsManualModeModalOpen] = useState(false);
   const [frameTime, setFrameTime] = useState(0);
   const [canModules, setCanModules] = useState([
     { id: 1, name: "Módulo Principal", connected: false },
@@ -29,15 +34,34 @@ const Index = () => {
   const { logs, addLog, clearLogs } = useLogsContext();
   const [logsModalOpen, setLogsModalOpen] = useState(false);
   const connectionErrorRef = useRef(false);
+  const navigate = useNavigate();
 
-  var rightSignalThresh = 100;
-  var leftSignalThresh = 80;
+  const handleManualModeConfirm = async () => {
+    setIsManualModeModalOpen(false);
+    try {
+      await fetch('http://192.168.15.12:5000/api/v2/manual-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: true })
+      });
+    } catch (err) {
+      console.error('Erro ao ativar modo manual:', err);
+    }
+    navigate('/manual-mode');
+  };
+
+  const rightSignalThresh = 100;
+  const leftSignalThresh = 80;
 
   useEffect(() => {
   const interval = setInterval(() => {
     fetch("http://192.168.15.12:5000/api/car-info")
       .then(res => res.json())
       .then(data => {
+        if (data.manual_mode && data.webview) {
+          navigate('/manual-mode');
+          return;
+        }
         const speed = data.car_info.CAR_SPEED_DATA;
         const running = data.running;
         const direction = data.car_info.CAR_DIRECTION_DATA;
@@ -120,7 +144,7 @@ const Index = () => {
   }, 500);
 
     return () => clearInterval(interval);
-  }, [previousRPM, previousRunning, previousDirection, addLog, logsModalOpen]);
+  }, [previousRPM, previousRunning, previousDirection, addLog, logsModalOpen, navigate]);
 
   useEffect(() => {
     if (!previousRunning && systemRunning) {
@@ -154,6 +178,12 @@ const Index = () => {
                 open={logsModalOpen}
                 onOpenChange={setLogsModalOpen}
               />
+              <div
+                onClick={() => setIsManualModeModalOpen(true)}
+                className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors duration-100 cursor-pointer flex items-center justify-center"
+              >
+                <Cog className="h-6 w-6" />
+              </div>
             </div>
           </div>
         </header>
@@ -203,6 +233,11 @@ const Index = () => {
           </div>
         </div>
       </div>
+      <ManualModeModal
+        isOpen={isManualModeModalOpen}
+        onClose={() => setIsManualModeModalOpen(false)}
+        onConfirm={handleManualModeConfirm}
+      />
     </div>
   );
 };
