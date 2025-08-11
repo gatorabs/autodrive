@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import PerformanceMonitor from '@/components/PerformanceMonitor';
 import VirtualJoystick from '@/components/VirtualJoystick';
+import DisableManualModeModal from '@/components/DisableManualModeModal';
 
 const ManualMode = () => {
     const navigate = useNavigate();
@@ -15,9 +16,11 @@ const ManualMode = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [imgKey, setImgKey] = useState(0);
+    const [isExitModalOpen, setIsExitModalOpen] = useState(false);
     const streamUrl = 'http://192.168.15.12:5000/video_feed/TAB2_FRAME';
 
-    const handleBack = async () => {
+    const handleBackConfirm = async () => {
+        setIsExitModalOpen(false);
         try {
             await fetch('http://192.168.15.12:5000/api/v2/manual-mode', {
                 method: 'POST',
@@ -29,6 +32,7 @@ const ManualMode = () => {
         }
         navigate('/');
     };
+    const handleBack = () => setIsExitModalOpen(true);
 
     const handleJoystickMove = (data: { x: number; y: number }) => {
         setJoystickData(data);
@@ -240,6 +244,11 @@ const ManualMode = () => {
                     </div>
                 </div>
             </div>
+            <DisableManualModeModal
+                isOpen={isExitModalOpen}
+                onClose={() => setIsExitModalOpen(false)}
+                onConfirm={handleBackConfirm}
+            />
         </div>
     );
 };
