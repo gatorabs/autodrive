@@ -38,7 +38,6 @@ def manual_video_process(shared_controls, shared_frames, lane_queue):
                 frame=frame,
                 shared_frames=shared_frames,
                 lane_queue=lane_queue,
-                lane_data=shared_controls["CAR_INFO"],
                 fps=fps,
                 avg_time=avg_time,
                 shared_controls=shared_controls,
