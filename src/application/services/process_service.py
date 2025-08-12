@@ -25,41 +25,44 @@ class ProcessManager:
         self.lane_proc = None
         self.object_proc = None
         self.manual_proc = None
+        self.ui_proc = None
+        self.sender_proc = None
         self.logger = Logger("ProcessManager")
 
     def create_all_processes(self):
+        self.processes.clear()
         self._add_ui_process()
         if self.shared_controls.get("SEND_DATA"):
             self._add_sender_process()
         return self.processes
 
-    def _create_process(self, name, target, **kwargs):
-        process = mp.Process(
-            name=name,
-            target=target,
-            kwargs=kwargs
-        )
-        self.processes.append(process)
-
     def _add_ui_process(self):
-        self._create_process(
-            name="tk",
-            target=launch_homepage,
+        self._start_process(
+            "ui_proc",
+            "tk",
+            launch_homepage,
+            None,
             shared_frames=self.shared_frames,
             tk_controls=self.tk_controls,
             shared_controls=self.shared_controls,
-            lane_queue=self.lane_queue
+            lane_queue=self.lane_queue,
         )
+        if self.ui_proc:
+            self.processes.append(self.ui_proc)
 
     def _add_sender_process(self):
-        self._create_process(
-            name="sender",
-            target=data_sender_process,
+        self._start_process(
+            "sender_proc",
+            "sender",
+            data_sender_process,
+            None,
             lane_queue=self.lane_queue,
             object_queue=self.object_queue,
             shared_controls=self.shared_controls,
-            tk_controls=self.tk_controls
+            tk_controls=self.tk_controls,
         )
+        if self.sender_proc:
+            self.processes.append(self.sender_proc)
 
     def _start_process(self, attr_name, process_name, target, log_msg=None, *args, **kwargs):
         proc = getattr(self, attr_name)
@@ -119,48 +122,63 @@ class ProcessManager:
         self.terminate_object_process()
 
     def handle_lane_object_processes(self, current_manual_mode, last_manual_mode):
-        if current_manual_mode != last_manual_mode:
-            if not current_manual_mode:
-                self._terminate_process("manual_proc", "Encerrando Manual Process.")
-                self.start_detection_processes()
+        def enable_manual_mode():
+            self.terminate_detection_processes()
+            self._start_process(
+                "manual_proc",
+                "manual_video",
+                manual_video_process,
+                "Inicializando Manual Process.",
+                shared_controls=self.shared_controls,
+                shared_frames=self.shared_frames,
+                lane_queue=self.lane_queue,
+            )
 
-            else:
-                self.terminate_detection_processes()
-                self._start_process(
-                    "manual_proc",
-                    "manual_video",
-                    manual_video_process,
-                    "Inicializando Manual Process.",
-                    shared_controls=self.shared_controls,
-                    shared_frames=self.shared_frames,
-                    lane_queue=self.lane_queue,
-                )
+        def disable_manual_mode():
+            self._terminate_process("manual_proc", "Encerrando Manual Process.")
+            self.start_detection_processes()
 
-        return (self.lane_proc, self.object_proc, self.manual_proc), current_manual_mode
+        last_manual_mode = self._handle_state_change(
+            current_manual_mode, last_manual_mode, enable_manual_mode, disable_manual_mode
+        )
+
+        return (self.lane_proc, self.object_proc, self.manual_proc), last_manual_mode
 
     def handle_flask_process(self, current_webview, last_webview):
-        if current_webview != last_webview:
-            if current_webview:
-                self._start_process(
-                    "flask_proc",
-                    "flask",
-                    start_flask_server,
-                    None,
-                    self.shared_frames,
-                    self.shared_controls,
-                )
+        def start_flask():
+            self._start_process(
+                "flask_proc",
+                "flask",
+                start_flask_server,
+                None,
+                self.shared_frames,
+                self.shared_controls,
+            )
+
+        def stop_flask():
+            if self.flask_proc:
+                self.logger.warning("Encerrando Server Flask via /shutdown.")
+
+                try:
+                    requests.post(url=shutdown_endpoint, timeout=3)
+                except Exception as e:
+                    self.logger.error(f"Erro ao chamar shutdown: {e}")
+
+                if self.flask_proc.is_alive():
+                    self.logger.info("Flask Server desligado com sucesso.")
+
+                self._terminate_process("flask_proc", "Matando Flask Process.")
+
+        last_webview = self._handle_state_change(
+            current_webview, last_webview, start_flask, stop_flask
+        )
+
+        return self.flask_proc, last_webview
+
+    def _handle_state_change(self, current_flag, last_flag, on_enable, on_disable):
+        if current_flag != last_flag:
+            if current_flag:
+                on_enable()
             else:
-                if self.flask_proc:
-                    self.logger.warning("Encerrando Server Flask via /shutdown.")
-
-                    try:
-                        requests.post(url=shutdown_endpoint, timeout=3)
-                    except Exception as e:
-                        self.logger.error(f"Erro ao chamar shutdown: {e}")
-
-                    if self.flask_proc.is_alive():
-                        self.logger.info("Flask Server desligado com sucesso.")
-
-                    self._terminate_process("flask_proc", "Matando Flask Process.")
-
-        return self.flask_proc, current_webview
+                on_disable()
+        return current_flag

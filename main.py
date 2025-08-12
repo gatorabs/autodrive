@@ -20,8 +20,6 @@ def main():
         )
 
         processes = manager_instance.create_all_processes()
-        for p in processes:
-            p.start()
 
         last_webview = None
         last_manual_mode = None
