@@ -61,55 +61,58 @@ class ProcessManager:
             tk_controls=self.tk_controls
         )
 
+    def _start_process(self, attr_name, process_name, target, log_msg=None, *args, **kwargs):
+        proc = getattr(self, attr_name)
+        if proc is None or not proc.is_alive():
+            proc = mp.Process(name=process_name, target=target, args=args, kwargs=kwargs)
+            proc.start()
+            if log_msg:
+                self.logger.info(log_msg)
+            setattr(self, attr_name, proc)
+
+    def _terminate_process(self, attr_name, log_msg):
+        proc = getattr(self, attr_name)
+        if proc and proc.is_alive():
+            self.logger.warning(log_msg)
+            proc.terminate()
+            proc.join(timeout=3)
+        setattr(self, attr_name, None)
+
     def start_lane_process(self):
-        if self.lane_proc is None or not self.lane_proc.is_alive():
-            self.lane_proc = mp.Process(
-                name="lane",
-                target=lane_detection_process,
-                kwargs={
-                    "lane_queue": self.lane_queue,
-                    "shared_controls": self.shared_controls,
-                    "shared_frames": self.shared_frames,
-                    "tk_controls": self.tk_controls,
-                    "video_source": self.user_flags["LANE_SOURCE"]
-                },
-            )
-            self.lane_proc.start()
-            self.logger.info("Inicializando Lane process.")
+        self._start_process(
+            "lane_proc",
+            "lane",
+            lane_detection_process,
+            "Inicializando Lane process.",
+            lane_queue=self.lane_queue,
+            shared_controls=self.shared_controls,
+            shared_frames=self.shared_frames,
+            tk_controls=self.tk_controls,
+            video_source=self.user_flags["LANE_SOURCE"],
+        )
 
     def start_object_process(self):
-        if self.object_proc is None or not self.object_proc.is_alive():
-            self.object_proc = mp.Process(
-                name="object",
-                target=object_detection_process,
-                kwargs={
-                    "object_queue": self.object_queue,
-                    "shared_controls": self.shared_controls,
-                    "shared_frames": self.shared_frames,
-                    "tk_controls": self.tk_controls,
-                    "camera_source": self.user_flags["OBJECT_SOURCE"]
-                },
-            )
-            self.object_proc.start()
-            self.logger.info("Inicializando Object process.")
+        self._start_process(
+            "object_proc",
+            "object",
+            object_detection_process,
+            "Inicializando Object process.",
+            object_queue=self.object_queue,
+            shared_controls=self.shared_controls,
+            shared_frames=self.shared_frames,
+            tk_controls=self.tk_controls,
+            camera_source=self.user_flags["OBJECT_SOURCE"],
+        )
 
     def start_detection_processes(self):
         self.start_lane_process()
         self.start_object_process()
 
     def terminate_lane_process(self):
-        if self.lane_proc and self.lane_proc.is_alive():
-            self.logger.warning("Encerrando Lane Process.")
-            self.lane_proc.terminate()
-            self.lane_proc.join(timeout=3)
-            self.lane_proc = None
+        self._terminate_process("lane_proc", "Encerrando Lane Process.")
 
     def terminate_object_process(self):
-        if self.object_proc and self.object_proc.is_alive():
-            self.logger.warning("Encerrando Object Process.")
-            self.object_proc.terminate()
-            self.object_proc.join(timeout=3)
-            self.object_proc = None
+        self._terminate_process("object_proc", "Encerrando Object Process.")
 
     def terminate_detection_processes(self):
         self.terminate_lane_process()
@@ -118,43 +121,36 @@ class ProcessManager:
     def handle_lane_object_processes(self, current_manual_mode, last_manual_mode):
         if current_manual_mode != last_manual_mode:
             if not current_manual_mode:
-                if self.manual_proc and self.manual_proc.is_alive():
-                    self.logger.warning("Encerrando Manual Process.")
-                    self.manual_proc.terminate()
-                    self.manual_proc.join(timeout=3)
-                    self.manual_proc = None
+                self._terminate_process("manual_proc", "Encerrando Manual Process.")
                 self.start_detection_processes()
 
             else:
                 self.terminate_detection_processes()
-
-                if self.manual_proc is None or not self.manual_proc.is_alive():
-                    self.manual_proc = mp.Process(
-                        name="manual_video",
-                        target=manual_video_process,
-                        kwargs={
-                            "shared_controls": self.shared_controls,
-                            "shared_frames": self.shared_frames,
-                            "lane_queue": self.lane_queue,
-                        }
-                    )
-                    self.manual_proc.start()
-                    self.logger.info("Inicializando Manual Process.")
+                self._start_process(
+                    "manual_proc",
+                    "manual_video",
+                    manual_video_process,
+                    "Inicializando Manual Process.",
+                    shared_controls=self.shared_controls,
+                    shared_frames=self.shared_frames,
+                    lane_queue=self.lane_queue,
+                )
 
         return (self.lane_proc, self.object_proc, self.manual_proc), current_manual_mode
 
     def handle_flask_process(self, current_webview, last_webview):
         if current_webview != last_webview:
             if current_webview:
-                if self.flask_proc is None or not self.flask_proc.is_alive():
-                    self.flask_proc = mp.Process(
-                        name="flask",
-                        target=start_flask_server,
-                        args=(self.shared_frames, self.shared_controls),
-                    )
-                    self.flask_proc.start()
+                self._start_process(
+                    "flask_proc",
+                    "flask",
+                    start_flask_server,
+                    None,
+                    self.shared_frames,
+                    self.shared_controls,
+                )
             else:
-                if self.flask_proc is not None and self.flask_proc.is_alive():
+                if self.flask_proc:
                     self.logger.warning("Encerrando Server Flask via /shutdown.")
 
                     try:
@@ -164,10 +160,7 @@ class ProcessManager:
 
                     if self.flask_proc.is_alive():
                         self.logger.info("Flask Server desligado com sucesso.")
-                        self.logger.info("Matando Flask Process.")
-                        self.flask_proc.terminate()
-                        self.flask_proc.join(timeout=3)
 
-                    self.flask_proc = None
+                    self._terminate_process("flask_proc", "Matando Flask Process.")
 
         return self.flask_proc, current_webview
