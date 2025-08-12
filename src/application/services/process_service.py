@@ -25,41 +25,42 @@ class ProcessManager:
         self.lane_proc = None
         self.object_proc = None
         self.manual_proc = None
+        self.ui_proc = None
+        self.sender_proc = None
         self.logger = Logger("ProcessManager")
 
     def create_all_processes(self):
         self._add_ui_process()
-        if self.shared_controls.get("SEND_DATA"):
-            self._add_sender_process()
+        self._add_sender_process()
         return self.processes
 
-    def _create_process(self, name, target, **kwargs):
-        process = mp.Process(
-            name=name,
-            target=target,
-            kwargs=kwargs
-        )
-        self.processes.append(process)
-
     def _add_ui_process(self):
-        self._create_process(
-            name="tk",
-            target=launch_homepage,
+        self._start_process(
+            "ui_proc",
+            "tk",
+            launch_homepage,
+            None,
             shared_frames=self.shared_frames,
             tk_controls=self.tk_controls,
             shared_controls=self.shared_controls,
-            lane_queue=self.lane_queue
+            lane_queue=self.lane_queue,
         )
+        if self.ui_proc:
+            self.processes.append(self.ui_proc)
 
     def _add_sender_process(self):
-        self._create_process(
-            name="sender",
-            target=data_sender_process,
+        self._start_process(
+            "sender_proc",
+            "sender",
+            data_sender_process,
+            None,
             lane_queue=self.lane_queue,
             object_queue=self.object_queue,
             shared_controls=self.shared_controls,
-            tk_controls=self.tk_controls
+            tk_controls=self.tk_controls,
         )
+        if self.sender_proc:
+            self.processes.append(self.sender_proc)
 
     def _start_process(self, attr_name, process_name, target, log_msg=None, *args, **kwargs):
         proc = getattr(self, attr_name)
