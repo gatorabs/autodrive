@@ -35,7 +35,7 @@ class FloatingWidget(ctk.CTkFrame):
         self.modal_open = False
         self.modal_width_ratio = 0
 
-        self.scale = ctk.get_widget_scaling()
+        self.scale = self._get_scaling()
         self.max_width = 0
         self.max_height = 0
 
@@ -55,7 +55,7 @@ class FloatingWidget(ctk.CTkFrame):
         """Recalculate sizes and positions based on the master's size and scaling."""
         width = self.master.winfo_width()
         height = self.master.winfo_height()
-        self.scale = ctk.get_widget_scaling()
+        self.scale = self._get_scaling()
 
         self.max_width = int(width * self._max_width_ratio * self.scale)
         self.max_height = int(height * self._max_height_ratio * self.scale)
@@ -83,6 +83,15 @@ class FloatingWidget(ctk.CTkFrame):
             self._start_closing()
         else:
             self._start_opening()
+
+    def _get_scaling(self):
+        """Return global widget scaling with backward compatibility."""
+        if hasattr(ctk, "get_widget_scaling"):
+            return ctk.get_widget_scaling()
+        try:
+            return float(self.master.tk.call("tk", "scaling"))
+        except Exception:
+            return 1.0
 
     def close_modal(self):
         if self.modal_open:
