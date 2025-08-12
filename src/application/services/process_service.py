@@ -165,7 +165,7 @@ class ProcessManager:
                     self.logger.error(f"Erro ao chamar shutdown: {e}")
 
                 if self.flask_proc.is_alive():
-                    self.logger.info("Flask Server desligado com sucesso.")
+                    self.logger.info("Flask Server 'Vivo', finalizando processo.")
 
                 self._terminate_process("flask_proc", "Matando Flask Process.")
 
@@ -175,7 +175,8 @@ class ProcessManager:
 
         return self.flask_proc, last_webview
 
-    def _handle_state_change(self, current_flag, last_flag, on_enable, on_disable):
+    @staticmethod
+    def _handle_state_change(current_flag, last_flag, on_enable, on_disable):
         if current_flag != last_flag:
             if current_flag:
                 on_enable()
