@@ -61,6 +61,60 @@ class ProcessManager:
             tk_controls=self.tk_controls
         )
 
+    def start_lane_process(self):
+        if self.lane_proc is None or not self.lane_proc.is_alive():
+            self.lane_proc = mp.Process(
+                name="lane",
+                target=lane_detection_process,
+                kwargs={
+                    "lane_queue": self.lane_queue,
+                    "shared_controls": self.shared_controls,
+                    "shared_frames": self.shared_frames,
+                    "tk_controls": self.tk_controls,
+                    "video_source": self.user_flags["LANE_SOURCE"]
+                },
+            )
+            self.lane_proc.start()
+            self.logger.info("Inicializando Lane process.")
+
+    def start_object_process(self):
+        if self.object_proc is None or not self.object_proc.is_alive():
+            self.object_proc = mp.Process(
+                name="object",
+                target=object_detection_process,
+                kwargs={
+                    "object_queue": self.object_queue,
+                    "shared_controls": self.shared_controls,
+                    "shared_frames": self.shared_frames,
+                    "tk_controls": self.tk_controls,
+                    "camera_source": self.user_flags["OBJECT_SOURCE"]
+                },
+            )
+            self.object_proc.start()
+            self.logger.info("Inicializando Object process.")
+
+    def start_detection_processes(self):
+        self.start_lane_process()
+        self.start_object_process()
+
+    def terminate_lane_process(self):
+        if self.lane_proc and self.lane_proc.is_alive():
+            self.logger.warning("Encerrando Lane Process.")
+            self.lane_proc.terminate()
+            self.lane_proc.join(timeout=3)
+            self.lane_proc = None
+
+    def terminate_object_process(self):
+        if self.object_proc and self.object_proc.is_alive():
+            self.logger.warning("Encerrando Object Process.")
+            self.object_proc.terminate()
+            self.object_proc.join(timeout=3)
+            self.object_proc = None
+
+    def terminate_detection_processes(self):
+        self.terminate_lane_process()
+        self.terminate_object_process()
+
     def handle_lane_object_processes(self, current_manual_mode, last_manual_mode):
         if current_manual_mode != last_manual_mode:
             if not current_manual_mode:
@@ -69,47 +123,10 @@ class ProcessManager:
                     self.manual_proc.terminate()
                     self.manual_proc.join(timeout=3)
                     self.manual_proc = None
-                if self.lane_proc is None or not self.lane_proc.is_alive():
-                    self.lane_proc = mp.Process(
-                        name="lane",
-                        target=lane_detection_process,
-                        kwargs={
-                            "lane_queue": self.lane_queue,
-                            "shared_controls": self.shared_controls,
-                            "shared_frames": self.shared_frames,
-                            "tk_controls": self.tk_controls,
-                            "video_source": self.user_flags["LANE_SOURCE"]
-                        }
-                    )
-                    self.lane_proc.start()
-                    self.logger.info("Inicializando Lane process.")
-                if self.object_proc is None or not self.object_proc.is_alive():
-                    self.object_proc = mp.Process(
-                        name="object",
-                        target=object_detection_process,
-                        kwargs={
-                            "object_queue": self.object_queue,
-                            "shared_controls": self.shared_controls,
-                            "shared_frames": self.shared_frames,
-                            "tk_controls": self.tk_controls,
-                            "camera_source": self.user_flags["OBJECT_SOURCE"]
-                        }
-                    )
-                    self.object_proc.start()
-                    self.logger.info("Inicializando Object process.")
+                self.start_detection_processes()
 
             else:
-                if self.lane_proc and self.lane_proc.is_alive():
-                    self.logger.warning("Encerrando Lane Process.")
-                    self.lane_proc.terminate()
-                    self.lane_proc.join(timeout=3)
-                    self.lane_proc = None
-
-                if self.object_proc and self.object_proc.is_alive():
-                    self.logger.warning("Encerrando Object Process.")
-                    self.object_proc.terminate()
-                    self.object_proc.join(timeout=3)
-                    self.object_proc = None
+                self.terminate_detection_processes()
 
                 if self.manual_proc is None or not self.manual_proc.is_alive():
                     self.manual_proc = mp.Process(
