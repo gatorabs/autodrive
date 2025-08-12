@@ -30,6 +30,7 @@ class ProcessManager:
         self.logger = Logger("ProcessManager")
 
     def create_all_processes(self):
+        self.processes.clear()
         self._add_ui_process()
         self._add_sender_process()
         return self.processes
@@ -120,48 +121,64 @@ class ProcessManager:
         self.terminate_object_process()
 
     def handle_lane_object_processes(self, current_manual_mode, last_manual_mode):
-        if current_manual_mode != last_manual_mode:
-            if not current_manual_mode:
-                self._terminate_process("manual_proc", "Encerrando Manual Process.")
-                self.start_detection_processes()
+        def enable_manual_mode():
+            self.terminate_detection_processes()
+            self._start_process(
+                "manual_proc",
+                "manual_video",
+                manual_video_process,
+                "Inicializando Manual Process.",
+                shared_controls=self.shared_controls,
+                shared_frames=self.shared_frames,
+                lane_queue=self.lane_queue,
+            )
 
-            else:
-                self.terminate_detection_processes()
-                self._start_process(
-                    "manual_proc",
-                    "manual_video",
-                    manual_video_process,
-                    "Inicializando Manual Process.",
-                    shared_controls=self.shared_controls,
-                    shared_frames=self.shared_frames,
-                    lane_queue=self.lane_queue,
-                )
+        def disable_manual_mode():
+            self._terminate_process("manual_proc", "Encerrando Manual Process.")
+            self.start_detection_processes()
 
-        return (self.lane_proc, self.object_proc, self.manual_proc), current_manual_mode
+        last_manual_mode = self._handle_state_change(
+            current_manual_mode, last_manual_mode, enable_manual_mode, disable_manual_mode
+        )
+
+        return (self.lane_proc, self.object_proc, self.manual_proc), last_manual_mode
 
     def handle_flask_process(self, current_webview, last_webview):
-        if current_webview != last_webview:
-            if current_webview:
-                self._start_process(
-                    "flask_proc",
-                    "flask",
-                    start_flask_server,
-                    None,
-                    self.shared_frames,
-                    self.shared_controls,
-                )
+        def start_flask():
+            self._start_process(
+                "flask_proc",
+                "flask",
+                start_flask_server,
+                None,
+                self.shared_frames,
+                self.shared_controls,
+            )
+
+        def stop_flask():
+            if self.flask_proc:
+                self.logger.warning("Encerrando Server Flask via /shutdown.")
+
+                try:
+                    requests.post(url=shutdown_endpoint, timeout=3)
+                except Exception as e:
+                    self.logger.error(f"Erro ao chamar shutdown: {e}")
+
+                if self.flask_proc.is_alive():
+                    self.logger.info("Flask Server 'Vivo', finalizando processo.")
+
+                self._terminate_process("flask_proc", "Matando Flask Process.")
+
+        last_webview = self._handle_state_change(
+            current_webview, last_webview, start_flask, stop_flask
+        )
+
+        return self.flask_proc, last_webview
+
+    @staticmethod
+    def _handle_state_change(current_flag, last_flag, on_enable, on_disable):
+        if current_flag != last_flag:
+            if current_flag:
+                on_enable()
             else:
-                if self.flask_proc:
-                    self.logger.warning("Encerrando Server Flask via /shutdown.")
-
-                    try:
-                        requests.post(url=shutdown_endpoint, timeout=3)
-                    except Exception as e:
-                        self.logger.error(f"Erro ao chamar shutdown: {e}")
-
-                    if self.flask_proc.is_alive():
-                        self.logger.info("Flask Server desligado com sucesso.")
-
-                    self._terminate_process("flask_proc", "Matando Flask Process.")
-
-        return self.flask_proc, current_webview
+                on_disable()
+        return current_flag
