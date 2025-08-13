@@ -20,11 +20,21 @@ class SerialCommunicator:
         self.last_send_time = None
 
         if send_data or open_for_receive:
-            try:
-                self.start_com_port()
-                self.logger.info(f"Porta {self.com_port} aberta a {self.baud_rate} bps")
-            except Exception as e:
-                self.logger.error(f"Erro ao abrir {com_port}: {e}")
+            available_ports = self.list_available_ports()
+
+            if self.com_port and self.com_port in available_ports:
+                try:
+                    self.start_com_port()
+                    self.logger.info(
+                        f"Porta {self.com_port} aberta a {self.baud_rate} bps"
+                    )
+                except Exception as e:
+                    self.logger.error(f"Erro ao abrir {com_port}: {e}")
+                    self.serial_port = None
+            else:
+                self.logger.warning(
+                    f"Porta {self.com_port} não está disponível no sistema."
+                )
                 self.serial_port = None
 
     def start_com_port(self, interval=8):
