@@ -1,3 +1,5 @@
+import math
+
 from src.infrastructure.adapters.detection.lane_detection import calculate_center_distance
 import cv2 as cv
 import numpy as np
@@ -55,6 +57,28 @@ def compute_distances(warped_roi, side, num_lines):
     has_ref = not lost_ref
 
     return avg_left, avg_right, has_ref, left_lines, right_lines
+
+def compute_speed_and_direction(pid,
+                                avg_left,
+                                avg_right,
+                                side,
+                                has_ref,
+                                tk_controls,
+                                direction,
+                                logger):
+
+    if not has_ref:
+        return 0, direction
+
+    speed = tk_controls.get("Speed")
+
+    raw_direction = pid.calculate(avg_right if side == 1 else avg_left)
+
+    if raw_direction is None or not math.isfinite(raw_direction):
+        logger.warning("PID output não é finito; mantendo última direção")
+        return speed, direction
+
+    return speed, round(raw_direction)
 
 def get_warp_points_from_controls(ctrl):
     return (

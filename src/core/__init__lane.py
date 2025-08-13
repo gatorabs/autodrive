@@ -1,7 +1,8 @@
 import cv2 as cv
 import time
 import serial
-from src.application.services.lane_detection_service import compute_distances, publish
+import math
+from src.application.services.lane_detection_service import compute_distances, publish, compute_speed_and_direction
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.adapters.video.video_preprocess import preprocess
 from src.infrastructure.adapters.video.video_utility_process import toggle_named_window, switch_video_source

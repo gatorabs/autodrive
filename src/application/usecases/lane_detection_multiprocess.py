@@ -77,15 +77,16 @@ def lane_detection_process(lane_queue,
                 default_kp=KP, default_ki=KI, default_kd=KD
             )
 
-            if has_ref:
-                speed = tk_controls.get("Speed")
-
-                if side == 1:
-                    direction = round(pid.calculate(avg_right))
-                else:
-                    direction = round(pid.calculate(avg_left))
-            else:
-                speed = 0
+            speed, direction = compute_speed_and_direction(
+                pid=pid,
+                avg_left=avg_left,
+                avg_right=avg_right,
+                side=side,
+                has_ref=has_ref,
+                tk_controls=tk_controls,
+                direction=direction,
+                logger=logger,
+            )
 
             mapped_direction = map_direction(value=direction)
 
