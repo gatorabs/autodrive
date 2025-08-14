@@ -12,6 +12,7 @@ class SerialCommunicator:
                  open_for_receive=False,
                  logger=None):
 
+        self.serial_port = None
         self.send_data = send_data
         self.send_interval = send_interval
         self.com_port = com_port
@@ -74,7 +75,7 @@ class SerialCommunicator:
         return None
 
     def close(self):
-        if self.serial_port:
+        if getattr(self, "serial_port", None):
             try:
                 self.serial_port.flush()
                 self.serial_port.close()

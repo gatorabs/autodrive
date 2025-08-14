@@ -174,6 +174,9 @@ class SourceAndSerialControls(ctk.CTkFrame):
         sender_com = self.sender_com_combo.get()
         security_com = self.security_com_combo.get()
 
+        valid_sender = bool(sender_com) and sender_com in self.com_ports
+
+        self.shared_controls["SEND_DATA"] = valid_sender
         self.shared_controls["SENDER_COM"] = sender_com
         self.shared_controls["SECURITY_COM"] = security_com
 
