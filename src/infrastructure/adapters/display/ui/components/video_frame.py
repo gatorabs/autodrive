@@ -8,11 +8,10 @@ from customtkinter import CTkImage
 from src.infrastructure.constants.ui_constants.component_constants import FRAME_WIDTH_T, FRAME_HEIGHT_T
 
 class VideoFrame(ctk.CTkFrame):
-    """Container for displaying a video frame."""
-
     def __init__(self, master, shared_controls, title="Frame", **kwargs):
         super().__init__(master, **kwargs)
         self.shared_controls = shared_controls
+        self.frame_name = title
         self.label = ctk.CTkLabel(self, text=title)
         self.label.pack()
 
@@ -27,11 +26,17 @@ class VideoFrame(ctk.CTkFrame):
         self.modal_image_label = None
         self.current_image_full = None
 
-        self.after(500, self._check_webview_flag)
+        self.after(500, self._check_flags)
 
     def update_image(self, frame):
         if self.shared_controls.get("WEBVIEW"):
             self.image_label.configure(image=self.placeholder_ctk_image, text="Webview ATIVO.")
+            self.image_label.image = self.placeholder_ctk_image
+            self.current_image_full = None
+            self._close_modal()
+            return
+        if self.shared_controls.get("SAFE_STOP") and self.frame_name in ("NORMAL_FRAME", "EDGES_FRAME"):
+            self.image_label.configure(image=self.placeholder_ctk_image, text="Erro na transmissão.")
             self.image_label.image = self.placeholder_ctk_image
             self.current_image_full = None
             self._close_modal()
@@ -90,10 +95,15 @@ class VideoFrame(ctk.CTkFrame):
             self.image_label.configure(image=ctk_image, text="")
             self.image_label.image = ctk_image
 
-    def _check_webview_flag(self):
+    def _check_flags(self):
         if self.shared_controls.get("WEBVIEW"):
             self.image_label.configure(image=self.placeholder_ctk_image, text="Webview ATIVO.")
             self.image_label.image = self.placeholder_ctk_image
             self.current_image_full = None
             self._close_modal()
-        self.after(200, self._check_webview_flag)
+        elif self.shared_controls.get("SAFE_STOP") and self.frame_name in ("NORMAL_FRAME", "EDGES_FRAME"):
+            self.image_label.configure(image=self.placeholder_ctk_image, text="Erro na transmissão.")
+            self.image_label.image = self.placeholder_ctk_image
+            self.current_image_full = None
+            self._close_modal()
+        self.after(200, self._check_flags)

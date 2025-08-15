@@ -9,6 +9,7 @@ def init_shared_controls(user_flags):
         **user_flags,
         "RUNNING": True,
         "OBJECT_SERIAL_DATA": [0, 0, 0],
+        "SAFE_STOP": False,
     }
 
 def print_flags(flags: dict):
