@@ -137,7 +137,7 @@ def bird_eye_full(frame, warp_points, draw_on=None, inv_matrix=False):
 def force_safe_stop(lane_queue, shared_controls, logger, reason="CAMERA_ERROR"):
 
     shared_controls["CAR_SPEED_DATA"] = 0
-    direction = shared_controls.get("CAR_DIRECTION_DATA")
+    direction = shared_controls.get("CAR_INFO", {}).get("CAR_DIRECTION_DATA")
 
     lane_data = {
         "CAR_SPEED_DATA": 0,
