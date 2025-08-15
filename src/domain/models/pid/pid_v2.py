@@ -59,3 +59,10 @@ class PIDV2Controller:
         self.last_error = error
         self.last_time = now
         return output
+
+    def reset(self):
+        """Reseta o estado interno do PID."""
+        self.integral = 0
+        self.last_error = 0
+        self.last_time = time.monotonic()
+

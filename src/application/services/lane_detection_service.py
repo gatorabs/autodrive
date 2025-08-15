@@ -71,11 +71,17 @@ def compute_speed_and_direction(pid,
         return 0, direction
 
     speed = tk_controls.get("Speed")
+    lane_val = avg_right if side == 1 else avg_left
+    if not math.isfinite(lane_val):
+        logger.warning("Entrada do PID não é finita; resetando e mantendo última direção")
+        pid.reset()
+        return speed, direction
 
-    raw_direction = pid.calculate(avg_right if side == 1 else avg_left)
+    raw_direction = pid.calculate(lane_val)
 
     if raw_direction is None or not math.isfinite(raw_direction):
-        logger.warning("PID output não é finito; mantendo última direção")
+        logger.warning("PID output não é finito; resetando e mantendo última direção")
+        pid.reset()
         return speed, direction
 
     return speed, round(raw_direction)
