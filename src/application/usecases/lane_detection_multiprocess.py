@@ -84,8 +84,7 @@ def lane_detection_process(lane_queue,
                 side=side,
                 has_ref=has_ref,
                 tk_controls=tk_controls,
-                direction=direction,
-                logger=logger,
+                direction=direction
             )
 
             mapped_direction = map_direction(value=direction)

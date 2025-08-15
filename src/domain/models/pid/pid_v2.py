@@ -59,3 +59,12 @@ class PIDV2Controller:
         self.last_error = error
         self.last_time = now
         return output
+
+    def reset(self):
+        self.integral = 0
+        self.last_error = 0
+        self.last_time = time.monotonic()
+
+    def fallback(self, msg):
+        self.logger.warning(f"{msg}")
+        self.reset()
