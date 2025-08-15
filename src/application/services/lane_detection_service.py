@@ -147,6 +147,7 @@ def force_safe_stop(lane_queue, shared_controls, logger, reason="CAMERA_ERROR"):
     if not lane_queue.full():
         lane_queue.put(lane_data)
 
+    shared_controls["SAFE_STOP"] = True
     logger.warning(f"SAFE-STOP ativado ({reason}).")
 
 
@@ -161,6 +162,7 @@ def capture_frame_with_reopen(video_proc,
 
     try:
         frame = video_proc.get_frame()
+        shared_controls["SAFE_STOP"] = False
     except RuntimeError as e:
         force_safe_stop(lane_queue, shared_controls, logger, reason=str(e))
         video_proc.release()

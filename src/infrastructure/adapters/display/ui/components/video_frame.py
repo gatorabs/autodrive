@@ -13,6 +13,7 @@ class VideoFrame(ctk.CTkFrame):
     def __init__(self, master, shared_controls, title="Frame", **kwargs):
         super().__init__(master, **kwargs)
         self.shared_controls = shared_controls
+        self.frame_name = title
         self.label = ctk.CTkLabel(self, text=title)
         self.label.pack()
 
@@ -32,6 +33,12 @@ class VideoFrame(ctk.CTkFrame):
     def update_image(self, frame):
         if self.shared_controls.get("WEBVIEW"):
             self.image_label.configure(image=self.placeholder_ctk_image, text="Webview ATIVO.")
+            self.image_label.image = self.placeholder_ctk_image
+            self.current_image_full = None
+            self._close_modal()
+            return
+        if self.shared_controls.get("SAFE_STOP") and self.frame_name in ("NORMAL_FRAME", "EDGES_FRAME"):
+            self.image_label.configure(image=self.placeholder_ctk_image, text="Erro na transmissão.")
             self.image_label.image = self.placeholder_ctk_image
             self.current_image_full = None
             self._close_modal()
@@ -93,6 +100,11 @@ class VideoFrame(ctk.CTkFrame):
     def _check_webview_flag(self):
         if self.shared_controls.get("WEBVIEW"):
             self.image_label.configure(image=self.placeholder_ctk_image, text="Webview ATIVO.")
+            self.image_label.image = self.placeholder_ctk_image
+            self.current_image_full = None
+            self._close_modal()
+        elif self.shared_controls.get("SAFE_STOP") and self.frame_name in ("NORMAL_FRAME", "EDGES_FRAME"):
+            self.image_label.configure(image=self.placeholder_ctk_image, text="Erro na transmissão.")
             self.image_label.image = self.placeholder_ctk_image
             self.current_image_full = None
             self._close_modal()
