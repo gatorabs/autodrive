@@ -1,7 +1,7 @@
 import cv2
 from ultralytics import YOLO
 import torch
-from src.application.services.object_detection_service import process_traffic_light_roi, publish_results
+from src.infrastructure.services.object_detection_service import process_traffic_light_roi, publish_results
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.constants.video_constants import (
     FRAME_WIDTH,

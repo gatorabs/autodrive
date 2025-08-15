@@ -2,7 +2,7 @@ import cv2 as cv
 import time
 import serial
 import math
-from src.application.services.lane_detection_service import compute_distances, publish, compute_speed_and_direction
+from src.infrastructure.services.lane_detection_service import compute_distances, publish, compute_speed_and_direction
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.adapters.video.video_preprocess import preprocess
 from src.infrastructure.adapters.video.video_utility_process import toggle_named_window, switch_video_source
@@ -14,5 +14,5 @@ from src.infrastructure.logging.logger import Logger
 from src.domain.services.pid.pid_service import update_pid_from_controls, pid_setup, check_and_update_pid
 from src.infrastructure.constants.usecases_constants.lane_process_constants import KP,KD,KI,MIN_OUTPUT,MAX_OUTPUT,TARGET_CENTER_DISTANCE
 from src.infrastructure.mappers.direction_mapper import map_direction
-from src.application.services.lane_detection_service import force_safe_stop
-from src.application.services.lane_detection_service import capture_frame_with_reopen
+from src.infrastructure.services.lane_detection_service import force_safe_stop
+from src.infrastructure.services.lane_detection_service import capture_frame_with_reopen
