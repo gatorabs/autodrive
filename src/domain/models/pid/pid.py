@@ -44,8 +44,10 @@ class PIDController:
         return output
 
     def reset(self):
-        """Reseta o estado interno do PID."""
         self.integral = 0
         self.last_error = 0
         self.last_time = time.monotonic()
 
+    def fallback(self, msg):
+        self.logger.warning(f"{msg}")
+        self.reset()

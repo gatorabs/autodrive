@@ -6,6 +6,7 @@ import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 
 from src.infrastructure.adapters.video.video_utility_process import encode_frame
+from src.infrastructure.constants.usecases_constants.lane_process_constants import FALLBACK_PID_INPUT, FALLBACK_PID_OUTPUT
 
 _encoder_pool = ThreadPoolExecutor(max_workers=2)
 
@@ -64,8 +65,7 @@ def compute_speed_and_direction(pid,
                                 side,
                                 has_ref,
                                 tk_controls,
-                                direction,
-                                logger):
+                                direction):
 
     if not has_ref:
         return 0, direction
@@ -73,15 +73,13 @@ def compute_speed_and_direction(pid,
     speed = tk_controls.get("Speed")
     lane_val = avg_right if side == 1 else avg_left
     if not math.isfinite(lane_val):
-        logger.warning("Entrada do PID não é finita; resetando e mantendo última direção")
-        pid.reset()
+        pid.fallback(FALLBACK_PID_INPUT)
         return speed, direction
 
     raw_direction = pid.calculate(lane_val)
 
     if raw_direction is None or not math.isfinite(raw_direction):
-        logger.warning("PID output não é finito; resetando e mantendo última direção")
-        pid.reset()
+        pid.fallback(FALLBACK_PID_OUTPUT)
         return speed, direction
 
     return speed, round(raw_direction)
