@@ -12,13 +12,14 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data):
         car_info["CAR_SPEED_DATA"] = 0
         shared_controls["CAR_INFO"] = car_info
 
-def switch_serial_com(serial_comm, new_com, current_com, shared_controls, logger):
+def switch_serial_com(serial_comm, new_com, current_com, shared_controls, open_for_receive, logger):
     if new_com != current_com:
         logger.info(f"Alterando porta serial: {current_com} -> {new_com}")
         serial_comm.close()
         serial_comm = SerialCommunicator(
             com_port=new_com,
             send_data=shared_controls.get("SEND_DATA", False),
+            open_for_receive=open_for_receive,
             logger=logger
         )
         return serial_comm, new_com
@@ -47,11 +48,24 @@ def publish(lane_data, obj_data, serial_comm, logger, verbose):
         obj_data["TRAFFIC_LIGHT_DATA"]
     ]
 
+    if not ensure_serial_connection(serial_comm, logger):
+        return
+
     try:
         serial_comm.send(payload, verbose)
     except Exception as e:
         logger.error(f"Falha ao enviar dados: {e}")
+        ensure_serial_connection(serial_comm, logger)
+
+
+def ensure_serial_connection(serial_comm, logger):
+    if not serial_comm.serial_port or not serial_comm.serial_port.is_open:
         try:
             serial_comm.reconnect()
         except Exception as re:
             logger.error(f"Reconexão falhou: {re}")
+
+        if not serial_comm.serial_port or not serial_comm.serial_port.is_open:
+            logger.warning("Porta serial indisponível; envio será pulado.")
+            return False
+    return True

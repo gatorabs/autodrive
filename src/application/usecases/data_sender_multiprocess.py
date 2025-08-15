@@ -30,6 +30,7 @@ def data_sender_process(lane_queue,
                 new_com=new_com,
                 current_com=current_com,
                 shared_controls=shared_controls,
+                open_for_receive=False,
                 logger=logger
             )
 
