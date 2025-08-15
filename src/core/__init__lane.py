@@ -14,3 +14,5 @@ from src.infrastructure.logging.logger import Logger
 from src.domain.services.pid.pid_service import update_pid_from_controls, pid_setup, check_and_update_pid
 from src.infrastructure.constants.usecases_constants.lane_process_constants import KP,KD,KI,MIN_OUTPUT,MAX_OUTPUT,TARGET_CENTER_DISTANCE
 from src.infrastructure.mappers.direction_mapper import map_direction
+from src.application.services.lane_detection_service import force_safe_stop
+from src.application.services.lane_detection_service import capture_frame_with_reopen

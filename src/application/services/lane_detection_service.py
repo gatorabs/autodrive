@@ -5,6 +5,7 @@ import cv2 as cv
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 
+from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.adapters.video.video_utility_process import encode_frame
 from src.infrastructure.constants.usecases_constants.lane_process_constants import FALLBACK_PID_INPUT, FALLBACK_PID_OUTPUT
 
@@ -132,3 +133,44 @@ def bird_eye_full(frame, warp_points, draw_on=None, inv_matrix=False):
         inv_M = cv.getPerspectiveTransform(pts2, pts1)
 
     return warped, max_height, inv_M
+
+def force_safe_stop(lane_queue, shared_controls, logger, reason="CAMERA_ERROR"):
+
+    shared_controls["CAR_SPEED_DATA"] = 0
+    direction = shared_controls.get("CAR_DIRECTION_DATA")
+
+    lane_data = {
+        "CAR_SPEED_DATA": 0,
+        "CAR_DIRECTION_DATA": direction
+    }
+
+    if not lane_queue.full():
+        lane_queue.put(lane_data)
+
+    logger.warning(f"SAFE-STOP ativado ({reason}).")
+
+
+def capture_frame_with_reopen(video_proc,
+                              current_source,
+                              lane_queue,
+                              shared_controls,
+                              logger):
+
+    frame = None
+    break_camera = False
+
+    try:
+        frame = video_proc.get_frame()
+    except RuntimeError as e:
+        force_safe_stop(lane_queue, shared_controls, logger, reason=str(e))
+        video_proc.release()
+        break_camera = True
+
+    if break_camera:
+        try:
+            video_proc = VideoProcessor(video_source=current_source)
+            logger.info(f"Reabertura da fonte: {current_source}")
+        except Exception as re:
+            logger.error(f"Reabertura da fonte falhou: {re}")
+
+    return video_proc, frame

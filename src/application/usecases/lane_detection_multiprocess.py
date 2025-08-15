@@ -38,10 +38,15 @@ def lane_detection_process(lane_queue,
                 logger=logger
             )
 
-            frame = video_proc.get_frame()
+            video_proc, frame = capture_frame_with_reopen(
+                video_proc=video_proc,
+                current_source=current_source,
+                lane_queue=lane_queue,
+                shared_controls=shared_controls,
+                logger=logger
+            )
             if frame is None:
-                logger.error(f"Frame não capturado. Cheque o vídeo ou câmera.")
-                break
+                continue
 
             try:
                 (edges,
