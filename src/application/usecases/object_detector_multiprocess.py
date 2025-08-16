@@ -29,9 +29,23 @@ def object_detection_process(object_queue,
                 logger=logger
             )
 
-            object_detector.process_frame()
+            object_detector.video_processor, frame = capture_frame_with_reopen(
+                video_proc=object_detector.video_processor,
+                current_source=current_source,
+                object_queue=object_queue,
+                shared_controls=shared_controls,
+                shared_serial_data=object_serial_data,
+                logger=logger,
+            )
+            if frame is None:
+                continue
 
-            object_data = {"OBJECT_PERSON_DATA": object_serial_data[2], "TRAFFIC_LIGHT_DATA": object_serial_data[1]}
+            object_detector.process_frame(frame)
+
+            object_data = {
+                "OBJECT_PERSON_DATA": object_serial_data[2],
+                "TRAFFIC_LIGHT_DATA": object_serial_data[1],
+            }
             if not object_queue.full():
                 object_queue.put(object_data)
 
