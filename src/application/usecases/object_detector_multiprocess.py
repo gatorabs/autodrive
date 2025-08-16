@@ -33,6 +33,7 @@ def object_detection_process(object_queue,
                 video_proc=object_detector.video_processor,
                 current_source=current_source,
                 object_queue=object_queue,
+                shared_controls=shared_controls,
                 shared_serial_data=object_serial_data,
                 logger=logger,
             )

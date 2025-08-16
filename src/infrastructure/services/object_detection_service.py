@@ -56,7 +56,7 @@ def publish_results(shared_serial_data, shared_frames, person_detected, traffic_
     shared_frames["OBJECT_FRAME"] = frame.copy()
 
 
-def force_default_object_data(object_queue, shared_serial_data, logger, reason="CAMERA_ERROR"):
+def force_default_object_data(object_queue, shared_serial_data, shared_controls, logger, reason="CAMERA_ERROR"):
     shared_serial_data[1] = 0
     shared_serial_data[2] = 0
 
@@ -64,24 +64,19 @@ def force_default_object_data(object_queue, shared_serial_data, logger, reason="
     if not object_queue.full():
         object_queue.put(object_data)
 
+    shared_controls["OBJ_SAFE_STOP"] = False
     logger.warning(f"Valores padrão enfileirados ({reason}).")
 
 
-def capture_frame_with_reopen(video_proc, current_source, object_queue, shared_serial_data, logger):
-    """Captura um frame do vídeo e tenta reabrir a fonte em caso de falha.
-
-    Caso a captura falhe, os dados compartilhados de objetos são
-    resetados para valores seguros, valores padrão são enfileirados
-    e a fonte é reaberta.
-    """
-
+def capture_frame_with_reopen(video_proc, current_source, object_queue, shared_controls, shared_serial_data, logger):
     frame = None
     break_camera = False
 
     try:
         frame = video_proc.get_frame()
+        shared_controls["OBJ_SAFE_STOP"] = False
     except RuntimeError as e:
-        force_default_object_data(object_queue, shared_serial_data, logger, reason=str(e))
+        force_default_object_data(object_queue, shared_serial_data, shared_controls, logger, reason=str(e))
         video_proc.release()
         break_camera = True
 
