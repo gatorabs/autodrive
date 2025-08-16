@@ -102,7 +102,8 @@ class VideoFrame(ctk.CTkFrame):
             self.image_label.image = self.placeholder_ctk_image
             self.current_image_full = None
             self._close_modal()
-        elif self.shared_controls.get("SAFE_STOP") and self.frame_name in ("NORMAL_FRAME", "EDGES_FRAME"):
+        elif (self.shared_controls.get("SAFE_STOP") and self.frame_name in ("NORMAL_FRAME", "EDGES_FRAME") or
+              self.shared_controls.get("OBJ_SAFE_STOP") and self.frame_name == "OBJECT_FRAME"):
             self.image_label.configure(image=self.placeholder_ctk_image, text="Erro na transmissão.")
             self.image_label.image = self.placeholder_ctk_image
             self.current_image_full = None

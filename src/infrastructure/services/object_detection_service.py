@@ -60,11 +60,11 @@ def force_default_object_data(object_queue, shared_serial_data, shared_controls,
     shared_serial_data[1] = 0
     shared_serial_data[2] = 0
 
-    object_data = {"OBJECT_PERSON_DATA": 0, "TRAFFIC_LIGHT_DATA": 0}
+    object_data = {"OBJECT_PERSON_DATA": 0, "TRAFFIC_LIGHT_DATA": 2}
     if not object_queue.full():
         object_queue.put(object_data)
 
-    shared_controls["OBJ_SAFE_STOP"] = False
+    shared_controls["OBJ_SAFE_STOP"] = True
     logger.warning(f"Valores padrão enfileirados ({reason}).")
 
 
