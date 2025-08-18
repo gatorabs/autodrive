@@ -48,18 +48,6 @@ def switch_video_source(video_processor, current_source, new_source, logger):
 
 
 def open_video_source(current_source, lane_queue, shared_controls, logger, safe_stop_cb):
-    """Attempt to open a video source and trigger a safe stop on failure.
-
-    Args:
-        current_source: Identifier for the video source to open.
-        lane_queue: Queue used by the lane detection process.
-        shared_controls: Shared dictionary with control flags.
-        logger: Logger instance for emitting messages.
-        safe_stop_cb: Callback to invoke when the source cannot be opened.
-
-    Returns:
-        VideoProcessor instance if successful, otherwise ``None``.
-    """
     try:
         video_proc = VideoProcessor(video_source=current_source)
         logger.info(f"Fonte aberta: {current_source}")
