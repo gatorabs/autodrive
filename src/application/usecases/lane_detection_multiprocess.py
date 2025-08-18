@@ -16,7 +16,13 @@ def lane_detection_process(lane_queue,
     last_pid_flag = shared_controls.get("NEW_PID")
     pid = pid_setup(last_pid_flag, logger)
 
-    video_proc = VideoProcessor(video_source=current_source)
+    video_proc = open_video_source(
+        current_source=current_source,
+        lane_queue=lane_queue,
+        shared_controls=shared_controls,
+        logger=logger,
+        safe_stop_cb=force_safe_stop,
+    )
 
     morph_kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
 
@@ -37,6 +43,18 @@ def lane_detection_process(lane_queue,
                 new_source=new_source,
                 logger=logger
             )
+
+            if video_proc is None:
+                video_proc = open_video_source(
+                    current_source=current_source,
+                    lane_queue=lane_queue,
+                    shared_controls=shared_controls,
+                    logger=logger,
+                    safe_stop_cb=force_safe_stop,
+                )
+                if video_proc is None:
+                    time.sleep(0.5)
+                    continue
 
             video_proc, frame = capture_frame_with_reopen(
                 video_proc=video_proc,
