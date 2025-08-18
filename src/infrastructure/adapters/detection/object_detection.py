@@ -17,18 +17,21 @@ class ObjectDetector:
                  shared_frames,
                  tk_controls,
                  camera_source=0,
-                 logger=None):
+                 logger=None,
+                 video_processor=None):
 
         self.shared_serial_data = shared_serial_data
         self.shared_frames = shared_frames
         self.tk_controls = tk_controls
         self.logger = logger
 
-        self.video_processor = VideoProcessor(
-            video_source=camera_source,
-            frame_width=FRAME_WIDTH,
-            frame_height=FRAME_HEIGHT,
-        )
+        self.video_processor = video_processor
+        if self.video_processor is None and camera_source is not None:
+            self.video_processor = VideoProcessor(
+                video_source=camera_source,
+                frame_width=FRAME_WIDTH,
+                frame_height=FRAME_HEIGHT,
+            )
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Usando dispositivo {self.device}")
@@ -105,5 +108,6 @@ class ObjectDetector:
             self.logger.error(f"Erro ao processar frame: {e}")
 
     def cleanup(self):
-        self.video_processor.release()
+        if self.video_processor:
+            self.video_processor.release()
         cv2.destroyAllWindows()
