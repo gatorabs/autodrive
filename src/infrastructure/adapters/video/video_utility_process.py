@@ -36,8 +36,23 @@ def generate_placeholder_image():
 def switch_video_source(video_processor, current_source, new_source, logger):
     if new_source != current_source:
         logger.info(f"Trocando Source de {current_source} para {new_source}")
+        try:
+            new_video = VideoProcessor(video_source=new_source)
+        except Exception as e:
+            logger.error(f"Falha ao trocar para fonte {new_source}: {e}")
+            return video_processor, current_source
         if video_processor:
             video_processor.release()
-        video_processor = VideoProcessor(video_source=new_source)
-        return video_processor, new_source
+        return new_video, new_source
     return video_processor, current_source
+
+
+def open_video_source(current_source, lane_queue, shared_controls, logger, safe_stop_cb):
+    try:
+        video_proc = VideoProcessor(video_source=current_source)
+        logger.info(f"Fonte aberta: {current_source}")
+        return video_proc
+    except Exception as e:  # pragma: no cover - defensive
+        logger.error(f"Falha ao abrir fonte {current_source}: {e}")
+        safe_stop_cb(lane_queue, shared_controls, logger, reason=str(e))
+        return None

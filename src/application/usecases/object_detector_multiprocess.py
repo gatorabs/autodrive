@@ -12,11 +12,24 @@ def object_detection_process(object_queue,
     object_serial_data = shared_controls["OBJECT_SERIAL_DATA"]
     logger = Logger("ObjectDetection", verbose=verbose)
 
+    safe_stop = lambda q, sc, log, reason: force_default_object_data(
+        q, object_serial_data, sc, log, reason
+    )
+
+    video_proc = open_video_source(
+        current_source=current_source,
+        lane_queue=object_queue,
+        shared_controls=shared_controls,
+        logger=logger,
+        safe_stop_cb=safe_stop,
+    )
+
     object_detector = ObjectDetector(shared_serial_data=object_serial_data,
                                      shared_frames=shared_frames,
                                      tk_controls=tk_controls,
-                                     camera_source=current_source,
-                                     logger=logger)
+                                     camera_source=None,
+                                     logger=logger,
+                                     video_processor=video_proc)
 
     try:
         while shared_controls.get("RUNNING", True):
@@ -28,6 +41,18 @@ def object_detection_process(object_queue,
                 new_source=new_source,
                 logger=logger
             )
+
+            if object_detector.video_processor is None:
+                object_detector.video_processor = open_video_source(
+                    current_source=current_source,
+                    lane_queue=object_queue,
+                    shared_controls=shared_controls,
+                    logger=logger,
+                    safe_stop_cb=safe_stop,
+                )
+                if object_detector.video_processor is None:
+                    time.sleep(0.5)
+                    continue
 
             object_detector.video_processor, frame = capture_frame_with_reopen(
                 video_proc=object_detector.video_processor,
