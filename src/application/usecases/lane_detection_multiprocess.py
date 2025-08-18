@@ -53,7 +53,6 @@ def lane_detection_process(lane_queue,
                     safe_stop_cb=force_safe_stop,
                 )
                 if video_proc is None:
-                    time.sleep(0.5)
                     continue
 
             video_proc, frame = capture_frame_with_reopen(

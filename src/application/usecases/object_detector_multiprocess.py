@@ -51,7 +51,6 @@ def object_detection_process(object_queue,
                     safe_stop_cb=safe_stop,
                 )
                 if object_detector.video_processor is None:
-                    time.sleep(0.5)
                     continue
 
             object_detector.video_processor, frame = capture_frame_with_reopen(

@@ -65,8 +65,7 @@ def force_default_object_data(object_queue, shared_serial_data, shared_controls,
         object_queue.put(object_data)
 
     shared_controls["OBJ_SAFE_STOP"] = True
-    logger.warning(f"Valores padrão enfileirados ({reason}).")
-
+    logger.warning(f"OBJ-SAFE-STOP ativado ({reason}).")
 
 def capture_frame_with_reopen(video_proc, current_source, object_queue, shared_controls, shared_serial_data, logger):
     frame = None
