@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.adapters.video.video_utility_process import encode_frame
-from src.infrastructure.constants.usecases_constants.lane_process_constants import FALLBACK_PID_INPUT, FALLBACK_PID_OUTPUT
+from src.domain.constants.pid_constants import FALLBACK_PID_INPUT, FALLBACK_PID_OUTPUT
 
 _encoder_pool = ThreadPoolExecutor(max_workers=2)
 

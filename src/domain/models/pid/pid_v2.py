@@ -1,5 +1,5 @@
 import time
-from src.infrastructure.constants.services_constants.pid_constants import dt_filtered, deriv_filtered, deriv_alpha
+from src.domain.constants.pid_constants import DT_FILTERED, DERIV_FILTERED, DERIV_ALPHA
 
 class PIDV2Controller:
     def __init__(self, set_point, kp, ki, kd, min_output, max_output, logger):
@@ -12,9 +12,9 @@ class PIDV2Controller:
         self.integral = 0
         self.last_error = 0
         self.last_time = time.monotonic()
-        self.dt_filtered = dt_filtered
-        self.deriv_filtered = deriv_filtered
-        self.deriv_alpha = deriv_alpha
+        self.dt_filtered = DT_FILTERED
+        self.deriv_filtered = DERIV_FILTERED
+        self.deriv_alpha = DERIV_ALPHA
         self.logger = logger
         logger.info("Inicializando com PID V2.")
 
