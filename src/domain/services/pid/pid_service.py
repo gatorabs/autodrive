@@ -1,6 +1,13 @@
 from src.domain.models.pid.pid import PIDController
 from src.domain.models.pid.pid_v2 import PIDV2Controller
-from src.infrastructure.constants.usecases_constants.lane_process_constants import TARGET_CENTER_DISTANCE, KP, KI, KD, MIN_OUTPUT, MAX_OUTPUT
+from src.domain.constants.pid_constants import (
+    TARGET_CENTER_DISTANCE,
+    KP,
+    KI,
+    KD,
+    MIN_OUTPUT,
+    MAX_OUTPUT,
+)
 
 def pid_setup(use_new: bool, logger):
     cls = PIDV2Controller if use_new else PIDController

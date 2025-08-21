@@ -1,8 +1,25 @@
 import time
-from src.infrastructure.constants.services_constants.pid_constants import dt_filtered, deriv_filtered, deriv_alpha
+from src.domain.constants.pid_constants import (
+    DT_FILTERED,
+    DERIV_ALPHA,
+    DERIV_FILTERED,
+)
+
 
 class PIDV2Controller:
-    def __init__(self, set_point, kp, ki, kd, min_output, max_output, logger):
+    def __init__(
+        self,
+        set_point,
+        kp,
+        ki,
+        kd,
+        min_output,
+        max_output,
+        logger,
+        dt_filtered=DT_FILTERED,
+        deriv_filtered=DERIV_FILTERED,
+        deriv_alpha=DERIV_ALPHA,
+    ):
         self.set_point = set_point
         self.kp = kp
         self.ki = ki
@@ -25,7 +42,7 @@ class PIDV2Controller:
         self.dt_filtered = 0.8 * self.dt_filtered + 0.2 * raw_dt
         dt = max(self.dt_filtered, 1e-3)
 
-        error =  input_val - self.set_point
+        error = input_val - self.set_point
 
         # dead-band no erro (ajuste conforme seu ruído)
         if abs(error) < 0.5:
@@ -37,8 +54,7 @@ class PIDV2Controller:
         # Termo D (filtrado)
         raw_deriv = (error - self.last_error) / dt
         self.deriv_filtered = (
-                self.deriv_alpha * raw_deriv +
-                (1 - self.deriv_alpha) * self.deriv_filtered
+            self.deriv_alpha * raw_deriv + (1 - self.deriv_alpha) * self.deriv_filtered
         )
         d = self.kd * self.deriv_filtered
 
