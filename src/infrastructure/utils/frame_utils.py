@@ -7,7 +7,6 @@ from PIL import Image
 
 
 def encode_frame(frame: Union[np.ndarray, bytes, bytearray]) -> bytes:
-    """Encode a frame (numpy array or raw bytes) into JPEG bytes."""
     if isinstance(frame, (bytes, bytearray)):
         return bytes(frame)
     if isinstance(frame, np.ndarray):

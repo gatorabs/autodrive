@@ -3,16 +3,13 @@ import types
 from pathlib import Path
 from unittest.mock import MagicMock
 
-# Add repository root to sys.path for tests
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-# Mock external dependencies not available in the test environment
 sys.modules.setdefault("cv2", MagicMock())
 sys.modules.setdefault("numpy", MagicMock())
 sys.modules.setdefault("psutil", MagicMock())
 sys.modules.setdefault("torch", MagicMock())
 
-# Mock PIL and submodules
 pil_module = types.ModuleType("PIL")
 pil_image = types.ModuleType("PIL.Image")
 pil_image.fromarray = MagicMock(return_value=MagicMock())
