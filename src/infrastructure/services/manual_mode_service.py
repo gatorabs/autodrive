@@ -1,4 +1,4 @@
-from src.infrastructure.adapters.video.video_utility_process import encode_frame
+from src.infrastructure.utils.frame_utils import encode_frame
 
 def publish(frame,
             shared_frames,

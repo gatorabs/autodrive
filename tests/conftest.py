@@ -15,6 +15,7 @@ sys.modules.setdefault("torch", MagicMock())
 # Mock PIL and submodules
 pil_module = types.ModuleType("PIL")
 pil_image = types.ModuleType("PIL.Image")
+pil_image.fromarray = MagicMock(return_value=MagicMock())
 pil_module.Image = pil_image
 sys.modules["PIL"] = pil_module
 sys.modules["PIL.Image"] = pil_image
