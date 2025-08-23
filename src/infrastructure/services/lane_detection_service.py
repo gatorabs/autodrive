@@ -89,7 +89,7 @@ def compute_speed_and_direction(pid,
 def force_safe_stop(lane_queue, shared_controls, logger, reason="CAMERA_ERROR"):
 
     shared_controls["CAR_SPEED_DATA"] = 0
-    direction = shared_controls.get("CAR_INFO", {}).get("CAR_DIRECTION_DATA")
+    direction = shared_controls.get("CAR_INFO", {}).get("CAR_DIRECTION_DATA", 90)
 
     lane_data = {
         "CAR_SPEED_DATA": 0,
