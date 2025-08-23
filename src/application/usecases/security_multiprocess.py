@@ -1,5 +1,10 @@
 
-from src.core.__init__sender import *
+import time
+
+from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
+from src.infrastructure.logging.logger import Logger
+from src.infrastructure.services.data_sender_service import switch_serial_com
+from src.infrastructure.utils.priorities_processor import set_process_priority
 
 def security_process(shared_controls, verbose=True):
 

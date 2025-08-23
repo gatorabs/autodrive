@@ -1,4 +1,14 @@
-from src.core.__init__object import *
+from src.infrastructure.adapters.detection.object_detection import ObjectDetector
+from src.infrastructure.adapters.video.video_utility_process import (
+    switch_video_source,
+    open_video_source,
+)
+from src.infrastructure.logging.logger import Logger
+from src.infrastructure.services.object_detection_service import (
+    capture_frame_with_reopen,
+    force_default_object_data,
+)
+from src.infrastructure.utils.priorities_processor import set_process_priority
 
 def object_detection_process(object_queue,
                              shared_controls,

@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 import math
 
-from src.infrastructure.services.lane_detection_service import bird_eye_full
+from src.infrastructure.utils.lane_utils import bird_eye_full
 
 
 def draw_overlays(frame, distances, warp_points=None, edges=None,

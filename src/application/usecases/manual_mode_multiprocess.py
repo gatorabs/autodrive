@@ -1,4 +1,9 @@
-from src.core.__init__manual import *
+import time
+
+from src.infrastructure.adapters.video.video_utility_process import switch_video_source
+from src.infrastructure.logging.logger import Logger
+from src.infrastructure.services.manual_mode_service import publish
+from src.infrastructure.utils.update_time_processor import update_processing_time
 
 def manual_video_process(shared_controls, shared_frames, lane_queue):
     logger = Logger("ManualProcess")
