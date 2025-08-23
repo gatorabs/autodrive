@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
-from src.infrastructure.adapters.video.begin_the_video import (
+from src.infrastructure.adapters.video.video_utility_process import (
     detect_camera_indices,
     get_video_files_from_folder,
 )

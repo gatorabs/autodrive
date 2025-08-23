@@ -11,11 +11,11 @@ from src.infrastructure.services.lane_detection_service import (
     capture_frame_with_reopen,
 )
 from src.infrastructure.adapters.video.video_process import VideoProcessor
-from src.infrastructure.adapters.video.video_preprocess import preprocess
 from src.infrastructure.adapters.video.video_utility_process import (
     toggle_named_window,
     switch_video_source,
     open_video_source,
+    preprocess,
 )
 from src.infrastructure.utils.priorities_processor import set_process_priority
 from src.infrastructure.adapters.display.setup_embedded_ui import draw_overlays

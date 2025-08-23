@@ -23,7 +23,7 @@ from src.infrastructure.constants.ui_constants.component_constants import (
 )
 from src.infrastructure.adapters.display.ui.pages.home.home_tab import HomeTab
 from src.infrastructure.adapters.display.ui.pages.manual_mode.manual_mode_tab import ManualModeTab
-from src.infrastructure.adapters.video.begin_the_video import (
+from src.infrastructure.adapters.video.video_utility_process import (
     detect_camera_indices,
     get_video_files_from_folder,
 )

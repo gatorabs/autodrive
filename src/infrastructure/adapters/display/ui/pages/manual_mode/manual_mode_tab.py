@@ -4,7 +4,7 @@ from src.infrastructure.adapters.display.ui.components.video_frame import VideoF
 from .sections.manual_controls_section import ManualControls
 from ...components.checkbox import CheckboxSection
 from ...components.steering_wheel import SteeringWheel
-from src.infrastructure.adapters.video.begin_the_video import get_video_files_from_folder
+from src.infrastructure.adapters.video.video_utility_process import get_video_files_from_folder
 
 
 class ManualModeTab(ctk.CTkFrame):
