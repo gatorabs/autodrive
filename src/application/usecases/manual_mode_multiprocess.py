@@ -15,8 +15,6 @@ def manual_video_process(shared_controls, shared_frames, lane_queue):
 
     total_processing_time = 0
     frame_count = 0
-    avg_time = 0
-    fps = 0
 
     try:
         while shared_controls.get("MANUAL_MD", False):

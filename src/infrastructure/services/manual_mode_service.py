@@ -22,7 +22,6 @@ def publish(frame,
 
 
 def capture_frame_with_reopen(video_proc, logger):
-    """Tenta capturar um frame; em caso de falha libera a fonte para reabertura."""
     try:
         frame = video_proc.get_frame()
         return video_proc, frame

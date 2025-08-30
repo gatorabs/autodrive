@@ -148,7 +148,6 @@ def ensure_video_source(video_processor,
 
 
 def ensure_video_source_manual(video_processor, current_source, requested_source, logger):
-    """Garante que a fonte de vídeo esteja aberta sem acionar safe-stop."""
     desired_source = requested_source if requested_source is not None else current_source
 
     if desired_source is None:
