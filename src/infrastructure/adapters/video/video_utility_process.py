@@ -145,3 +145,39 @@ def ensure_video_source(video_processor,
         return new_vp, desired_source
 
     return video_processor, current_source
+
+
+def ensure_video_source_manual(video_processor, current_source, requested_source, logger):
+    desired_source = requested_source if requested_source is not None else current_source
+
+    if desired_source is None:
+        logger.error("Nenhuma fonte definida para abrir/trocar.")
+        return None, current_source
+
+    if video_processor is None or not video_processor.is_frame_open():
+        try:
+            vp = VideoProcessor(video_source=desired_source)
+            logger.info(f"Fonte aberta: {desired_source}")
+            return vp, desired_source
+        except Exception as e:
+            logger.error(f"Falha ao abrir fonte {desired_source}: {e}")
+            return None, current_source
+
+    if desired_source != current_source:
+        logger.info(f"Trocando Source de {current_source} para {desired_source}")
+        try:
+            new_vp = VideoProcessor(video_source=desired_source)
+        except Exception as e:
+            logger.error(f"Falha ao trocar para fonte {desired_source}: {e}")
+
+            if video_processor.is_frame_open():
+                return video_processor, current_source
+            return None, current_source
+
+        try:
+            video_processor.release()
+        except Exception:
+            pass
+        return new_vp, desired_source
+
+    return video_processor, current_source

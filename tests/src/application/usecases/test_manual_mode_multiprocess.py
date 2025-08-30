@@ -9,10 +9,10 @@ def test_manual_process_exits_when_disabled():
     shared_frames = {}
     lane_queue = queue.Queue()
 
-    with patch("src.application.usecases.manual_mode_multiprocess.switch_video_source") as mock_switch:
+    with patch("src.application.usecases.manual_mode_multiprocess.ensure_video_source_manual") as mock_ensure:
         manual_video_process(shared_controls, shared_frames, lane_queue)
 
-    mock_switch.assert_not_called()
+    mock_ensure.assert_not_called()
 
 
 def test_manual_process_publishes_frame_when_enabled():
@@ -25,13 +25,14 @@ def test_manual_process_publishes_frame_when_enabled():
     def publish_side_effect(**kwargs):
         shared_controls["MANUAL_MD"] = False
 
-    with patch("src.application.usecases.manual_mode_multiprocess.switch_video_source", return_value=(video_proc, "cam")) as mock_switch, \
+    with patch("src.application.usecases.manual_mode_multiprocess.ensure_video_source_manual", return_value=(video_proc, "cam")) as mock_ensure, \
+         patch("src.application.usecases.manual_mode_multiprocess.capture_frame_with_reopen", return_value=(video_proc, "frame")) as mock_capture, \
          patch("src.application.usecases.manual_mode_multiprocess.update_processing_time", return_value=(0, 0, 0, 0)), \
          patch("src.application.usecases.manual_mode_multiprocess.publish", side_effect=publish_side_effect) as mock_publish, \
          patch("src.application.usecases.manual_mode_multiprocess.Logger"):
         manual_video_process(shared_controls, shared_frames, lane_queue)
 
-    mock_switch.assert_called_once()
-    video_proc.get_frame.assert_called_once()
+    mock_ensure.assert_called_once()
+    mock_capture.assert_called_once()
     assert mock_publish.call_args.kwargs["frame"] == "frame"
 
