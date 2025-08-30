@@ -57,7 +57,7 @@ def publish_results(shared_serial_data, shared_frames, person_detected, traffic_
 
 
 def force_default_object_data(object_queue, shared_serial_data, shared_controls, logger, reason="CAMERA_ERROR"):
-    shared_serial_data[1] = 0
+    shared_serial_data[1] = 2
     shared_serial_data[2] = 0
 
     object_data = {"OBJECT_PERSON_DATA": 0, "TRAFFIC_LIGHT_DATA": 2}
