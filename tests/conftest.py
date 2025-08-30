@@ -37,4 +37,5 @@ lds_module.publish = MagicMock()
 lds_module.compute_speed_and_direction = MagicMock(return_value=(0, 0))
 lds_module.force_safe_stop = MagicMock()
 lds_module.capture_frame_with_reopen = MagicMock(return_value=(MagicMock(), None))
+lds_module.try_capture_or_mark_for_reopen = MagicMock(return_value=(MagicMock(), None))
 sys.modules["src.infrastructure.services.lane_detection_service"] = lds_module

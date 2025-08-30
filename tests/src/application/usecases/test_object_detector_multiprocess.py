@@ -39,8 +39,8 @@ def test_object_detector_processes_frame_and_puts_data():
     with patch("src.application.usecases.object_detector_multiprocess.set_process_priority"), \
          patch("src.application.usecases.object_detector_multiprocess.open_video_source", return_value=video_proc), \
          patch("src.application.usecases.object_detector_multiprocess.ObjectDetector", return_value=object_detector_mock), \
-         patch("src.application.usecases.object_detector_multiprocess.capture_frame_with_reopen", side_effect=capture_side_effect), \
-         patch("src.application.usecases.object_detector_multiprocess.switch_video_source", return_value=(video_proc, None)), \
+         patch("src.application.usecases.object_detector_multiprocess.try_capture_or_mark_for_reopen", side_effect=capture_side_effect), \
+         patch("src.application.usecases.object_detector_multiprocess.ensure_video_source", return_value=(video_proc, None)), \
          patch("src.application.usecases.object_detector_multiprocess.Logger"):
         object_detection_process(object_queue, shared_controls, shared_frames, tk_controls, verbose=False)
 

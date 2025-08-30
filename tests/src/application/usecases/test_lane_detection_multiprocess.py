@@ -36,7 +36,8 @@ def test_lane_detection_logs_error_on_preprocess_exception():
 
     with patch("src.application.usecases.lane_detection_multiprocess.set_process_priority"), \
          patch("src.application.usecases.lane_detection_multiprocess.open_video_source", return_value=video_proc), \
-         patch("src.application.usecases.lane_detection_multiprocess.capture_frame_with_reopen", return_value=(video_proc, MagicMock())), \
+         patch("src.application.usecases.lane_detection_multiprocess.ensure_video_source", return_value=(video_proc, None)), \
+         patch("src.application.usecases.lane_detection_multiprocess.try_capture_or_mark_for_reopen", return_value=(video_proc, MagicMock())), \
          patch("src.application.usecases.lane_detection_multiprocess.preprocess", side_effect=mock_preprocess), \
          patch("src.application.usecases.lane_detection_multiprocess.cv.getStructuringElement", return_value=None), \
          patch("src.application.usecases.lane_detection_multiprocess.cv.destroyAllWindows"), \

@@ -19,3 +19,17 @@ def publish(frame,
         'fps': round(fps, 0),
         'total_processing_time': round(avg_time, 2)
     }
+
+
+def capture_frame_with_reopen(video_proc, logger):
+    """Tenta capturar um frame; em caso de falha libera a fonte para reabertura."""
+    try:
+        frame = video_proc.get_frame()
+        return video_proc, frame
+    except RuntimeError as e:
+        logger.warning(f"Erro ao capturar frame: {e}")
+        try:
+            video_proc.release()
+        except Exception:
+            pass
+        return None, None
