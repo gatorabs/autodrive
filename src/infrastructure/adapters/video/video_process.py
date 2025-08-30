@@ -58,5 +58,11 @@ class VideoProcessor:
 
         return frame
 
+    def is_frame_open(self):
+        try:
+            return self.cap is not None and self.cap.isOpened()
+        except Exception:
+            return False
+
     def release(self):
         self.cap.release()

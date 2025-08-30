@@ -103,28 +103,20 @@ def force_safe_stop(lane_queue, shared_controls, logger, reason="CAMERA_ERROR"):
     logger.warning(f"SAFE-STOP ativado ({reason}).")
 
 
-def capture_frame_with_reopen(video_proc,
+def try_capture_or_mark_for_reopen(video_proc,
                               current_source,
                               lane_queue,
                               shared_controls,
                               logger):
-
-    frame = None
-    break_camera = False
-
     try:
         frame = video_proc.get_frame()
         shared_controls["SAFE_STOP"] = False
+        return video_proc, frame
     except RuntimeError as e:
         force_safe_stop(lane_queue, shared_controls, logger, reason=str(e))
-        video_proc.release()
-        break_camera = True
-
-    if break_camera:
         try:
-            video_proc = VideoProcessor(video_source=current_source)
-            logger.info(f"Reabertura da fonte: {current_source}")
-        except Exception as re:
-            logger.error(f"Reabertura da fonte falhou: {re}")
+            video_proc.release()
+        except Exception:
+            pass
+        return None, None
 
-    return video_proc, frame

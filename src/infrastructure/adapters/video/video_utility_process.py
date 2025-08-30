@@ -100,3 +100,48 @@ def open_video_source(current_source, lane_queue, shared_controls, logger, safe_
         logger.error(f"Falha ao abrir fonte {current_source}: {e}")
         safe_stop_cb(lane_queue, shared_controls, logger, reason=str(e))
         return None
+
+def ensure_video_source(video_processor,
+                        current_source,
+                        requested_source,
+                        queue,
+                        shared_controls,
+                        logger,
+                        safe_stop_cb):
+
+    desired_source = requested_source if requested_source is not None else current_source
+
+    if desired_source is None:
+        logger.error("Nenhuma fonte definida para abrir/trocar.")
+        safe_stop_cb(queue, shared_controls, logger, reason="Fonte não definida")
+        return None, current_source
+
+    if video_processor is None or not video_processor.is_frame_open():
+        vp = open_video_source(
+            current_source=desired_source,
+            lane_queue=queue,
+            shared_controls=shared_controls,
+            logger=logger,
+            safe_stop_cb=safe_stop_cb,
+        )
+        return (vp, desired_source) if vp is not None else (None, current_source)
+
+    if desired_source != current_source:
+        logger.info(f"Trocando Source de {current_source} para {desired_source}")
+        try:
+            new_vp = VideoProcessor(video_source=desired_source)
+        except Exception as e:
+            logger.error(f"Falha ao trocar para fonte {desired_source}: {e}")
+
+            if video_processor.is_frame_open():
+                return video_processor, current_source
+            safe_stop_cb(queue, shared_controls, logger, reason=str(e))
+            return None, current_source
+
+        try:
+            video_processor.release()
+        except Exception:
+            pass
+        return new_vp, desired_source
+
+    return video_processor, current_source

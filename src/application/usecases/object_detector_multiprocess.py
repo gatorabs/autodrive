@@ -1,12 +1,11 @@
 from src.infrastructure.adapters.detection.object_detection import ObjectDetector
 from src.infrastructure.adapters.video.video_utility_process import (
     switch_video_source,
-    open_video_source,
+    open_video_source, ensure_video_source,
 )
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.services.object_detection_service import (
-    capture_frame_with_reopen,
-    force_default_object_data,
+    force_default_object_data, try_capture_or_mark_for_reopen,
 )
 from src.infrastructure.utils.priorities_processor import set_process_priority
 
@@ -44,26 +43,20 @@ def object_detection_process(object_queue,
     try:
         while shared_controls.get("RUNNING", True):
 
-            new_source = tk_controls.get("OBJECT_SOURCE")
-            object_detector.video_processor, current_source = switch_video_source(
+            object_detector.video_processor, current_source = ensure_video_source(
                 video_processor=object_detector.video_processor,
                 current_source=current_source,
-                new_source=new_source,
-                logger=logger
+                requested_source=tk_controls.get("OBJECT_SOURCE"),
+                queue=object_queue,
+                shared_controls=shared_controls,
+                logger=logger,
+                safe_stop_cb=safe_stop
             )
 
             if object_detector.video_processor is None:
-                object_detector.video_processor = open_video_source(
-                    current_source=current_source,
-                    lane_queue=object_queue,
-                    shared_controls=shared_controls,
-                    logger=logger,
-                    safe_stop_cb=safe_stop,
-                )
-                if object_detector.video_processor is None:
-                    continue
+                continue
 
-            object_detector.video_processor, frame = capture_frame_with_reopen(
+            object_detector.video_processor, frame = try_capture_or_mark_for_reopen(
                 video_proc=object_detector.video_processor,
                 current_source=current_source,
                 object_queue=object_queue,
@@ -71,6 +64,7 @@ def object_detection_process(object_queue,
                 shared_serial_data=object_serial_data,
                 logger=logger,
             )
+
             if frame is None:
                 continue
 
@@ -82,6 +76,7 @@ def object_detection_process(object_queue,
             }
             if not object_queue.full():
                 object_queue.put(object_data)
+
 
     except Exception as e:
         logger.error(f"Object Detection Error:{e}")

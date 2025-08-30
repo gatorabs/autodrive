@@ -67,27 +67,20 @@ def force_default_object_data(object_queue, shared_serial_data, shared_controls,
     shared_controls["OBJ_SAFE_STOP"] = True
     logger.warning(f"OBJ-SAFE-STOP ativado ({reason}).")
 
-def capture_frame_with_reopen(video_proc, current_source, object_queue, shared_controls, shared_serial_data, logger):
-    frame = None
-    break_camera = False
-
+def try_capture_or_mark_for_reopen(video_proc,
+                              current_source,
+                              object_queue,
+                              shared_controls,
+                              shared_serial_data,
+                              logger):
     try:
         frame = video_proc.get_frame()
         shared_controls["OBJ_SAFE_STOP"] = False
+        return video_proc, frame
     except RuntimeError as e:
         force_default_object_data(object_queue, shared_serial_data, shared_controls, logger, reason=str(e))
-        video_proc.release()
-        break_camera = True
-
-    if break_camera:
         try:
-            video_proc = VideoProcessor(
-                video_source=current_source,
-                frame_width=FRAME_WIDTH,
-                frame_height=FRAME_HEIGHT,
-            )
-            logger.info(f"Reabertura da fonte: {current_source}")
-        except Exception as re:
-            logger.error(f"Reabertura da fonte falhou: {re}")
-
-    return video_proc, frame
+            video_proc.release()
+        except Exception:
+            pass
+        return None, None

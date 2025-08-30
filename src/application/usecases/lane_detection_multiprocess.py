@@ -7,7 +7,7 @@ from src.infrastructure.adapters.video.video_utility_process import (
     toggle_named_window,
     switch_video_source,
     open_video_source,
-    preprocess,
+    preprocess, ensure_video_source,
 )
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.mappers.direction_mapper import map_direction
@@ -16,7 +16,7 @@ from src.infrastructure.services.lane_detection_service import (
     publish,
     compute_speed_and_direction,
     force_safe_stop,
-    capture_frame_with_reopen,
+    try_capture_or_mark_for_reopen,
 )
 from src.infrastructure.services.pid_service import (
     update_pid_from_controls,
@@ -62,26 +62,20 @@ def lane_detection_process(lane_queue,
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
 
-            new_source = tk_controls.get("LANE_SOURCE")
-            video_proc, current_source = switch_video_source(
+            video_proc, current_source = ensure_video_source(
                 video_processor=video_proc,
                 current_source=current_source,
-                new_source=new_source,
-                logger=logger
+                requested_source=tk_controls.get("LANE_SOURCE"),
+                queue=lane_queue,
+                shared_controls=shared_controls,
+                logger=logger,
+                safe_stop_cb=force_safe_stop,
             )
 
             if video_proc is None:
-                video_proc = open_video_source(
-                    current_source=current_source,
-                    lane_queue=lane_queue,
-                    shared_controls=shared_controls,
-                    logger=logger,
-                    safe_stop_cb=force_safe_stop,
-                )
-                if video_proc is None:
-                    continue
+                continue
 
-            video_proc, frame = capture_frame_with_reopen(
+            video_proc, frame = try_capture_or_mark_for_reopen(
                 video_proc=video_proc,
                 current_source=current_source,
                 lane_queue=lane_queue,
