@@ -121,27 +121,26 @@ class ProcessManager:
         self.terminate_lane_process()
         self.terminate_object_process()
 
-    def handle_lane_object_processes(self, current_manual_mode, last_manual_mode):
-        def enable_manual_mode():
-            self.terminate_detection_processes()
-            self._start_process(
-                "manual_proc",
-                "manual_video",
-                manual_video_process,
-                "Inicializando Manual Process.",
-                shared_controls=self.shared_controls,
-                shared_frames=self.shared_frames,
-                lane_queue=self.lane_queue,
-            )
-
-        def disable_manual_mode():
-            self._terminate_process("manual_proc", "Encerrando Manual Process.")
-            self.start_detection_processes()
-
-        last_manual_mode = self._handle_state_change(
-            current_manual_mode, last_manual_mode, enable_manual_mode, disable_manual_mode
+    def enable_manual_mode(self):
+        self.terminate_detection_processes()
+        self._start_process(
+            "manual_proc",
+            "manual_video",
+            manual_video_process,
+            "Inicializando Manual Process.",
+            shared_controls=self.shared_controls,
+            shared_frames=self.shared_frames,
+            lane_queue=self.lane_queue,
         )
 
+    def disable_manual_mode(self):
+        self._terminate_process("manual_proc", "Encerrando Manual Process.")
+        self.start_detection_processes()
+
+    def handle_lane_object_processes(self, current_manual_mode, last_manual_mode):
+        last_manual_mode = self._handle_state_change(
+            current_manual_mode, last_manual_mode, self.enable_manual_mode, self.disable_manual_mode
+        )
         return (self.lane_proc, self.object_proc, self.manual_proc), last_manual_mode
 
     def handle_flask_process(self, current_webview, last_webview):
