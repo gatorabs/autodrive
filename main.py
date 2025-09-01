@@ -1,23 +1,22 @@
 import multiprocessing as mp
 
+from src.application.configuration.system_initializer import SystemInitializer
 from src.infrastructure.adapters.calibration.calibration_repository import load_data
 from src.infrastructure.adapters.display.init_ui.init_ui_section import init_system
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
 from src.infrastructure.services.process_service import ProcessManager
-from src.infrastructure.utils.setup_system_processor import (
-    init_shared_controls,
-    terminate_if_alive,
-)
+from src.infrastructure.utils.process_utils import terminate_if_alive
 
 def main():
     mp.set_start_method('spawn')
 
-    user_flags = init_system()
+    initializer = SystemInitializer()
+    user_flags = init_system(initializer)
     calibrated_data = load_data(CALIBRATION_FILE)
     initial_tk = {**calibrated_data, **user_flags}
 
     with mp.Manager() as manager:
-        shared_controls = manager.dict(init_shared_controls(user_flags))
+        shared_controls = manager.dict(initializer.init_shared_controls(user_flags))
         tk_controls     = manager.dict(initial_tk)
         shared_frames   = manager.dict()
 

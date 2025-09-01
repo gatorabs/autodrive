@@ -66,7 +66,12 @@ def object_detection_process(object_queue,
             if frame is None:
                 continue
 
-            person_detected, traffic_light_state = object_detector.process_frame(frame)
+            try:
+                person_detected, traffic_light_state = object_detector.process_frame(frame)
+            except Exception as e:
+                logger.error(f"Object detector failure: {e}")
+                continue
+
             publish_results(
                 shared_serial_data=object_serial_data,
                 shared_frames=shared_frames,

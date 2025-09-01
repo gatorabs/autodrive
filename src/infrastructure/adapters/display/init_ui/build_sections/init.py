@@ -2,12 +2,14 @@ import threading
 import tkinter as tk
 import os
 from PIL import Image, ImageTk
+
+from src.application.configuration.system_initializer import SystemInitializer
 from src.infrastructure.adapters.display.init_ui.components.progress_bar import RoundedProgressbar
-from src.infrastructure.utils.setup_system_processor import prepare_initial_flags
 
 class CalibrationUI(tk.Tk):
-    def __init__(self):
+    def __init__(self, initializer: SystemInitializer):
         super().__init__()
+        self.initializer = initializer
         self.title("System Initialization")
         self.geometry("600x600")
         self.configure(bg="white")
@@ -79,7 +81,9 @@ class CalibrationUI(tk.Tk):
             def thread_safe_progress(value):
                 self.after(0, lambda: self.update_progress(value))
 
-            flags = prepare_initial_flags(progress_callback=thread_safe_progress)
+            flags = self.initializer.prepare_initial_flags(
+                progress_callback=thread_safe_progress
+            )
             self.loaded_flags.update(flags)
             self.flags_ready["done"] = True
 

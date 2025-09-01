@@ -35,6 +35,7 @@ def test_object_detector_processes_frame_and_puts_data():
 
     object_detector_mock = MagicMock()
     object_detector_mock.video_processor = video_proc
+    object_detector_mock.process_frame.return_value = (0, 0)
 
     with patch("src.application.usecases.object_detector_multiprocess.set_process_priority"), \
          patch("src.application.usecases.object_detector_multiprocess.open_video_source", return_value=video_proc), \
