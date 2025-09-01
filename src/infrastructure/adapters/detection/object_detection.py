@@ -96,13 +96,7 @@ class ObjectDetector:
                         cv2.putText(frame, f"TL: {active_color}", (x1, y1 - 20),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
 
-            publish_results(
-                shared_serial_data=self.shared_serial_data,
-                shared_frames=self.shared_frames,
-                person_detected=person_detected,
-                traffic_light_state=traffic_light_state,
-                frame=frame
-            )
+            return person_detected, traffic_light_state
 
         except Exception as e:
             self.logger.error(f"Erro ao processar frame: {e}")

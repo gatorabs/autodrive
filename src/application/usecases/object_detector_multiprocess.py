@@ -5,7 +5,7 @@ from src.infrastructure.adapters.video.video_utility_process import (
 )
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.services.object_detection_service import (
-    force_default_object_data, try_capture_or_mark_for_reopen,
+    force_default_object_data, try_capture_or_mark_for_reopen, publish_results,
 )
 from src.infrastructure.utils.priorities_processor import set_process_priority
 
@@ -52,7 +52,6 @@ def object_detection_process(object_queue,
                 logger=logger,
                 safe_stop_cb=safe_stop
             )
-
             if object_detector.video_processor is None:
                 continue
 
@@ -64,19 +63,18 @@ def object_detection_process(object_queue,
                 shared_serial_data=object_serial_data,
                 logger=logger,
             )
-
             if frame is None:
                 continue
 
-            object_detector.process_frame(frame)
-
-            object_data = {
-                "OBJECT_PERSON_DATA": object_serial_data[2],
-                "TRAFFIC_LIGHT_DATA": object_serial_data[1],
-            }
-            if not object_queue.full():
-                object_queue.put(object_data)
-
+            person_detected, traffic_light_state = object_detector.process_frame(frame)
+            publish_results(
+                shared_serial_data=object_serial_data,
+                shared_frames=shared_frames,
+                person_detected=person_detected,
+                traffic_light_state=traffic_light_state,
+                object_queue=object_queue,
+                frame=frame
+            )
 
     except Exception as e:
         logger.error(f"Object Detection Error:{e}")

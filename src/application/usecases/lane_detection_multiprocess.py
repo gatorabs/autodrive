@@ -71,7 +71,6 @@ def lane_detection_process(lane_queue,
                 logger=logger,
                 safe_stop_cb=force_safe_stop,
             )
-
             if video_proc is None:
                 continue
 
@@ -98,11 +97,6 @@ def lane_detection_process(lane_queue,
                 logger.error(f"Erro no preprocess: {e}")
                 continue
 
-            pid, last_pid_flag = check_and_update_pid(pid=pid,
-                                                      last_pid_flag=last_pid_flag,
-                                                      shared_controls=shared_controls,
-                                                      logger=logger)
-
             (avg_left,
              avg_right,
              has_ref,
@@ -111,6 +105,11 @@ def lane_detection_process(lane_queue,
                 warped_roi=warped_roi,
                 side=side,
                 num_lines=num_lines)
+
+            pid, last_pid_flag = check_and_update_pid(pid=pid,
+                                                      last_pid_flag=last_pid_flag,
+                                                      shared_controls=shared_controls,
+                                                      logger=logger)
 
             update_pid_from_controls(
                 pid=pid,
@@ -130,11 +129,6 @@ def lane_detection_process(lane_queue,
             )
 
             mapped_direction = map_direction(value=direction)
-
-            lane_data = {
-                "CAR_SPEED_DATA": speed,
-                "CAR_DIRECTION_DATA": mapped_direction
-                         }
 
             frame_display = draw_overlays(
                 frame=frame,
@@ -161,6 +155,11 @@ def lane_detection_process(lane_queue,
                 start_time=start_time,
                 total_time=total_processing_time,
                 frame_count=frame_count)
+
+            lane_data = {
+                "CAR_SPEED_DATA": speed,
+                "CAR_DIRECTION_DATA": mapped_direction
+                         }
 
             publish(
                 frame_display=frame_display,
