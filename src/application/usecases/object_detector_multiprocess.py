@@ -68,9 +68,16 @@ def object_detection_process(object_queue,
 
             try:
                 person_detected, traffic_light_state = object_detector.process_frame(frame)
-            except Exception:
-                # In case the detector returns unexpected data, fall back to defaults
-                person_detected, traffic_light_state = 0, 0
+            except Exception as e:
+                logger.error(f"Object detector failure: {e}")
+                force_default_object_data(
+                    object_queue,
+                    object_serial_data,
+                    shared_controls,
+                    logger,
+                    reason=str(e),
+                )
+                continue
             publish_results(
                 shared_serial_data=object_serial_data,
                 shared_frames=shared_frames,
