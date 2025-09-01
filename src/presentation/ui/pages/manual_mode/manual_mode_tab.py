@@ -1,6 +1,6 @@
 import customtkinter as ctk
 
-from src.infrastructure.adapters.display.ui.components.video_frame import VideoFrame
+from src.presentation.ui.components.video_frame import VideoFrame
 from .sections.manual_controls_section import ManualControls
 from ...components.checkbox import CheckboxSection
 from ...components.steering_wheel import SteeringWheel

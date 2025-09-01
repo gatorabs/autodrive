@@ -5,7 +5,7 @@ from src.application.usecases.data_sender_multiprocess import data_sender_proces
 from src.application.usecases.lane_detection_multiprocess import lane_detection_process
 from src.application.usecases.manual_mode_multiprocess import manual_video_process
 from src.application.usecases.object_detector_multiprocess import object_detection_process
-from src.infrastructure.adapters.display.ui.main_app import launch_homepage
+from src.presentation.ui.main_app import launch_homepage
 from src.infrastructure.adapters.web_server.app import start_flask_server
 from src.infrastructure.constants.services_constants.process_constants import (
     shutdown_endpoint,

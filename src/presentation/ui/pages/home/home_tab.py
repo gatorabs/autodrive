@@ -1,6 +1,6 @@
 import customtkinter as ctk
 
-from src.infrastructure.adapters.display.ui.components.video_frame import VideoFrame
+from src.presentation.ui.components.video_frame import VideoFrame
 from .sections.filter_section import FilterControls
 from .sections.warp_section import WarpControls
 from .sections.object_roi_section import ObjectRoiSection

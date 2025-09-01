@@ -1,5 +1,5 @@
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
-from src.infrastructure.adapters.display.ui.components.slider import SliderSection, SliderConfig
+from src.presentation.ui.components.slider import SliderSection, SliderConfig
 
 class WarpControls(SliderSection):
     """Controls for warp transformation points."""

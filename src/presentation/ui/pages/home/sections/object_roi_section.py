@@ -1,4 +1,4 @@
-from src.infrastructure.adapters.display.ui.components.slider import SliderSection, SliderConfig
+from src.presentation.ui.components.slider import SliderSection, SliderConfig
 
 class ObjectRoiSection(SliderSection):
     """Sliders for defining the ROI of object detection."""

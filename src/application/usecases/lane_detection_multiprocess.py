@@ -2,7 +2,7 @@ import cv2 as cv
 import time
 
 from src.domain.constants.pid_constants import KP, KD, KI, TARGET_CENTER_DISTANCE
-from src.infrastructure.adapters.display.setup_embedded_ui import draw_overlays
+from src.presentation.setup_embedded_ui import draw_overlays
 from src.infrastructure.adapters.video.video_utility_process import (
     toggle_named_window,
     switch_video_source,

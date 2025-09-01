@@ -4,7 +4,7 @@ import os
 from PIL import Image, ImageTk
 
 from src.application.configuration.system_initializer import SystemInitializer
-from src.infrastructure.adapters.display.init_ui.components.progress_bar import RoundedProgressbar
+from src.presentation.init_ui.components.progress_bar import RoundedProgressbar
 
 class CalibrationUI(tk.Tk):
     def __init__(self, initializer: SystemInitializer):
@@ -19,7 +19,7 @@ class CalibrationUI(tk.Tk):
         self.loaded_flags = {}
 
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.resources_dir = os.path.abspath(os.path.join(self.base_dir, "../../../../../../resources/images"))
+        self.resources_dir = os.path.abspath(os.path.join(self.base_dir, "../../../../resources/images"))
         self.img_path = os.path.join(self.resources_dir, "mercedes-benz.png")
 
         self.original_image = Image.open(self.img_path).resize((250, 250), Image.Resampling.LANCZOS).convert("RGBA")
