@@ -53,7 +53,7 @@ def publish_results(shared_serial_data, shared_frames, person_detected, traffic_
     shared_serial_data[1] = traffic_light_state
 
     # mantém o frame bruto; consumidores decidem como codificar
-    shared_frames["OBJECT_FRAME"] = frame.copy()
+    shared_frames["OBJECT_FRAME"] = frame.copy() if hasattr(frame, "copy") else frame
 
     object_data = {
         "OBJECT_PERSON_DATA": shared_serial_data[2],
