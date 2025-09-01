@@ -18,7 +18,7 @@ def switch_serial_com(serial_comm, new_com, current_com, shared_controls, open_f
         serial_comm.close()
         serial_comm = SerialCommunicator(
             com_port=new_com,
-            send_data=shared_controls.get("SEND_DATA", False),
+            send_data=shared_controls.get("SEND_DATA", True),
             open_for_receive=open_for_receive,
             logger=logger
         )
