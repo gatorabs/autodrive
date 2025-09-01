@@ -4,7 +4,7 @@ import os
 from PIL import Image, ImageTk
 
 from src.application.configuration.system_initializer import SystemInitializer
-from src.infrastructure.adapters.display.init_ui.components.progress_bar import RoundedProgressbar
+from src.presentation.init_ui.components.progress_bar import RoundedProgressbar
 
 class CalibrationUI(tk.Tk):
     def __init__(self, initializer: SystemInitializer):

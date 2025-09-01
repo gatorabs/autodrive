@@ -1,5 +1,5 @@
 from src.application.configuration.system_initializer import SystemInitializer
-from src.infrastructure.adapters.display.init_ui.build_sections.init import CalibrationUI
+from src.presentation.init_ui.build_sections.init import CalibrationUI
 
 
 def init_system(initializer: SystemInitializer):

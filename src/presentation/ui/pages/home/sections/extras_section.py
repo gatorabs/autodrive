@@ -1,6 +1,6 @@
 from src.infrastructure.constants.video_constants import FRAME_HEIGHT
-from src.infrastructure.adapters.display.ui.components.slider import SliderSection, SliderConfig
-from src.infrastructure.adapters.display.ui.components.checkbox import CheckboxSection
+from src.presentation.ui.components.slider import SliderSection, SliderConfig
+from src.presentation.ui.components.checkbox import CheckboxSection
 
 class ExtrasControls(SliderSection):
     """Additional sliders and checkboxes for extra options."""

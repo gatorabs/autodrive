@@ -21,14 +21,14 @@ from src.infrastructure.constants.ui_constants.component_constants import (
     GAP,
     EXTRA_MARGIN,
 )
-from src.infrastructure.adapters.display.ui.pages.home.home_tab import HomeTab
-from src.infrastructure.adapters.display.ui.pages.manual_mode.manual_mode_tab import ManualModeTab
+from src.presentation.ui.pages.home.home_tab import HomeTab
+from src.presentation.ui.pages.manual_mode.manual_mode_tab import ManualModeTab
 from src.infrastructure.adapters.video.video_utility_process import (
     detect_camera_indices,
     get_video_files_from_folder,
 )
 from .components.tab_manager import TabManager
-from src.infrastructure.adapters.display.ui.pages.task_manager.task_manager_tab import TaskManagerTab
+from src.presentation.ui.pages.task_manager.task_manager_tab import TaskManagerTab
 from .helpers.main_app_helper import enable_windows_dpi_awareness
 
 enable_windows_dpi_awareness()
