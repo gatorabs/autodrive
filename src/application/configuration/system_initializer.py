@@ -6,10 +6,8 @@ from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 
 
 class SystemInitializer:
-    """High-level service responsible for preparing initial system flags and controls."""
 
     def init_shared_controls(self, user_flags):
-        """Return the shared control dictionary based on user-provided flags."""
         return {
             **user_flags,
             "RUNNING": True,
@@ -20,7 +18,6 @@ class SystemInitializer:
 
     @staticmethod
     def print_flags(flags: dict):
-        """Pretty-print flag values, highlighting disabled booleans."""
         for key, value in flags.items():
             if isinstance(value, bool) and not value:
                 print(f"{key}: {RED}{value}{RESET}")
@@ -28,7 +25,6 @@ class SystemInitializer:
                 print(f"{key}: {value}")
 
     def prepare_initial_flags(self, progress_callback=None):
-        """Load UI defaults and enrich them with hardware detection results."""
         defaults_ui = load_data(DEFAULT_UI_PATH)
         if progress_callback:
             progress_callback(25)

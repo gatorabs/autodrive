@@ -3,7 +3,7 @@ import tkinter as tk
 import os
 from PIL import Image, ImageTk
 
-from src.application.system_initializer import SystemInitializer
+from src.application.configuration.system_initializer import SystemInitializer
 from src.infrastructure.adapters.display.init_ui.components.progress_bar import RoundedProgressbar
 
 class CalibrationUI(tk.Tk):
