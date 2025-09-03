@@ -1,7 +1,7 @@
 from src.infrastructure.constants.colors_constants import RED, RESET
 from src.infrastructure.constants.ui_constants.file_constants import DEFAULT_UI_PATH
 from src.infrastructure.adapters.video.video_utility_process import detect_camera_indices
-from src.infrastructure.adapters.calibration.calibration_repository import load_data, save_data
+from src.infrastructure.data.repository.calibration_repository import load_data, save_data
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 
 

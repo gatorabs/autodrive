@@ -4,7 +4,7 @@ from src.infrastructure.adapters.video.video_utility_process import (
     detect_camera_indices,
     get_video_files_from_folder,
 )
-from src.infrastructure.adapters.calibration.calibration_repository import refresh_json
+from src.infrastructure.data.repository.calibration_repository import refresh_json
 from src.infrastructure.constants.ui_constants.file_constants import DEFAULT_UI_PATH
 
 class SourceAndSerialControls(ctk.CTkFrame):

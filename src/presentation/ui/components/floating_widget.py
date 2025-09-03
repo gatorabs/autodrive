@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from src.infrastructure.adapters.calibration.calibration_repository import save_data, load_data, refresh_json
+from src.infrastructure.data.repository.calibration_repository import save_data, load_data, refresh_json
 from src.infrastructure.constants.ui_constants.file_constants import DEFAULTS_FILE
 
 class FloatingWidget(ctk.CTkFrame):

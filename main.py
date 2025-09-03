@@ -1,7 +1,7 @@
 import multiprocessing as mp
 
 from src.application.configuration.system_initializer import SystemInitializer
-from src.infrastructure.adapters.calibration.calibration_repository import load_data
+from src.infrastructure.data.repository.calibration_repository import load_data
 from src.presentation.init_ui.init_ui_section import init_system
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
 from src.infrastructure.services.process_service import ProcessManager
