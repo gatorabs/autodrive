@@ -1,6 +1,6 @@
 import customtkinter as ctk
 
-from src.infrastructure.adapters.calibration.calibration_repository import refresh_json
+from src.infrastructure.data.repository.calibration_repository import refresh_json
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
 from src.infrastructure.logging.logger import Logger
 
