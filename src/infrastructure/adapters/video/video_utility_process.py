@@ -1,6 +1,7 @@
 import os
 import glob
 import contextlib
+import time
 import cv2 as cv
 import numpy as np
 from src.infrastructure.adapters.video.video_process import VideoProcessor
@@ -91,14 +92,37 @@ def switch_video_source(video_processor, current_source, new_source, logger):
     return video_processor, current_source
 
 
-def open_video_source(current_source, lane_queue, shared_controls, logger, safe_stop_cb):
+def open_video_source(current_source, lane_queue, shared_controls, logger, safe_stop_cb, cooldown: float = 2.0):
+    """Abre a fonte de vídeo com controle de tentativas e logs.
+
+    Em caso de falha consecutiva, o erro é registrado apenas uma vez e novas
+    tentativas de abertura são espaçadas pelo *cooldown* para evitar spam de
+    logs e mensagens do OpenCV.
+    """
+
+    key_prefix = f"{logger.name}_CAM"
+    error_flag_key = f"{key_prefix}_ERROR_LOGGED"
+    last_retry_key = f"{key_prefix}_LAST_RETRY"
+
+    now = time.monotonic()
+    last_try = shared_controls.get(last_retry_key, 0.0)
+
+    # Se a última tentativa falhou recentemente, não tenta abrir novamente
+    if shared_controls.get(error_flag_key, False) and (now - last_try) < cooldown:
+        return None
+
     try:
         video_proc = VideoProcessor(video_source=current_source)
         logger.info(f"Fonte aberta: {current_source}")
+        shared_controls[error_flag_key] = False
+        shared_controls[last_retry_key] = 0.0
         return video_proc
     except Exception as e:  # pragma: no cover - defensive
-        logger.error(f"Falha ao abrir fonte {current_source}: {e}")
-        safe_stop_cb(lane_queue, shared_controls, logger, reason=str(e))
+        if not shared_controls.get(error_flag_key, False):
+            logger.error(f"Falha ao abrir fonte {current_source}: {e}")
+            safe_stop_cb(lane_queue, shared_controls, logger, reason=str(e))
+            shared_controls[error_flag_key] = True
+        shared_controls[last_retry_key] = now
         return None
 
 def ensure_video_source(video_processor,
