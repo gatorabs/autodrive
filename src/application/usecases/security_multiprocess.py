@@ -3,6 +3,7 @@ import time
 
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 from src.infrastructure.logging.logger import Logger
+from src.infrastructure.services.data_sender_service import change_serial_port
 from src.infrastructure.utils.priorities_processor import set_process_priority
 
 def security_process(shared_controls, verbose=True):
@@ -23,13 +24,14 @@ def security_process(shared_controls, verbose=True):
     try:
         while shared_controls.get("RUNNING", True):
             new_com = shared_controls.get("SECURITY_COM")
-            if new_com != current_com:
-                serial_comm.change_port(
-                    new_port=new_com,
-                    send_data=shared_controls.get("SEND_DATA", True),
-                    open_for_receive=True,
-                )
-                current_com = new_com
+            current_com = change_serial_port(
+                new_com=new_com,
+                current_com=current_com,
+                serial_comm=serial_comm,
+                shared_controls=shared_controls,
+                logger=logger,
+                open_for_receive=True,
+            )
 
             now = time.monotonic()
             if now - last_send >= send_interval:
