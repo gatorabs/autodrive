@@ -1,5 +1,5 @@
-from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 from queue import Empty
+
 
 def publish_emergency_stop(obj_data, shared_controls, lane_data):
     if (
@@ -12,23 +12,10 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data):
         car_info["CAR_SPEED_DATA"] = 0
         shared_controls["CAR_INFO"] = car_info
 
-def switch_serial_com(serial_comm, new_com, current_com, shared_controls, open_for_receive, logger):
-    if new_com != current_com:
-        logger.info(f"Alterando porta serial: {current_com} -> {new_com}")
-        serial_comm.close()
-        serial_comm = SerialCommunicator(
-            com_port=new_com,
-            send_data=shared_controls.get("SEND_DATA", True),
-            open_for_receive=open_for_receive,
-            logger=logger
-        )
-        return serial_comm, new_com
-    return serial_comm, current_com
-
 def handle_object_queue(manual_md, object_queue, obj_data):
     if manual_md:
         obj_data["OBJECT_PERSON_DATA"] = 0
-        obj_data["TRAFFIC_LIGHT_DATA"] = 1
+        obj_data["TRAFFIC_LIGHT_DATA"] = 2
         while not object_queue.empty():
             try:
                 object_queue.get_nowait()
@@ -48,24 +35,32 @@ def publish(lane_data, obj_data, serial_comm, logger, verbose):
         obj_data["TRAFFIC_LIGHT_DATA"]
     ]
 
-    if not ensure_serial_connection(serial_comm, logger):
+    if not serial_comm.ensure_connection():
         return
 
     try:
         serial_comm.send(payload, verbose)
     except Exception as e:
         logger.error(f"Falha ao enviar dados: {e}")
-        ensure_serial_connection(serial_comm, logger)
+        serial_comm.close()
 
+def change_serial_port(
+    new_com,
+    current_com,
+    serial_comm,
+    shared_controls,
+    logger=None,
+    open_for_receive=False,
+):
+    if not new_com or new_com == current_com:
+        return current_com
 
-def ensure_serial_connection(serial_comm, logger):
-    if not serial_comm.serial_port or not serial_comm.serial_port.is_open:
-        try:
-            serial_comm.reconnect()
-        except Exception as re:
-            logger.error(f"Reconexão falhou: {re}")
+    serial_comm.change_port(
+        new_port=new_com,
+        send_data=shared_controls.get("SEND_DATA", False),
+        open_for_receive=open_for_receive,
+    )
+    if logger:
+        logger.info(f"Porta serial alterada: {current_com} -> {new_com}")
+    return new_com
 
-        if not serial_comm.serial_port or not serial_comm.serial_port.is_open:
-            logger.warning("Porta serial indisponível; envio será pulado.")
-            return False
-    return True

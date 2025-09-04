@@ -1,6 +1,6 @@
 #include <Servo.h>
 #include "MotorController.h"
-#include "CanController.h"
+//#include "CanController.h"
 #include "BuzzerController.h"
 #include "LightController.h"
 
@@ -14,7 +14,7 @@ MotorController motors[] = {
   MotorController(11, 10)
 };
 
-CanController can;
+//CanController can;
 BuzzerController buzzer;
 LightController light;
 Servo servo;
@@ -29,11 +29,11 @@ void setup() {
   Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
 
-  if (!can.setup(53, 18)) {
-    digitalWrite(LED_PIN, HIGH);
-  } else {
-    digitalWrite(LED_PIN, LOW);
-  }
+  //if (!can.setup(53, 18)) {
+  //  digitalWrite(LED_PIN, HIGH);
+  //} else {
+  //  digitalWrite(LED_PIN, LOW);
+  //}
 
   buzzer.setup();
   light.setup();
