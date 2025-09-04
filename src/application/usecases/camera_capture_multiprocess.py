@@ -1,10 +1,7 @@
 import time
 import cv2 as cv
 
-from src.infrastructure.adapters.video.video_utility_process import (
-    open_video_source,
-    ensure_video_source,
-)
+from src.infrastructure.adapters.video.video_utility_process import VideoSourceManager
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.services.camera_capture_service import publish, camera_safe_stop
 from src.infrastructure.utils.priorities_processor import set_process_priority
@@ -17,15 +14,14 @@ def camera_capture_process(shared_frames,
 
     set_process_priority("above_normal")
     logger = Logger("CameraCapture", verbose=verbose)
-    current_source = camera_source
-
-    video_proc = open_video_source(
-        current_source=current_source,
+    manager = VideoSourceManager(camera_source)
+    video_proc = manager.open_video_source(
         lane_queue=None,
         shared_controls=shared_controls,
         logger=logger,
         safe_stop_cb=camera_safe_stop,
     )
+    current_source = manager.current_source
 
     if video_proc and video_proc.is_cam:
         try:
@@ -35,9 +31,8 @@ def camera_capture_process(shared_frames,
 
     try:
         while shared_controls.get("RUNNING", True):
-            video_proc, current_source = ensure_video_source(
+            video_proc, current_source = manager.ensure_video_source(
                 video_processor=video_proc,
-                current_source=current_source,
                 requested_source=tk_controls.get("LANE_SOURCE"),
                 queue=None,
                 shared_controls=shared_controls,
