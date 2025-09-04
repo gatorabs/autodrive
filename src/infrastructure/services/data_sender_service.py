@@ -1,5 +1,3 @@
-import time
-
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 from queue import Empty
 
@@ -43,14 +41,14 @@ def handle_object_queue(manual_md, object_queue, obj_data):
         except Empty:
             pass
 
-def publish(lane_data, obj_data, serial_comm, logger, current_com, verbose):
+def publish(lane_data, obj_data, serial_comm, logger, verbose):
     payload = [
         lane_data["CAR_DIRECTION_DATA"],
         lane_data["CAR_SPEED_DATA"],
         obj_data["TRAFFIC_LIGHT_DATA"]
     ]
 
-    if not ensure_serial_connection(serial_comm, current_com, logger):
+    if not serial_comm.ensure_connection():
         return
 
     try:
@@ -59,66 +57,3 @@ def publish(lane_data, obj_data, serial_comm, logger, current_com, verbose):
         logger.error(f"Falha ao enviar dados: {e}")
         serial_comm.close()
 
-def ensure_serial_connection(serial_comm, current_com, logger, cooldown=2.0):
-    if not hasattr(serial_comm, "_warn_unavailable"):
-        serial_comm._warn_unavailable = False
-    if not hasattr(serial_comm, "_last_reconnect_try"):
-        serial_comm._last_reconnect_try = 0.0
-    if not hasattr(serial_comm, "_port_available"):
-        serial_comm._port_available = False
-
-    def is_open():
-        port = getattr(serial_comm, "serial_port", None)
-        try:
-            return bool(port) and getattr(port, "is_open", False)
-        except Exception:
-            return False
-
-    if is_open():
-        serial_comm._warn_unavailable = False
-        return True
-
-    try:
-        available = set(serial_comm.list_available_ports())
-    except Exception as exc:
-        if not serial_comm._warn_unavailable:
-            logger.warning(
-                f"Não foi possível listar portas ({exc}); não tentarei reconectar."
-            )
-            serial_comm._warn_unavailable = True
-        return False
-
-    now = time.monotonic()
-    if current_com not in available:
-        if not serial_comm._warn_unavailable:
-            logger.warning(
-                f"Porta {current_com} indisponível; envio será pulado."
-            )
-            serial_comm._warn_unavailable = True
-        serial_comm._port_available = False
-        serial_comm._last_reconnect_try = now
-        return False
-
-    if not serial_comm._port_available:
-        serial_comm._port_available = True
-        serial_comm._last_reconnect_try = now
-        return False
-
-    if now - serial_comm._last_reconnect_try < cooldown:
-        return False
-    serial_comm._last_reconnect_try = now
-
-    try:
-        logger.info(f"Reconectando em {current_com}")
-        serial_comm.reconnect()
-    except Exception as exc:
-        logger.error(f"Reconexão falhou em {current_com}: {exc}")
-
-    if is_open():
-        serial_comm._warn_unavailable = False
-        return True
-
-    if not serial_comm._warn_unavailable:
-        logger.warning(f"Falha ao abrir {current_com}; envio será pulado.")
-        serial_comm._warn_unavailable = True
-    return False
