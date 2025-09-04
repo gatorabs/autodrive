@@ -16,7 +16,3 @@ def encode_frame(frame: Union[np.ndarray, bytes, bytearray]) -> bytes:
         image.save(buffer, format="JPEG")
         return buffer.getvalue()
     raise TypeError("Frame must be a numpy array or bytes")
-
-def _camera_safe_stop(_, shared_controls, logger, reason="CAMERA_ERROR"):
-    shared_controls["SAFE_STOP"] = True
-    logger.warning(f"SAFE-STOP ativado ({reason}).")

@@ -6,7 +6,7 @@ from src.infrastructure.adapters.video.video_utility_process import (
     ensure_video_source,
 )
 from src.infrastructure.logging.logger import Logger
-from src.infrastructure.utils.frame_utils import _camera_safe_stop
+from src.infrastructure.services.camera_capture_service import publish, camera_safe_stop
 from src.infrastructure.utils.priorities_processor import set_process_priority
 
 def camera_capture_process(shared_frames,
@@ -24,7 +24,7 @@ def camera_capture_process(shared_frames,
         lane_queue=None,
         shared_controls=shared_controls,
         logger=logger,
-        safe_stop_cb=_camera_safe_stop,
+        safe_stop_cb=camera_safe_stop,
     )
 
     if video_proc and video_proc.is_cam:
@@ -42,17 +42,20 @@ def camera_capture_process(shared_frames,
                 queue=None,
                 shared_controls=shared_controls,
                 logger=logger,
-                safe_stop_cb=_camera_safe_stop,
+                safe_stop_cb=camera_safe_stop,
             )
             if video_proc is None:
                 continue
 
             try:
                 frame = video_proc.get_frame()
-                shared_frames["CAMERA_FRAME"] = frame
-                shared_controls["SAFE_STOP"] = False
+                publish(
+                    shared_frames=shared_frames,
+                    shared_controls=shared_controls,
+                    frame=frame
+                )
             except RuntimeError as e:
-                _camera_safe_stop(None, shared_controls, logger, reason=str(e))
+                camera_safe_stop(None, shared_controls, logger, reason=str(e))
                 try:
                     video_proc.release()
                 except Exception:
