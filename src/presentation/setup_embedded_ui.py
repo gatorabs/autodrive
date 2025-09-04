@@ -1,6 +1,6 @@
 import cv2 as cv
 import numpy as np
-import math
+from pathlib import Path
 
 from src.infrastructure.utils.lane_utils import bird_eye_full
 
@@ -13,15 +13,18 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
             "font": cv.QT_FONT_NORMAL,
             "scale": 0.5,
             "color": (0, 255, 255),
-            "thickness": 1,
-            "wheel-thickness": 4
+            "thickness": 1
         }
+
+    if not hasattr(draw_overlays, "wheel_image"):
+        wheel_path = Path(__file__).resolve().parents[2] / "resources" / "volante.png"
+        wheel = cv.imread(str(wheel_path), cv.IMREAD_UNCHANGED)
+        draw_overlays.wheel_image = cv.resize(wheel, (80, 80)) if wheel is not None else None
 
     font = draw_overlays.font_props["font"]
     font_scale = draw_overlays.font_props["scale"]
     font_color = draw_overlays.font_props["color"]
     thickness = draw_overlays.font_props["thickness"]
-    wheel_thickness = draw_overlays.font_props["wheel-thickness"]
 
     overlay = frame.copy()
 
@@ -46,31 +49,42 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
             center_x = (tl_x + tr_x) // 2
             mid_y = (tl_y + tr_y) // 2 + 50
 
-            # 1) volante (círculo externo)
+            wheel_img = draw_overlays.wheel_image
             radius = 40
-            wheel_color = (200, 200, 200)
-            cv.circle(frame, (center_x, mid_y), radius, wheel_color, wheel_thickness)
-
-            # 2) volante giratório: spokes mais grossos
-            num_spokes = 3
-            length = int(radius * 0.9)
-            for i in range(num_spokes):
-                offset = i * (360 / num_spokes)
-                spoke_angle = (mapped_direction - 90.0) + offset
-                rad = math.radians(spoke_angle)
-                end_x = int(center_x + length * math.sin(rad))
-                end_y = int(mid_y - length * math.cos(rad))
-                cv.line(frame,
-                        (center_x, mid_y),
-                        (end_x, end_y),
-                        wheel_color,
-                        wheel_thickness)
+            if wheel_img is not None:
+                h, w = wheel_img.shape[:2]
+                radius = h // 2
+                angle = mapped_direction - 90.0
+                M = cv.getRotationMatrix2D((w // 2, h // 2), angle, 1.0)
+                rotated = cv.warpAffine(
+                    wheel_img,
+                    M,
+                    (w, h),
+                    flags=cv.INTER_LINEAR,
+                    borderMode=cv.BORDER_TRANSPARENT,
+                )
+                x1 = center_x - w // 2
+                y1 = mid_y - h // 2
+                x2 = x1 + w
+                y2 = y1 + h
+                if 0 <= x1 and 0 <= y1 and x2 <= frame.shape[1] and y2 <= frame.shape[0]:
+                    alpha = rotated[:, :, 3] / 255.0
+                    for c in range(3):
+                        frame[y1:y2, x1:x2, c] = (
+                            alpha * rotated[:, :, c]
+                            + (1 - alpha) * frame[y1:y2, x1:x2, c]
+                        )
 
             # 3) opcional: texto com os valores de L e R
-            cv.putText(frame,
-                       f"L:{avg_left:.1f} R:{avg_right:.1f}",
-                       (center_x - 60, mid_y - radius - 10),
-                       font, font_scale, font_color, thickness)
+            cv.putText(
+                frame,
+                f"L:{avg_left:.1f} R:{avg_right:.1f}",
+                (center_x - 60, mid_y - radius - 10),
+                font,
+                font_scale,
+                font_color,
+                thickness,
+            )
 
         if roi is not None and show_roi_lines:
             _, _, inv_M = bird_eye_full(frame, warp_points, draw_on=None, inv_matrix=True)
