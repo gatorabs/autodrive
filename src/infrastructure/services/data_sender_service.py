@@ -44,3 +44,23 @@ def publish(lane_data, obj_data, serial_comm, logger, verbose):
         logger.error(f"Falha ao enviar dados: {e}")
         serial_comm.close()
 
+def change_serial_port(
+    new_com,
+    current_com,
+    serial_comm,
+    shared_controls,
+    logger=None,
+    open_for_receive=False,
+):
+    if not new_com or new_com == current_com:
+        return current_com
+
+    serial_comm.change_port(
+        new_port=new_com,
+        send_data=shared_controls.get("SEND_DATA", False),
+        open_for_receive=open_for_receive,
+    )
+    if logger:
+        logger.info(f"Porta serial alterada: {current_com} -> {new_com}")
+    return new_com
+

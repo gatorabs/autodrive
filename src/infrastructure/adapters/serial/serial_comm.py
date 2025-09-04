@@ -88,9 +88,9 @@ class SerialCommunicator:
 
     def change_port(self, new_port, send_data, open_for_receive):
         old_port = self.com_port
+        self.close()
         if self.logger:
             self.logger.info(f"Alterando porta serial: {old_port} -> {new_port}")
-        self.close()
         self.com_port = new_port
         self.send_data = send_data
         self._warn_unavailable = False
@@ -132,13 +132,6 @@ class SerialCommunicator:
             return False
 
     def ensure_connection(self, cooldown: float = 2.0) -> bool:
-        """Ensure that the serial connection is open.
-
-        Attempts to reconnect using the same logic previously handled by
-        ``ensure_serial_connection`` in ``data_sender_service``.  The cooldown
-        parameter defines how often reconnection attempts are made.
-        """
-
         def is_open() -> bool:
             port = getattr(self, "serial_port", None)
             try:
