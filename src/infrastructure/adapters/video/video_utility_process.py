@@ -131,7 +131,8 @@ def ensure_video_source(video_processor,
                         queue,
                         shared_controls,
                         logger,
-                        safe_stop_cb):
+                        safe_stop_cb,
+                        cooldown: float = 2.0):
 
     desired_source = requested_source if requested_source is not None else current_source
 
@@ -147,18 +148,35 @@ def ensure_video_source(video_processor,
             shared_controls=shared_controls,
             logger=logger,
             safe_stop_cb=safe_stop_cb,
+            cooldown=cooldown,
         )
         return (vp, desired_source) if vp is not None else (None, current_source)
 
     if desired_source != current_source:
-        logger.info(f"Trocando Source de {current_source} para {desired_source}")
+        key_prefix = f"{logger.name}_SWITCH_{desired_source}"
+        error_flag_key = f"{key_prefix}_ERROR_LOGGED"
+        last_retry_key = f"{key_prefix}_LAST_RETRY"
+
+        now = time.monotonic()
+        last_try = shared_controls.get(last_retry_key, 0.0)
+
+        if shared_controls.get(error_flag_key, False) and (now - last_try) < cooldown:
+            return video_processor, current_source
+
         try:
             new_vp = VideoProcessor(video_source=desired_source)
+            logger.info(f"Trocando Source de {current_source} para {desired_source}")
+            shared_controls[error_flag_key] = False
+            shared_controls[last_retry_key] = 0.0
         except Exception as e:
-            logger.error(f"Falha ao trocar para fonte {desired_source}: {e}")
+            if not shared_controls.get(error_flag_key, False):
+                logger.error(f"Falha ao trocar para fonte {desired_source}: {e}")
+            shared_controls[error_flag_key] = True
+            shared_controls[last_retry_key] = now
 
             if video_processor.is_frame_open():
                 return video_processor, current_source
+
             safe_stop_cb(queue, shared_controls, logger, reason=str(e))
             return None, current_source
 
