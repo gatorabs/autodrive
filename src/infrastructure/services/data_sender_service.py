@@ -59,11 +59,13 @@ def publish(lane_data, obj_data, serial_comm, logger, current_com, verbose):
         logger.error(f"Falha ao enviar dados: {e}")
         serial_comm.close()
 
-def ensure_serial_connection(serial_comm, current_com, logger, cooldown=8.0):
+def ensure_serial_connection(serial_comm, current_com, logger, cooldown=2.0):
     if not hasattr(serial_comm, "_warn_unavailable"):
         serial_comm._warn_unavailable = False
     if not hasattr(serial_comm, "_last_reconnect_try"):
         serial_comm._last_reconnect_try = 0.0
+    if not hasattr(serial_comm, "_port_available"):
+        serial_comm._port_available = False
 
     def is_open():
         port = getattr(serial_comm, "serial_port", None)
@@ -80,17 +82,28 @@ def ensure_serial_connection(serial_comm, current_com, logger, cooldown=8.0):
         available = set(serial_comm.list_available_ports())
     except Exception as exc:
         if not serial_comm._warn_unavailable:
-            logger.warning(f"Não foi possível listar portas ({exc}); não tentarei reconectar.")
-            serial_comm._warn_unavailable = True
-        return False
-
-    if current_com not in available:
-        if not serial_comm._warn_unavailable:
-            logger.warning(f"Porta {current_com} indisponível; envio será pulado.")
+            logger.warning(
+                f"Não foi possível listar portas ({exc}); não tentarei reconectar."
+            )
             serial_comm._warn_unavailable = True
         return False
 
     now = time.monotonic()
+    if current_com not in available:
+        if not serial_comm._warn_unavailable:
+            logger.warning(
+                f"Porta {current_com} indisponível; envio será pulado."
+            )
+            serial_comm._warn_unavailable = True
+        serial_comm._port_available = False
+        serial_comm._last_reconnect_try = now
+        return False
+
+    if not serial_comm._port_available:
+        serial_comm._port_available = True
+        serial_comm._last_reconnect_try = now
+        return False
+
     if now - serial_comm._last_reconnect_try < cooldown:
         return False
     serial_comm._last_reconnect_try = now
