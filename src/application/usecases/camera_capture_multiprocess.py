@@ -6,13 +6,8 @@ from src.infrastructure.adapters.video.video_utility_process import (
     ensure_video_source,
 )
 from src.infrastructure.logging.logger import Logger
+from src.infrastructure.utils.frame_utils import _camera_safe_stop
 from src.infrastructure.utils.priorities_processor import set_process_priority
-
-
-def _camera_safe_stop(_, shared_controls, logger, reason="CAMERA_ERROR"):
-    shared_controls["SAFE_STOP"] = True
-    logger.warning(f"SAFE-STOP ativado ({reason}).")
-
 
 def camera_capture_process(shared_frames,
                            shared_controls,
@@ -50,7 +45,6 @@ def camera_capture_process(shared_frames,
                 safe_stop_cb=_camera_safe_stop,
             )
             if video_proc is None:
-                time.sleep(0.05)
                 continue
 
             try:
