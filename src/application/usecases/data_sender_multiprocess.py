@@ -6,7 +6,6 @@ from src.infrastructure.logging.logger import Logger
 from src.infrastructure.services.data_sender_service import (
     publish_emergency_stop,
     publish,
-    switch_serial_com,
     handle_object_queue,
 )
 from src.infrastructure.utils.priorities_processor import set_process_priority
@@ -36,14 +35,13 @@ def data_sender_process(lane_queue,
     try:
         while shared_controls.get("RUNNING", True):
             new_com = shared_controls.get("SENDER_COM")
-            serial_comm, current_com = switch_serial_com(
-                serial_comm=serial_comm,
-                new_com=new_com,
-                current_com=current_com,
-                shared_controls=shared_controls,
-                open_for_receive=False,
-                logger=logger
-            )
+            if new_com != current_com:
+                serial_comm.change_port(
+                    new_port=new_com,
+                    send_data=shared_controls.get("SEND_DATA", False),
+                    open_for_receive=False,
+                )
+                current_com = new_com
 
             now = time.monotonic()
             remaining = send_interval - (now - last_send)

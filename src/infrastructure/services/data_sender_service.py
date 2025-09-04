@@ -1,5 +1,5 @@
-from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 from queue import Empty
+
 
 def publish_emergency_stop(obj_data, shared_controls, lane_data):
     if (
@@ -11,19 +11,6 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data):
         car_info = shared_controls.get("CAR_INFO", {})
         car_info["CAR_SPEED_DATA"] = 0
         shared_controls["CAR_INFO"] = car_info
-
-def switch_serial_com(serial_comm, new_com, current_com, shared_controls, open_for_receive, logger):
-    if new_com != current_com:
-        logger.info(f"Alterando porta serial: {current_com} -> {new_com}")
-        serial_comm.close()
-        serial_comm = SerialCommunicator(
-            com_port=new_com,
-            send_data=shared_controls.get("SEND_DATA", True),
-            open_for_receive=open_for_receive,
-            logger=logger
-        )
-        return serial_comm, new_com
-    return serial_comm, current_com
 
 def handle_object_queue(manual_md, object_queue, obj_data):
     if manual_md:

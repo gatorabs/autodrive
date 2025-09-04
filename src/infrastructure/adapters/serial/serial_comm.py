@@ -86,6 +86,35 @@ class SerialCommunicator:
                 self.serial_port = None
                 self.last_send_time = None
 
+    def change_port(self, new_port, send_data, open_for_receive):
+        old_port = self.com_port
+        if self.logger:
+            self.logger.info(f"Alterando porta serial: {old_port} -> {new_port}")
+        self.close()
+        self.com_port = new_port
+        self.send_data = send_data
+        self._warn_unavailable = False
+        self._last_reconnect_try = 0.0
+        self._port_available = False
+
+        if send_data or open_for_receive:
+            available_ports = self.list_available_ports()
+            if self.com_port and self.com_port in available_ports:
+                try:
+                    self.start_com_port()
+                except Exception as e:
+                    if self.logger:
+                        self.logger.error(f"Erro ao abrir {self.com_port}: {e}")
+                    self.serial_port = None
+            else:
+                if self.logger:
+                    self.logger.warning(
+                        f"Porta {self.com_port} não está disponível no sistema."
+                    )
+                self.serial_port = None
+        else:
+            self.serial_port = None
+
     def reconnect(self):
         if self.com_port not in self.list_available_ports():
             self.serial_port = None
