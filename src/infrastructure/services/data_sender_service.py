@@ -59,7 +59,7 @@ def publish(lane_data, obj_data, serial_comm, logger, current_com, verbose):
         logger.error(f"Falha ao enviar dados: {e}")
         serial_comm.close()
 
-def ensure_serial_connection(serial_comm, current_com, logger, cooldown=8.0):
+def ensure_serial_connection(serial_comm, current_com, logger, cooldown=2.0):
     if not hasattr(serial_comm, "_warn_unavailable"):
         serial_comm._warn_unavailable = False
     if not hasattr(serial_comm, "_last_reconnect_try"):
