@@ -50,7 +50,6 @@ def lane_detection_process(lane_queue,
 
             frame = shared_frames.get("CAMERA_FRAME")
             if frame is None:
-                time.sleep(0.01)
                 continue
 
             try:
