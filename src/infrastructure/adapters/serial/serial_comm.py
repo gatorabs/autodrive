@@ -11,7 +11,6 @@ class SerialCommunicator:
                  send_data=False,
                  open_for_receive=False,
                  logger=None):
-
         self.serial_port = None
         self.send_data = send_data
         self.send_interval = send_interval
@@ -19,6 +18,9 @@ class SerialCommunicator:
         self.logger = logger
         self.baud_rate = baud_rate
         self.last_send_time = None
+        self._warn_unavailable = False
+        self._last_reconnect_try = 0.0
+        self._port_available = False
 
         if send_data or open_for_receive:
             available_ports = self.list_available_ports()
@@ -84,6 +86,35 @@ class SerialCommunicator:
                 self.serial_port = None
                 self.last_send_time = None
 
+    def change_port(self, new_port, send_data, open_for_receive):
+        old_port = self.com_port
+        self.close()
+        if self.logger:
+            self.logger.info(f"Alterando porta serial: {old_port} -> {new_port}")
+        self.com_port = new_port
+        self.send_data = send_data
+        self._warn_unavailable = False
+        self._last_reconnect_try = 0.0
+        self._port_available = False
+
+        if send_data or open_for_receive:
+            available_ports = self.list_available_ports()
+            if self.com_port and self.com_port in available_ports:
+                try:
+                    self.start_com_port()
+                except Exception as e:
+                    if self.logger:
+                        self.logger.error(f"Erro ao abrir {self.com_port}: {e}")
+                    self.serial_port = None
+            else:
+                if self.logger:
+                    self.logger.warning(
+                        f"Porta {self.com_port} não está disponível no sistema."
+                    )
+                self.serial_port = None
+        else:
+            self.serial_port = None
+
     def reconnect(self):
         if self.com_port not in self.list_available_ports():
             self.serial_port = None
@@ -99,3 +130,64 @@ class SerialCommunicator:
         except Exception:
             self.serial_port = None
             return False
+
+    def ensure_connection(self, cooldown: float = 2.0) -> bool:
+        def is_open() -> bool:
+            port = getattr(self, "serial_port", None)
+            try:
+                return bool(port) and getattr(port, "is_open", False)
+            except Exception:
+                return False
+
+        if is_open():
+            self._warn_unavailable = False
+            return True
+
+        try:
+            available = set(self.list_available_ports())
+        except Exception as exc:
+            if not self._warn_unavailable and self.logger:
+                self.logger.warning(
+                    f"Não foi possível listar portas ({exc}); não tentarei reconectar."
+                )
+                self._warn_unavailable = True
+            return False
+
+        now = time.monotonic()
+        if self.com_port not in available:
+            if not self._warn_unavailable and self.logger:
+                self.logger.warning(
+                    f"Porta {self.com_port} indisponível; envio será pulado."
+                )
+                self._warn_unavailable = True
+            self._port_available = False
+            self._last_reconnect_try = now
+            return False
+
+        if not self._port_available:
+            self._port_available = True
+            self._last_reconnect_try = now
+            return False
+
+        if now - self._last_reconnect_try < cooldown:
+            return False
+        self._last_reconnect_try = now
+
+        try:
+            if self.logger:
+                self.logger.info(f"Reconectando em {self.com_port}")
+            self.reconnect()
+        except Exception as exc:
+            if self.logger:
+                self.logger.error(f"Reconexão falhou em {self.com_port}: {exc}")
+
+        if is_open():
+            self._warn_unavailable = False
+            return True
+
+        if not self._warn_unavailable and self.logger:
+            self.logger.warning(
+                f"Falha ao abrir {self.com_port}; envio será pulado."
+            )
+            self._warn_unavailable = True
+        return False
