@@ -3,6 +3,7 @@ import requests
 
 from src.application.usecases.data_sender_multiprocess import data_sender_process
 from src.application.usecases.lane_detection_multiprocess import lane_detection_process
+from src.application.usecases.camera_capture_multiprocess import camera_capture_process
 from src.application.usecases.manual_mode_multiprocess import manual_video_process
 from src.application.usecases.object_detector_multiprocess import object_detection_process
 from src.presentation.ui.main_app import launch_homepage
@@ -28,6 +29,7 @@ class ProcessManager:
         self.manual_proc = None
         self.ui_proc = None
         self.sender_proc = None
+        self.camera_proc = None
         self.logger = Logger("ProcessManager")
 
     def create_all_processes(self):
@@ -91,7 +93,18 @@ class ProcessManager:
             shared_controls=self.shared_controls,
             shared_frames=self.shared_frames,
             tk_controls=self.tk_controls,
-            video_source=self.user_flags["LANE_SOURCE"],
+        )
+
+    def start_camera_process(self):
+        self._start_process(
+            "camera_proc",
+            "camera",
+            camera_capture_process,
+            "Inicializando Camera process.",
+            shared_frames=self.shared_frames,
+            shared_controls=self.shared_controls,
+            tk_controls=self.tk_controls,
+            camera_source=self.user_flags["LANE_SOURCE"],
         )
 
     def start_object_process(self):
@@ -108,6 +121,7 @@ class ProcessManager:
         )
 
     def start_detection_processes(self):
+        self.start_camera_process()
         self.start_lane_process()
         self.start_object_process()
 
@@ -120,6 +134,10 @@ class ProcessManager:
     def terminate_detection_processes(self):
         self.terminate_lane_process()
         self.terminate_object_process()
+        self.terminate_camera_process()
+
+    def terminate_camera_process(self):
+        self._terminate_process("camera_proc", "Encerrando Camera Process.")
 
     def enable_manual_mode(self):
         self.terminate_detection_processes()

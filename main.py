@@ -50,7 +50,10 @@ def main():
         except KeyboardInterrupt:
             for p in processes:
                 terminate_if_alive(p)
-            for proc in (manager_instance.flask_proc, manager_instance.lane_proc, manager_instance.object_proc):
+            for proc in (manager_instance.flask_proc,
+                         manager_instance.lane_proc,
+                         manager_instance.object_proc,
+                         manager_instance.camera_proc):
                 terminate_if_alive(proc)
 
 if __name__ == '__main__':

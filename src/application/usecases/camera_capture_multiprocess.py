@@ -1,0 +1,75 @@
+import time
+import cv2 as cv
+
+from src.infrastructure.adapters.video.video_utility_process import (
+    open_video_source,
+    ensure_video_source,
+)
+from src.infrastructure.logging.logger import Logger
+from src.infrastructure.utils.priorities_processor import set_process_priority
+
+
+def _camera_safe_stop(_, shared_controls, logger, reason="CAMERA_ERROR"):
+    shared_controls["SAFE_STOP"] = True
+    logger.warning(f"SAFE-STOP ativado ({reason}).")
+
+
+def camera_capture_process(shared_frames,
+                           shared_controls,
+                           tk_controls,
+                           verbose=True,
+                           camera_source=None):
+
+    set_process_priority("above_normal")
+    logger = Logger("CameraCapture", verbose=verbose)
+    current_source = camera_source
+
+    video_proc = open_video_source(
+        current_source=current_source,
+        lane_queue=None,
+        shared_controls=shared_controls,
+        logger=logger,
+        safe_stop_cb=_camera_safe_stop,
+    )
+
+    if video_proc and video_proc.is_cam:
+        try:
+            video_proc.cap.set(cv.CAP_PROP_BUFFERSIZE, 1)
+        except Exception:
+            pass
+
+    try:
+        while shared_controls.get("RUNNING", True):
+            video_proc, current_source = ensure_video_source(
+                video_processor=video_proc,
+                current_source=current_source,
+                requested_source=tk_controls.get("LANE_SOURCE"),
+                queue=None,
+                shared_controls=shared_controls,
+                logger=logger,
+                safe_stop_cb=_camera_safe_stop,
+            )
+            if video_proc is None:
+                time.sleep(0.05)
+                continue
+
+            try:
+                frame = video_proc.get_frame()
+                shared_frames["CAMERA_FRAME"] = frame
+                shared_controls["SAFE_STOP"] = False
+            except RuntimeError as e:
+                _camera_safe_stop(None, shared_controls, logger, reason=str(e))
+                try:
+                    video_proc.release()
+                except Exception:
+                    pass
+                video_proc = None
+
+    except Exception as e:
+        logger.error(f"Camera Capture Error: {e}")
+    finally:
+        if video_proc:
+            try:
+                video_proc.release()
+            except Exception:
+                pass
