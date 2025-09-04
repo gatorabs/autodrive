@@ -69,6 +69,7 @@ def data_sender_process(lane_queue,
                     lane_data=lane_data,
                     serial_comm=serial_comm,
                     logger=logger,
+                    current_com=current_com,
                     verbose=tk_controls.get("SEND_LOGS"))
 
             last_send = now

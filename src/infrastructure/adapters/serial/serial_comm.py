@@ -26,9 +26,6 @@ class SerialCommunicator:
             if self.com_port and self.com_port in available_ports:
                 try:
                     self.start_com_port()
-                    self.logger.info(
-                        f"Porta {self.com_port} aberta a {self.baud_rate} bps"
-                    )
                 except Exception as e:
                     self.logger.error(f"Erro ao abrir {com_port}: {e}")
                     self.serial_port = None
@@ -41,6 +38,9 @@ class SerialCommunicator:
     def start_com_port(self, interval=8):
         self.serial_port = serial.Serial(self.com_port, self.baud_rate)
         time.sleep(interval)
+        self.logger.info(
+            f"Porta {self.com_port} aberta a {self.baud_rate} bps"
+        )
 
     @staticmethod
     def list_available_ports() -> List[str]:
@@ -64,7 +64,6 @@ class SerialCommunicator:
                 self.serial_port.flush()
                 self.last_send_time = now
             except Exception as e:
-                self.logger.error(f"Erro ao enviar dados: {e}")
                 raise  # Repassa para o processo
         else:
             raise ConnectionError("Serial não está aberta")
@@ -77,7 +76,6 @@ class SerialCommunicator:
     def close(self):
         if getattr(self, "serial_port", None):
             try:
-                self.serial_port.flush()
                 self.serial_port.close()
                 self.logger.info(f"Porta {self.com_port} fechada com sucesso.")
             except Exception as e:
@@ -88,17 +86,16 @@ class SerialCommunicator:
 
     def reconnect(self):
         if self.com_port not in self.list_available_ports():
-            self.logger.warning(f"Porta {self.com_port} não está disponível no sistema.")
             self.serial_port = None
-            return
+            return False
 
         self.close()
-
-        # Tenta reabrir a porta
         try:
-            self.logger.info(f"Tentando reconectar na porta {self.com_port}...")
+            if self.com_port not in self.list_available_ports():
+                self.serial_port = None
+                return False
             self.start_com_port()
-            self.logger.info(f"Porta {self.com_port} reaberta com sucesso a {self.baud_rate} bps.")
-        except Exception as e:
-            self.logger.error(f"Erro ao reabrir {self.com_port}: {e}")
+            return True
+        except Exception:
             self.serial_port = None
+            return False
