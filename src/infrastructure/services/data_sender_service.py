@@ -1,6 +1,7 @@
 from queue import Empty
 
-from src.domain.models.telemetry import LaneData, ObjectData
+from src.domain.models.LaneData import LaneData
+from src.domain.models.ObjectData import ObjectData
 
 
 def publish_emergency_stop(obj_data: ObjectData, shared_controls, lane_data: LaneData):
