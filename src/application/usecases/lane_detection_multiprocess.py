@@ -8,11 +8,10 @@ from src.infrastructure.adapters.video.video_utility_process import (
     preprocess,
 )
 from src.infrastructure.logging.logger import Logger
-from src.infrastructure.mappers.direction_mapper import map_direction
 from src.infrastructure.services.lane_detection_service import (
     compute_distances,
     publish,
-    compute_speed_and_direction,
+    compute_speed_and_direction, define_and_calculate_side,
 )
 from src.infrastructure.services.pid_service import (
     update_pid_from_controls,
@@ -96,7 +95,8 @@ def lane_detection_process(lane_queue,
                 direction=direction
             )
 
-            mapped_direction = map_direction(value=direction)
+            mapped_direction = define_and_calculate_side(direction=direction,
+                                                         side=side)
 
             frame_display = draw_overlays(
                 frame=frame,

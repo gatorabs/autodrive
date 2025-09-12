@@ -6,6 +6,7 @@ import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 
 from src.infrastructure.adapters.video.video_process import VideoProcessor
+from src.infrastructure.mappers.direction_mapper import map_direction
 from src.infrastructure.utils.frame_utils import encode_frame
 from src.domain.constants.pid_constants import FALLBACK_PID_INPUT, FALLBACK_PID_OUTPUT
 
@@ -120,3 +121,10 @@ def try_capture_or_mark_for_reopen(video_proc,
             pass
         return None, None
 
+def define_and_calculate_side(direction, side):
+    if side == 1:
+        mapped_direction = map_direction(value=direction, out_min=180, out_max=0)
+        return mapped_direction
+    else:
+        mapped_direction = map_direction(value=direction)
+        return mapped_direction
