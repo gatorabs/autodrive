@@ -21,11 +21,10 @@ def get_profile_defaults_file(profile_index: int) -> str:
 def get_profile_calibration_file(profile_index: int) -> str:
     """Retorna o caminho do arquivo de calibração para o perfil solicitado.
 
-    O perfil ``1`` reutiliza ``calibration_data.json`` para manter
-    compatibilidade com o comportamento atual. Perfis adicionais utilizam o
-    padrão ``calibration_profile_<n>.json`` dentro da pasta ``config``.
+    Cada perfil possui um arquivo dedicado no formato
+    ``calibration_profile_<n>.json`` dentro da pasta ``config``. O arquivo
+    ``calibration_data.json`` atua apenas como cache ativo da calibração
+    carregada no momento.
     """
 
-    if profile_index <= 1:
-        return CALIBRATION_FILE
     return os.path.join("config", f"calibration_profile_{profile_index}.json")

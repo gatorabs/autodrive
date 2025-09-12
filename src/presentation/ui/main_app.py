@@ -116,6 +116,7 @@ class MainApp(ctk.CTk):
             self.shared_controls["RUNNING"] = False
             refresh_json({"MANUAL_MD": False, "WEBVIEW": False}, DEFAULT_UI_PATH)
             profile_path = get_profile_calibration_file(self.current_profile)
+            refresh_json(self.tk_controls, CALIBRATION_FILE)
             refresh_json(self.tk_controls, profile_path)
             self.destroy()
 
