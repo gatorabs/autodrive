@@ -30,9 +30,14 @@ def camera_capture_process(shared_frames,
 
     try:
         while shared_controls.get("RUNNING", True):
+            requested_source = (
+                tk_controls.get("LANE_SOURCE_TAB2")
+                if shared_controls.get("MANUAL_MD")
+                else tk_controls.get("LANE_SOURCE")
+            )
             video_proc, current_source = manager.ensure_video_source(
                 video_processor=video_proc,
-                requested_source=tk_controls.get("LANE_SOURCE"),
+                requested_source=requested_source,
                 queue=None,
                 shared_controls=shared_controls,
                 logger=logger,

@@ -95,7 +95,8 @@ class ProcessManager:
             tk_controls=self.tk_controls,
         )
 
-    def start_camera_process(self):
+    def start_camera_process(self, camera_source=None):
+        source = camera_source if camera_source is not None else self.user_flags["LANE_SOURCE"]
         self._start_process(
             "camera_proc",
             "camera",
@@ -104,7 +105,7 @@ class ProcessManager:
             shared_frames=self.shared_frames,
             shared_controls=self.shared_controls,
             tk_controls=self.tk_controls,
-            camera_source=self.user_flags["LANE_SOURCE"],
+            camera_source=source,
         )
 
     def start_object_process(self):
@@ -140,7 +141,9 @@ class ProcessManager:
         self._terminate_process("camera_proc", "Encerrando Camera Process.")
 
     def enable_manual_mode(self):
-        self.terminate_detection_processes()
+        self.terminate_lane_process()
+        self.terminate_object_process()
+        self.start_camera_process(camera_source=self.user_flags.get("LANE_SOURCE_TAB2"))
         self._start_process(
             "manual_proc",
             "manual_video",
@@ -153,6 +156,7 @@ class ProcessManager:
 
     def disable_manual_mode(self):
         self._terminate_process("manual_proc", "Encerrando Manual Process.")
+        self.terminate_camera_process()
         self.start_detection_processes()
 
     def handle_lane_object_processes(self, current_manual_mode, last_manual_mode):
