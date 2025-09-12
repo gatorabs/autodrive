@@ -46,7 +46,8 @@ def lane_detection_process(lane_queue,
     try:
         while shared_controls.get("RUNNING", True):
             start_time = time.time()
-
+            if shared_controls.get("SAFE_STOP"):
+                continue
             frame = shared_frames.get("CAMERA_FRAME")
             if frame is None:
                 continue

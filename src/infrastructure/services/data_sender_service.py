@@ -3,18 +3,18 @@ from queue import Empty
 from src.domain.models.lane_data.lane_data import LaneData
 from src.domain.models.object_data.object_data import ObjectData
 
-
-def publish_emergency_stop(obj_data: ObjectData, shared_controls, lane_data: LaneData):
+def publish_emergency_stop(obj_data, shared_controls, lane_data):
     if (
         obj_data.object_person_data == 1
         or shared_controls.get("EMERGENCY_STOP", 0) == 1
+        or shared_controls.get("SAFE_STOP")
+        or shared_controls.get("OBJ_SAFE_STOP")
         or obj_data.traffic_light_data == 0
     ):
         lane_data.car_speed_data = 0
         car_info = shared_controls.get("CAR_INFO", {})
         car_info["CAR_SPEED_DATA"] = 0
         shared_controls["CAR_INFO"] = car_info
-
 
 def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
     if manual_md:
