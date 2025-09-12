@@ -1,5 +1,7 @@
 import ctypes
 import sys
+import os
+import shutil
 
 import customtkinter as ctk
 from PIL import UnidentifiedImageError
@@ -10,6 +12,7 @@ from src.infrastructure.constants.ui_constants.file_constants import (
     CALIBRATION_FILE,
     DEFAULT_UI_PATH,
     get_profile_defaults_file,
+    get_profile_calibration_file,
 )
 from src.infrastructure.logging.logger import Logger
 
@@ -53,6 +56,7 @@ class MainApp(ctk.CTk):
         self.tk_controls = tk_controls
         self.shared_controls = shared_controls
         self.lane_queue = lane_queue
+        self.current_profile = 1
 
         self.VIDEO_WIDTH = FRAME_WIDTH_T
         self.VIDEO_HEIGHT = FRAME_HEIGHT_T
@@ -111,6 +115,8 @@ class MainApp(ctk.CTk):
             self.shared_controls["MANUAL_MD"] = False
             self.shared_controls["RUNNING"] = False
             refresh_json({"MANUAL_MD": False, "WEBVIEW": False}, DEFAULT_UI_PATH)
+            profile_path = get_profile_calibration_file(self.current_profile)
+            refresh_json(self.tk_controls, profile_path)
             self.destroy()
 
     def _build_home(self):
@@ -291,6 +297,36 @@ class MainApp(ctk.CTk):
 
         self.after(33, self.update_loop)
 
+    def switch_profile(self, profile_index: int):
+        if profile_index == self.current_profile:
+            return
+
+        old_path = get_profile_calibration_file(self.current_profile)
+        shutil.copy(CALIBRATION_FILE, old_path)
+
+        new_path = get_profile_calibration_file(profile_index)
+        if os.path.exists(new_path):
+            shutil.copy(new_path, CALIBRATION_FILE)
+        else:
+            defaults_file = get_profile_defaults_file(profile_index)
+            shutil.copy(defaults_file, CALIBRATION_FILE)
+            shutil.copy(defaults_file, new_path)
+
+        load_data(CALIBRATION_FILE, update_target_if_exists=self.tk_controls)
+        sections = [
+            self.filters,
+            self.warp_controls,
+            self.object_roi_controls,
+            self.extras_controls,
+            self.pid_controls,
+        ]
+        for name, value in self.tk_controls.items():
+            for section in sections:
+                if name in section.sliders:
+                    section.set(name, value)
+        self.current_profile = profile_index
+        self.calibration_data = load_data(CALIBRATION_FILE)
+
     def restore_defaults(self, profile_index=1):
         defaults_file = get_profile_defaults_file(profile_index)
         load_data(defaults_file, update_target_if_exists=self.tk_controls)
@@ -307,6 +343,10 @@ class MainApp(ctk.CTk):
                 if name in section.sliders:
                     section.set(name, value)
         refresh_json(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
+        profile_path = get_profile_calibration_file(profile_index)
+        refresh_json(self.tk_controls, profile_path)
+        self.current_profile = profile_index
+        self.calibration_data = load_data(CALIBRATION_FILE)
 
 def launch_homepage(shared_frames, tk_controls, shared_controls, lane_queue):
     app = MainApp(shared_frames, tk_controls, shared_controls, lane_queue)

@@ -129,5 +129,5 @@ class FloatingWidget(ctk.CTkFrame):
         self._start_closing()
 
     def profile_changed(self, selected: str):
-        """Load defaults when a different profile is chosen."""
-        self.master.restore_defaults(int(selected))
+        """Load saved calibration when a different profile is chosen."""
+        self.master.switch_profile(int(selected))
