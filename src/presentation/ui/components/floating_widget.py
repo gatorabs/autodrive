@@ -46,16 +46,9 @@ class FloatingWidget(ctk.CTkFrame):
         if self.modal:
             self.modal.destroy()
 
-        self.modal = ctk.CTkFrame(
-            self.master,
-            fg_color="#2b2b2b",
-            corner_radius=0,
-            border_width=2,
-            border_color="#FFFFFF",
-        )
+        self.modal = ctk.CTkFrame(self.master, fg_color="#2b2b2b", corner_radius=0, border_width=2, border_color="#FFFFFF")
         self.modal.place(relx=1.0, rely=1.0, anchor="sw", x=-693, y=-27)
-        # Set final size before packing children to ensure horizontal layout
-        self.modal.place_configure(width=self.max_width, height=self.max_height)
+        self.modal.place_configure(width=0, height=self.max_height)
 
         btn_frame = ctk.CTkFrame(self.modal, fg_color="#2b2b2b")
         btn_frame.pack(fill="both", expand=True, padx=5)
@@ -65,7 +58,6 @@ class FloatingWidget(ctk.CTkFrame):
             values=["1", "2", "3", "4"],
             variable=self.profile_var,
             width=60,
-            height=self.max_height,
             command=self.profile_changed,
         )
         self.profile_menu.pack(side="left", padx=(3, 5), pady=5)
@@ -95,10 +87,7 @@ class FloatingWidget(ctk.CTkFrame):
         self.button1.pack(side="left", padx=(3, 5), pady=5)
         self.button2.pack(side="left", padx=(5, 3), pady=5)
 
-        # Collapse frame and animate open
-        self.modal.update_idletasks()
         self.modal_width = 0
-        self.modal.place_configure(width=self.modal_width)
         self.modal_open = True
         self._animate_open()
 
