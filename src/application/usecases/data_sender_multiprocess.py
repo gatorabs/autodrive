@@ -9,8 +9,8 @@ from src.infrastructure.services.data_sender_service import (
     handle_object_queue,
     change_serial_port,
 )
-from src.domain.models.LaneData import LaneData
-from src.domain.models.ObjectData import ObjectData
+from src.domain.models.LaneData.lane_data import LaneData
+from src.domain.models.ObjectData.object_data import ObjectData
 from src.infrastructure.utils.priorities_processor import set_process_priority
 
 def data_sender_process(lane_queue,
