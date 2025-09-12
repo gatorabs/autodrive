@@ -266,6 +266,8 @@ class MainApp(ctk.CTk):
             self.tab_manager.select_tab(tab_name)
 
     def update_loop(self):
+        if not self.shared_controls.get("RUNNING", True):
+            return
         try:
             shared_manual = self.shared_controls.get("MANUAL_MD", False)
             tk_manual = self.tk_controls.get("MANUAL_MD", False)
