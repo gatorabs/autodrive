@@ -6,8 +6,10 @@ from src.infrastructure.logging.logger import Logger
 from src.infrastructure.services.data_sender_service import (
     publish_emergency_stop,
     publish,
-    handle_object_queue, change_serial_port,
+    handle_object_queue,
+    change_serial_port,
 )
+from src.domain.models.telemetry import LaneData, ObjectData
 from src.infrastructure.utils.priorities_processor import set_process_priority
 
 def data_sender_process(lane_queue,
@@ -26,8 +28,8 @@ def data_sender_process(lane_queue,
         logger=logger
     )
 
-    lane_data = {"CAR_SPEED_DATA": 255, "CAR_DIRECTION_DATA": 180}
-    obj_data  = {"OBJECT_PERSON_DATA": 0, "TRAFFIC_LIGHT_DATA": 0}
+    lane_data = LaneData()
+    obj_data = ObjectData()
 
     send_interval = 0.01
     last_send = time.monotonic()
