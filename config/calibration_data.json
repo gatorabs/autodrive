@@ -19,7 +19,7 @@
     "bl_y": 270,
     "br_x": 480,
     "br_y": 270,
-    "Distance": 1,
+    "Distance": 160,
     "Lines": 10,
     "SHOW_LINES": false
 }
