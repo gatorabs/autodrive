@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 @dataclass
 class LaneData:
-    """Data packet for lane-related telemetry."""
     car_speed_data: int = 255
     car_direction_data: int = 180
 

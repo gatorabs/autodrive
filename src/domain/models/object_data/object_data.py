@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 @dataclass
 class ObjectData:
-    """Data packet for object detection telemetry."""
     object_person_data: int = 0
     traffic_light_data: int = 0
 
