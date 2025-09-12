@@ -58,6 +58,7 @@ class FloatingWidget(ctk.CTkFrame):
             values=["1", "2", "3", "4"],
             variable=self.profile_var,
             width=60,
+            command=self.profile_changed,
         )
         self.profile_menu.pack(side="left", padx=(3, 5), pady=5)
 
@@ -126,3 +127,7 @@ class FloatingWidget(ctk.CTkFrame):
     def button_2_action(self):
         self.master.restore_defaults(int(self.profile_var.get()))
         self._start_closing()
+
+    def profile_changed(self, selected: str):
+        """Load defaults when a different profile is chosen."""
+        self.master.restore_defaults(int(selected))
