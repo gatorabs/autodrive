@@ -6,7 +6,11 @@ from PIL import UnidentifiedImageError
 from CTkMessagebox import CTkMessagebox
 
 from src.infrastructure.data.repository.calibration_repository import load_data, refresh_json
-from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH, DEFAULTS_FILE
+from src.infrastructure.constants.ui_constants.file_constants import (
+    CALIBRATION_FILE,
+    DEFAULT_UI_PATH,
+    get_profile_defaults_file,
+)
 from src.infrastructure.logging.logger import Logger
 
 from src.infrastructure.constants.ui_constants.component_constants import (
@@ -45,7 +49,6 @@ class MainApp(ctk.CTk):
         self.init_data = load_data(DEFAULT_UI_PATH)
         self.title("Autonomous Team")
 
-        self.DEFAULTS_FILE = DEFAULTS_FILE
         self.shared_frames = shared_frames
         self.tk_controls = tk_controls
         self.shared_controls = shared_controls
@@ -288,8 +291,9 @@ class MainApp(ctk.CTk):
 
         self.after(33, self.update_loop)
 
-    def restore_defaults(self):
-        load_data(self.DEFAULTS_FILE, update_target_if_exists=self.tk_controls)
+    def restore_defaults(self, profile_index=1):
+        defaults_file = get_profile_defaults_file(profile_index)
+        load_data(defaults_file, update_target_if_exists=self.tk_controls)
         sections = [
             self.filters,
             self.warp_controls,
