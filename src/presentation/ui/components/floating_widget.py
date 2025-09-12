@@ -1,8 +1,6 @@
 import customtkinter as ctk
-from src.infrastructure.data.repository.calibration_repository import refresh_json
-from src.infrastructure.constants.ui_constants.file_constants import (
-    get_profile_defaults_file,
-)
+from src.infrastructure.data.repository.calibration_repository import save_data, load_data, refresh_json
+from src.infrastructure.constants.ui_constants.file_constants import DEFAULTS_FILE
 
 class FloatingWidget(ctk.CTkFrame):
     """Small widget with buttons for saving and restoring defaults."""
@@ -10,15 +8,17 @@ class FloatingWidget(ctk.CTkFrame):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
         self.place(relx=1.0, rely=1.0, anchor="se", x=-700, y=-27)
 
+        self.save_data = save_data
+        self.load_data = load_data
         self.tk_controls = tk_controls
+        self.DEFAULTS_FILE = DEFAULTS_FILE
         self.button_colors = "#2b2b2b"
-        self.profile_var = ctk.StringVar(value="1")
 
         self.modal = None
         self.modal_open = False
         self.modal_width = 0
 
-        self.max_width = 300
+        self.max_width = 267
         self.max_height = 40
 
         self.floating_button = ctk.CTkButton(
@@ -52,37 +52,15 @@ class FloatingWidget(ctk.CTkFrame):
 
         btn_frame = ctk.CTkFrame(self.modal, fg_color="#2b2b2b")
         btn_frame.pack(fill="both", expand=True, padx=5)
-
-        self.profile_menu = ctk.CTkOptionMenu(
-            btn_frame,
-            values=["1", "2", "3", "4"],
-            variable=self.profile_var,
-            width=60,
-            command=self.profile_changed,
-        )
-        self.profile_menu.pack(side="left", padx=(3, 5), pady=5)
-
         self.button1 = ctk.CTkButton(
-            btn_frame,
-            text="Salvar Padrão",
-            command=self.button_1_action,
-            text_color="#1DBF08",
-            border_color="#1DBF08",
-            border_width=2,
-            fg_color=self.button_colors,
-            width=100,
-            height=self.max_height,
+            btn_frame, text="Salvar Padrão",
+            command=self.button_1_action, text_color="#1DBF08", border_color="#1DBF08", border_width=2, fg_color=self.button_colors,
+            width=125, height=self.max_height,
         )
         self.button2 = ctk.CTkButton(
-            btn_frame,
-            text="Restaurar Padrão",
+            btn_frame, text="Restaurar Padrão",
             command=self.button_2_action,
-            width=100,
-            height=self.max_height,
-            text_color="#BF081D",
-            border_color="#BF081D",
-            border_width=2,
-            fg_color=self.button_colors,
+            width=125, height=self.max_height, text_color="#BF081D", border_color="#BF081D", border_width=2,fg_color=self.button_colors
         )
         self.button1.pack(side="left", padx=(3, 5), pady=5)
         self.button2.pack(side="left", padx=(5, 3), pady=5)
@@ -103,8 +81,6 @@ class FloatingWidget(ctk.CTkFrame):
         if hasattr(self, "button1"):
             self.button1.pack_forget()
             self.button2.pack_forget()
-        if hasattr(self, "profile_menu"):
-            self.profile_menu.pack_forget()
         self._animate_close()
 
     def _animate_close(self):
@@ -120,14 +96,9 @@ class FloatingWidget(ctk.CTkFrame):
             self.modal_open = False
 
     def button_1_action(self):
-        path = get_profile_defaults_file(int(self.profile_var.get()))
-        refresh_json(self.tk_controls, path, only_existing_keys=True)
+        refresh_json(self.tk_controls, self.DEFAULTS_FILE, only_existing_keys=True)
         self._start_closing()
 
     def button_2_action(self):
-        self.master.restore_defaults(int(self.profile_var.get()))
+        self.master.restore_defaults()
         self._start_closing()
-
-    def profile_changed(self, selected: str):
-        """Load defaults when a different profile is chosen."""
-        self.master.restore_defaults(int(selected))
