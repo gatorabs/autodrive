@@ -1,21 +1,25 @@
 from queue import Empty
 
+from src.domain.models.lane_data.lane_data import LaneData
+from src.domain.models.object_data.object_data import ObjectData
 
-def publish_emergency_stop(obj_data, shared_controls, lane_data):
+
+def publish_emergency_stop(obj_data: ObjectData, shared_controls, lane_data: LaneData):
     if (
-        obj_data.get("OBJECT_PERSON_DATA", 0) == 1
+        obj_data.object_person_data == 1
         or shared_controls.get("EMERGENCY_STOP", 0) == 1
-        or obj_data.get("TRAFFIC_LIGHT_DATA", 0) == 0
+        or obj_data.traffic_light_data == 0
     ):
-        lane_data["CAR_SPEED_DATA"] = 0
+        lane_data.car_speed_data = 0
         car_info = shared_controls.get("CAR_INFO", {})
         car_info["CAR_SPEED_DATA"] = 0
         shared_controls["CAR_INFO"] = car_info
 
-def handle_object_queue(manual_md, object_queue, obj_data):
+
+def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
     if manual_md:
-        obj_data["OBJECT_PERSON_DATA"] = 0
-        obj_data["TRAFFIC_LIGHT_DATA"] = 2
+        obj_data.object_person_data = 0
+        obj_data.traffic_light_data = 2
         while not object_queue.empty():
             try:
                 object_queue.get_nowait()
@@ -28,11 +32,12 @@ def handle_object_queue(manual_md, object_queue, obj_data):
         except Empty:
             pass
 
-def publish(lane_data, obj_data, serial_comm, logger, verbose):
+
+def publish(lane_data: LaneData, obj_data: ObjectData, serial_comm, logger, verbose):
     payload = [
-        lane_data["CAR_DIRECTION_DATA"],
-        lane_data["CAR_SPEED_DATA"],
-        obj_data["TRAFFIC_LIGHT_DATA"]
+        lane_data.car_direction_data,
+        lane_data.car_speed_data,
+        obj_data.traffic_light_data,
     ]
 
     if not serial_comm.ensure_connection():
