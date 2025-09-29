@@ -21,7 +21,7 @@ class FloatingWidget(ctk.CTkFrame):
         **kwargs,
     ):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-700, y=-27)
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-27)
 
         self.save_data = save_data
         self.load_data = load_data
@@ -44,7 +44,7 @@ class FloatingWidget(ctk.CTkFrame):
         self.checkbox_modal_open = False
         self.save_modal_width = 267
         self.save_modal_height = 70
-        self.checkbox_modal_width = 420
+        self.checkbox_modal_width = 460
         self.checkbox_modal_height = 170
 
         buttons_row = ctk.CTkFrame(self, fg_color="transparent")
