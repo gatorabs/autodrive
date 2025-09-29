@@ -18,11 +18,10 @@ class FloatingWidget(ctk.CTkFrame):
         tk_controls,
         shared_controls,
         checkbox_labels=None,
-        anchor_widget=None,
         **kwargs,
     ):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
-        self.place(x=0, y=0)
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-27)
 
         self.save_data = save_data
         self.load_data = load_data
@@ -38,8 +37,6 @@ class FloatingWidget(ctk.CTkFrame):
             "NEW_PID",
             "SHOW_LINES",
         ]
-        self.anchor_widget = anchor_widget
-        self.anchor_margin = 12
 
         self.save_modal = None
         self.save_modal_open = False
@@ -74,40 +71,6 @@ class FloatingWidget(ctk.CTkFrame):
             command=self.toggle_save_modal,
         )
         self.floating_button.pack(side="right", padx=(0, 8))
-
-        if self.anchor_widget:
-            try:
-                self.anchor_widget.bind("<Configure>", self._update_position, add="+")
-            except Exception:
-                pass
-        try:
-            self.master.bind("<Configure>", self._update_position, add="+")
-        except Exception:
-            pass
-        self.after(0, self._update_position)
-
-    def _update_position(self, event=None):
-        if not self.winfo_exists():
-            return
-
-        if self.anchor_widget and self.anchor_widget.winfo_exists():
-            self.update_idletasks()
-            self.master.update_idletasks()
-
-            anchor_width = self.anchor_widget.winfo_width() or self.anchor_widget.winfo_reqwidth()
-            anchor_height = self.anchor_widget.winfo_height() or self.anchor_widget.winfo_reqheight()
-            widget_width = self.winfo_width() or self.winfo_reqwidth()
-
-            master_rootx = self.master.winfo_rootx()
-            master_rooty = self.master.winfo_rooty()
-            anchor_rootx = self.anchor_widget.winfo_rootx()
-            anchor_rooty = self.anchor_widget.winfo_rooty()
-
-            x_offset = anchor_rootx - master_rootx + int(round((anchor_width - widget_width) / 2))
-            y_offset = anchor_rooty - master_rooty + anchor_height + self.anchor_margin
-            self.place_configure(x=x_offset, y=y_offset)
-        else:
-            self.place_configure(relx=0.5, rely=1.0, anchor="s", y=-27)
 
     def toggle_save_modal(self):
         if self.save_modal_open:
