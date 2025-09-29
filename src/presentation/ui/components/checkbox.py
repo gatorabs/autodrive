@@ -46,7 +46,7 @@ class CheckboxSection(ctk.CTkFrame):
         self.vars[label] = var
 
         if row is not None and column is not None:
-            checkbox.grid(row=row, column=column, padx=10, pady=5, sticky="w")
+            checkbox.grid(row=row, column=column, padx=6, pady=5, sticky="w")
 
         return checkbox
 

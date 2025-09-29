@@ -44,22 +44,11 @@ class FloatingWidget(ctk.CTkFrame):
         self.checkbox_modal_open = False
         self.save_modal_width = 267
         self.save_modal_height = 70
-        self.checkbox_modal_width = 360
+        self.checkbox_modal_width = 420
         self.checkbox_modal_height = 170
 
         buttons_row = ctk.CTkFrame(self, fg_color="transparent")
         buttons_row.pack(anchor="e")
-
-        self.floating_button = ctk.CTkButton(
-            buttons_row,
-            text="📂",
-            width=40,
-            height=40,
-            corner_radius=10,
-            font=ctk.CTkFont(size=15),
-            command=self.toggle_save_modal,
-        )
-        self.floating_button.pack(side="right")
 
         self.checkboxes_button = ctk.CTkButton(
             buttons_row,
@@ -70,7 +59,18 @@ class FloatingWidget(ctk.CTkFrame):
             font=ctk.CTkFont(size=15),
             command=self.toggle_checkbox_modal,
         )
-        self.checkboxes_button.pack(side="right", padx=(0, 8))
+        self.checkboxes_button.pack(side="right")
+
+        self.floating_button = ctk.CTkButton(
+            buttons_row,
+            text="📂",
+            width=40,
+            height=40,
+            corner_radius=10,
+            font=ctk.CTkFont(size=15),
+            command=self.toggle_save_modal,
+        )
+        self.floating_button.pack(side="right", padx=(0, 8))
 
     def toggle_save_modal(self):
         if self.save_modal_open:
@@ -196,7 +196,7 @@ class FloatingWidget(ctk.CTkFrame):
         self.checkbox_modal.protocol("WM_DELETE_WINDOW", self._close_checkbox_modal)
 
         content = ctk.CTkFrame(self.checkbox_modal, fg_color="#2b2b2b")
-        content.pack(fill="both", expand=True, padx=15, pady=15)
+        content.pack(fill="both", expand=True, padx=12, pady=15)
 
         CheckboxSection(
             content,
