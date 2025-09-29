@@ -44,11 +44,11 @@ class FloatingWidget(ctk.CTkFrame):
         self.checkbox_modal_open = False
         self.save_modal_width = 267
         self.save_modal_height = 70
-        self.checkbox_modal_width = 330
+        self.checkbox_modal_width = 360
         self.checkbox_modal_height = 170
 
         buttons_row = ctk.CTkFrame(self, fg_color="transparent")
-        buttons_row.pack()
+        buttons_row.pack(anchor="e")
 
         self.floating_button = ctk.CTkButton(
             buttons_row,
@@ -59,7 +59,7 @@ class FloatingWidget(ctk.CTkFrame):
             font=ctk.CTkFont(size=15),
             command=self.toggle_save_modal,
         )
-        self.floating_button.pack(side="left")
+        self.floating_button.pack(side="right")
 
         self.checkboxes_button = ctk.CTkButton(
             buttons_row,
@@ -70,7 +70,7 @@ class FloatingWidget(ctk.CTkFrame):
             font=ctk.CTkFont(size=15),
             command=self.toggle_checkbox_modal,
         )
-        self.checkboxes_button.pack(side="left", padx=(8, 0))
+        self.checkboxes_button.pack(side="right", padx=(0, 8))
 
     def toggle_save_modal(self):
         if self.save_modal_open:
