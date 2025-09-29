@@ -16,8 +16,6 @@ class FloatingWidget(ctk.CTkFrame):
 
         self.modal = None
         self.modal_open = False
-        self.modal_width = 0
-
         self.max_width = 267
         self.max_height = 40
 
@@ -34,71 +32,78 @@ class FloatingWidget(ctk.CTkFrame):
 
     def toggle_modal(self):
         if self.modal_open:
-            self._start_closing()
-        else:
-            self._start_opening()
+            self.close_modal()
+            return
+        self._open_modal()
 
     def close_modal(self):
         if self.modal_open:
-            self._start_closing()
-
-    def _start_opening(self):
-        if self.modal:
-            self.modal.destroy()
-
-        self.modal = ctk.CTkFrame(self.master, fg_color="#2b2b2b", corner_radius=0, border_width=2, border_color="#FFFFFF")
-        self.modal.place(relx=1.0, rely=1.0, anchor="sw", x=-693, y=-27)
-        self.modal.place_configure(width=0, height=self.max_height)
-
-        btn_frame = ctk.CTkFrame(self.modal, fg_color="#2b2b2b")
-        btn_frame.pack(fill="both", expand=True, padx=5)
-        self.button1 = ctk.CTkButton(
-            btn_frame, text="Salvar Padrão",
-            command=self.button_1_action, text_color="#1DBF08", border_color="#1DBF08", border_width=2, fg_color=self.button_colors,
-            width=125, height=self.max_height,
-        )
-        self.button2 = ctk.CTkButton(
-            btn_frame, text="Restaurar Padrão",
-            command=self.button_2_action,
-            width=125, height=self.max_height, text_color="#BF081D", border_color="#BF081D", border_width=2,fg_color=self.button_colors
-        )
-        self.button1.pack(side="left", padx=(3, 5), pady=5)
-        self.button2.pack(side="left", padx=(5, 3), pady=5)
-
-        self.modal_width = 0
-        self.modal_open = True
-        self._animate_open()
-
-    def _animate_open(self):
-        if not self.modal:
-            return
-        if self.modal_width < self.max_width:
-            self.modal_width += 10
-            self.modal.place_configure(width=self.modal_width)
-            self.after(10, self._animate_open)
-
-    def _start_closing(self):
-        if hasattr(self, "button1"):
-            self.button1.pack_forget()
-            self.button2.pack_forget()
-        self._animate_close()
-
-    def _animate_close(self):
-        if not self.modal:
-            return
-        if self.modal_width > 0:
-            self.modal_width -= 10
-            self.modal.place_configure(width=self.modal_width)
-            self.after(10, self._animate_close)
-        else:
-            self.modal.destroy()
+            if self.modal:
+                self.modal.grab_release()
+                self.modal.destroy()
             self.modal = None
             self.modal_open = False
 
+    def _open_modal(self):
+        if self.modal:
+            try:
+                self.modal.destroy()
+            except ctk.TclError:
+                pass
+
+        self.modal = ctk.CTkToplevel(self.master)
+        self.modal.title("Opções de Salvar")
+        self.modal.resizable(False, False)
+        self.modal.configure(fg_color="#2b2b2b")
+
+        # Position the modal near the floating button
+        self.master.update_idletasks()
+        parent_x = self.master.winfo_rootx()
+        parent_y = self.master.winfo_rooty()
+        button_x = self.floating_button.winfo_rootx() - parent_x
+        button_y = self.floating_button.winfo_rooty() - parent_y
+        modal_x = parent_x + button_x - self.max_width
+        modal_y = parent_y + button_y - self.max_height
+        self.modal.geometry(f"{self.max_width}x{self.max_height+30}+{modal_x}+{modal_y}")
+
+        self.modal.transient(self.master)
+        self.modal.grab_set()
+        self.modal.protocol("WM_DELETE_WINDOW", self.close_modal)
+
+        btn_frame = ctk.CTkFrame(self.modal, fg_color="#2b2b2b")
+        btn_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.button1 = ctk.CTkButton(
+            btn_frame,
+            text="Salvar Padrão",
+            command=self.button_1_action,
+            text_color="#1DBF08",
+            border_color="#1DBF08",
+            border_width=2,
+            fg_color=self.button_colors,
+            width=125,
+            height=self.max_height,
+        )
+        self.button2 = ctk.CTkButton(
+            btn_frame,
+            text="Restaurar Padrão",
+            command=self.button_2_action,
+            width=125,
+            height=self.max_height,
+            text_color="#BF081D",
+            border_color="#BF081D",
+            border_width=2,
+            fg_color=self.button_colors,
+        )
+        self.button1.pack(side="left", padx=(0, 10))
+        self.button2.pack(side="left")
+
+        self.modal_open = True
+
     def button_1_action(self):
         refresh_json(self.tk_controls, self.DEFAULTS_FILE, only_existing_keys=True)
-        self._start_closing()
+        self.close_modal()
 
     def button_2_action(self):
         self.master.restore_defaults()
-        self._start_closing()
+        self.close_modal()
