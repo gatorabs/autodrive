@@ -1,6 +1,5 @@
 from src.infrastructure.constants.video_constants import FRAME_HEIGHT
 from src.presentation.ui.components.slider import SliderSection, SliderConfig
-from src.presentation.ui.components.checkbox import CheckboxSection
 
 class ExtrasControls(SliderSection):
     """Additional sliders and checkboxes for extra options."""
@@ -15,16 +14,6 @@ class ExtrasControls(SliderSection):
         ]
 
         super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
-        self.checkbox_section = CheckboxSection(
-            self,
-            labels=["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID", "SHOW_LINES"],
-            tk_controls=self.tk_controls,
-            shared_controls=shared_controls,
-            orientation="grid",
-            columns=3
-        )
-        self.checkbox_section.pack(fill="x", padx=2, pady=(33, 0))
-
         self._update_lines_slider()
 
     def _update_lines_slider(self):

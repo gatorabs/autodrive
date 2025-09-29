@@ -25,7 +25,7 @@ class HomeTab(ctk.CTkFrame):
         self.grid_columnconfigure((0, 1, 2), weight=1, uniform="col")
 
         # Floating widget lives on the main window
-        self.floating_widget = FloatingWidget(master, tk_controls)
+        self.floating_widget = FloatingWidget(master, tk_controls, shared_controls)
 
         VIDEO_WIDTH, VIDEO_HEIGHT = FRAME_WIDTH_T, FRAME_HEIGHT_T
 
@@ -70,5 +70,5 @@ class HomeTab(ctk.CTkFrame):
         col2 = ctk.CTkFrame(self, fg_color="transparent")
         col2.grid(row=1, column=2, sticky="nsew")
         self.object_roi_controls = _make_section(col2, 165, ObjectRoiSection, tk_controls, calibration_data)
-        self.extras_controls = _make_section(col2, 280, ExtrasControls, tk_controls, shared_controls, shared_controls)
+        self.extras_controls = _make_section(col2, 210, ExtrasControls, tk_controls, shared_controls, shared_controls)
 
