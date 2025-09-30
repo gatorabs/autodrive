@@ -70,7 +70,7 @@ def compute_speed_and_direction(pid,
                                 direction):
 
     if not has_ref:
-        return 0, direction
+        return 0, direction, side
 
     speed = tk_controls.get("Speed")
     lane_val = avg_right if side == 1 else avg_left
@@ -78,20 +78,20 @@ def compute_speed_and_direction(pid,
     if not math.isfinite(lane_val):
         pid.fallback(FALLBACK_PID_INPUT)
 
-        side = 0 if side == 1 else 1
+        side = 2 if side == 1 else 1
+        tk_controls["Side"] = side
         lane_val = avg_right if side == 1 else avg_left
 
         if not math.isfinite(lane_val):
-            return speed, direction
+            return speed, direction, side
 
     # Calcula a direção com o novo valor de lane_val
     raw_direction = pid.calculate(lane_val)
 
     if raw_direction is None or not math.isfinite(raw_direction):
         pid.fallback(FALLBACK_PID_OUTPUT)
-        return speed, direction
-
-    return speed, round(raw_direction)
+        return speed, direction, side
+    return speed, round(raw_direction), side
 
 def force_safe_stop(lane_queue, shared_controls, logger, reason="CAMERA_ERROR"):
 

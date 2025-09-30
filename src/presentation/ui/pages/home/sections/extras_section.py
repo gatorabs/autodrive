@@ -16,6 +16,7 @@ class ExtrasControls(SliderSection):
 
         super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
         self._update_lines_slider()
+        self._sync_side_slider()
 
     def _update_lines_slider(self):
         max_height = self.shared_controls.get("MAX_HEIGHT")
@@ -33,3 +34,16 @@ class ExtrasControls(SliderSection):
                     if self.tk_controls.get("Lines", 0) > max_height:
                         self.set("Lines", max_height)
         self.after(800, self._update_lines_slider)
+
+    def _sync_side_slider(self):
+        slider_data = self.sliders.get("Side")
+        if slider_data:
+            desired_value = self.tk_controls.get("Side")
+            if isinstance(desired_value, (int, float)):
+                desired_value = int(round(desired_value))
+                desired_value = 1 if desired_value <= 1 else 2
+
+                current_slider_value = int(round(slider_data["slider"].get()))
+                if current_slider_value != desired_value:
+                    self.set("Side", desired_value)
+        self.after(400, self._sync_side_slider)

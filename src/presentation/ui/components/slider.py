@@ -30,7 +30,7 @@ class SliderSection(ctk.CTkFrame):
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
         self.refresh_json = refresh_json
-        self._no_persist = {"MANUAL_DIRECTION", "MANUAL_SPEED"}
+        self._no_persist = {"MANUAL_DIRECTION", "MANUAL_SPEED", "Side"}
 
         ctk.CTkLabel(self, text=title, font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
