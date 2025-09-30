@@ -2,7 +2,6 @@ import customtkinter as ctk
 
 from src.presentation.ui.components.video_frame import VideoFrame
 from .sections.manual_controls_section import ManualControls
-from ...components.checkbox import CheckboxSection
 from ...components.steering_wheel import SteeringWheel
 from src.infrastructure.adapters.video.video_utility_process import get_video_files_from_folder
 
@@ -76,14 +75,7 @@ class ManualModeTab(ctk.CTkFrame):
         )
         self.manual_controls.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="n")
 
-        self.toggles_section = CheckboxSection(
-            self,
-            labels=["SEND_LOGS"],
-            tk_controls=tk_controls,
-            shared_controls=shared_controls,
-            orientation="vertical",
-        )
-        self.toggles_section.grid(row=3, column=0, sticky="n")
+        self.toggles_section = None
 
         self.steering_wheel = SteeringWheel(
             self,
