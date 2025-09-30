@@ -21,7 +21,7 @@ class FloatingWidget(ctk.CTkFrame):
         **kwargs,
     ):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-27)
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-650, y=-27)
 
         self.save_data = save_data
         self.load_data = load_data
@@ -52,7 +52,7 @@ class FloatingWidget(ctk.CTkFrame):
 
         self.checkboxes_button = ctk.CTkButton(
             buttons_row,
-            text="☑️",
+            text="✅",
             width=40,
             height=40,
             corner_radius=10,
