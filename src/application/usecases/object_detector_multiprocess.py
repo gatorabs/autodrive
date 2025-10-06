@@ -35,7 +35,11 @@ def object_detection_process(object_queue,
                                      tk_controls=tk_controls,
                                      camera_source=None,
                                      logger=logger,
-                                     video_processor=video_proc)
+                                     video_processor=video_proc,
+                                     model_path=tk_controls.get("OBJECT_MODEL_PATH"),
+                                     custom_model_path=tk_controls.get("CUSTOM_OBJECT_MODEL_PATH"),
+                                     custom_model_classes=tk_controls.get("CUSTOM_OBJECT_CLASSES"),
+                                     custom_model_confidence=tk_controls.get("CUSTOM_OBJECT_CONFIDENCE"))
 
     try:
         while shared_controls.get("RUNNING", True):
@@ -74,7 +78,8 @@ def object_detection_process(object_queue,
                 person_detected=person_detected,
                 traffic_light_state=traffic_light_state,
                 object_queue=object_queue,
-                frame=frame
+                frame=frame,
+                custom_objects=object_detector.custom_detections,
             )
 
     except Exception as e:
