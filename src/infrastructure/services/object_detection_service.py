@@ -54,7 +54,14 @@ def publish_results(shared_serial_data,
                     traffic_light_state,
                     object_queue,
                     frame,
-                    custom_objects=None):
+                    custom_objects=None,
+                    custom_decision_state=None):
+    if custom_decision_state is not None:
+        try:
+            shared_serial_data[0] = 1 if custom_decision_state else 0
+        except Exception:
+            pass
+
     shared_serial_data[2] = 1 if person_detected else 0
     shared_serial_data[1] = traffic_light_state
 
@@ -65,6 +72,10 @@ def publish_results(shared_serial_data,
         "OBJECT_PERSON_DATA": shared_serial_data[2],
         "TRAFFIC_LIGHT_DATA": shared_serial_data[1],
     }
+    try:
+        object_data["CUSTOM_OBJECT_ALERT"] = shared_serial_data[0]
+    except Exception:
+        object_data["CUSTOM_OBJECT_ALERT"] = 0
     if custom_objects is not None:
         object_data["CUSTOM_OBJECTS"] = custom_objects
     if not object_queue.full():

@@ -39,7 +39,10 @@ def object_detection_process(object_queue,
                                      model_path=tk_controls.get("OBJECT_MODEL_PATH"),
                                      custom_model_path=tk_controls.get("CUSTOM_OBJECT_MODEL_PATH"),
                                      custom_model_classes=tk_controls.get("CUSTOM_OBJECT_CLASSES"),
-                                     custom_model_confidence=tk_controls.get("CUSTOM_OBJECT_CONFIDENCE"))
+                                     custom_model_confidence=tk_controls.get("CUSTOM_OBJECT_CONFIDENCE"),
+                                     custom_decision_enabled=tk_controls.get("CUSTOM_OBJECT_DECISION_ENABLED"))
+
+    shared_controls["CUSTOM_OBJECT_DECISION_ENABLED"] = object_detector.custom_decision_enabled
 
     try:
         while shared_controls.get("RUNNING", True):
@@ -80,6 +83,7 @@ def object_detection_process(object_queue,
                 object_queue=object_queue,
                 frame=frame,
                 custom_objects=object_detector.custom_detections,
+                custom_decision_state=object_detector.custom_decision_active,
             )
 
     except Exception as e:

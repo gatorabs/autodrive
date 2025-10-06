@@ -4,12 +4,17 @@ from src.domain.models.lane_data.lane_data import LaneData
 from src.domain.models.object_data.object_data import ObjectData
 
 def publish_emergency_stop(obj_data, shared_controls, lane_data):
+    custom_decision_active = (
+        shared_controls.get("CUSTOM_OBJECT_DECISION_ENABLED", False)
+        and getattr(obj_data, "custom_object_alert", 0) == 1
+    )
     if (
         obj_data.object_person_data == 1
         or shared_controls.get("EMERGENCY_STOP", 0) == 1
         or shared_controls.get("SAFE_STOP")
         or shared_controls.get("OBJ_SAFE_STOP")
         or obj_data.traffic_light_data == 0
+        or custom_decision_active
     ):
         lane_data.car_speed_data = 0
         car_info = shared_controls.get("CAR_INFO", {})
@@ -20,6 +25,7 @@ def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
     if manual_md:
         obj_data.object_person_data = 0
         obj_data.traffic_light_data = 2
+        obj_data.custom_object_alert = 0
         while not object_queue.empty():
             try:
                 object_queue.get_nowait()

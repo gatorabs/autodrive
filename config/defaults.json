@@ -15,6 +15,7 @@
     "CUSTOM_OBJECT_MODEL_PATH": "",
     "CUSTOM_OBJECT_CONFIDENCE": 0.35,
     "CUSTOM_OBJECT_CLASSES": "",
+    "CUSTOM_OBJECT_DECISION_ENABLED": false,
     "tl_x": 120,
     "tl_y": 180,
     "tr_x": 360,

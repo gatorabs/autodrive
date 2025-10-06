@@ -17,6 +17,7 @@ MODEL_CONTROL_KEY = "OBJECT_MODEL_PATH"
 CUSTOM_MODEL_CONTROL_KEY = "CUSTOM_OBJECT_MODEL_PATH"
 CUSTOM_CLASSES_CONTROL_KEY = "CUSTOM_OBJECT_CLASSES"
 CUSTOM_CONFIDENCE_CONTROL_KEY = "CUSTOM_OBJECT_CONFIDENCE"
+CUSTOM_DECISION_CONTROL_KEY = "CUSTOM_OBJECT_DECISION_ENABLED"
 DEFAULT_MODEL_PATH = "yolov8n.pt"
 DEFAULT_CUSTOM_CONFIDENCE = 0.35
 CUSTOM_DETECTION_COLOR = (255, 0, 0)
@@ -32,7 +33,8 @@ class ObjectDetector:
                  model_path=None,
                  custom_model_path=None,
                  custom_model_classes: Optional[Union[str, Sequence[Union[str, int]]]] = None,
-                 custom_model_confidence: Optional[Union[str, float]] = None):
+                 custom_model_confidence: Optional[Union[str, float]] = None,
+                 custom_decision_enabled: Optional[Union[str, int, bool]] = None):
 
         self.shared_serial_data = shared_serial_data
         self.shared_frames = shared_frames
@@ -90,6 +92,18 @@ class ObjectDetector:
         if not self.custom_model_classes:
             self.custom_model_classes = self._parse_custom_classes(os.getenv("YOLO_CUSTOM_CLASSES"))
 
+        self.custom_decision_enabled = self._parse_bool(custom_decision_enabled)
+        if self.custom_decision_enabled is None:
+            self.custom_decision_enabled = self._parse_bool(self._get_control_value(CUSTOM_DECISION_CONTROL_KEY))
+        if self.custom_decision_enabled is None:
+            self.custom_decision_enabled = self._parse_bool(os.getenv("YOLO_CUSTOM_DECISION_ENABLED"))
+        if self.custom_decision_enabled is None:
+            self.custom_decision_enabled = False
+
+        if self.logger:
+            status = "ativado" if self.custom_decision_enabled else "desativado"
+            self.logger.info(f"Decisões personalizadas: {status}")
+
         self.custom_model = None
         self.uses_shared_model = False
         self.custom_class_ids: Optional[Set[int]] = None
@@ -136,6 +150,10 @@ class ObjectDetector:
 
         self.shared_serial_data[1] = 0  # semáforo
         self.shared_serial_data[2] = 0  # pessoa
+        self.shared_serial_data[0] = 0  # decisão customizada
+
+        self.custom_decision_active = False
+        self._last_custom_decision_state: Optional[bool] = None
 
     def process_frame(self, frame):
         try:
@@ -192,11 +210,19 @@ class ObjectDetector:
                         self.logger.error(f"Falha ao executar detecção personalizada: {custom_error}")
                     self.custom_detections = []
 
+            self._update_custom_decision_state()
+
             return person_detected, traffic_light_state
 
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Erro ao processar frame: {e}")
+            self.custom_decision_active = False
+            try:
+                self.shared_serial_data[0] = 0
+            except Exception:
+                pass
+            self._last_custom_decision_state = False
 
     def cleanup(self):
         if self.video_processor:
@@ -259,6 +285,26 @@ class ObjectDetector:
             return self.tk_controls.get(key)
         except Exception:
             return None
+
+    def _update_custom_decision_state(self):
+        control_override = self._parse_bool(self._get_control_value(CUSTOM_DECISION_CONTROL_KEY))
+        if control_override is not None and control_override != self.custom_decision_enabled:
+            self.custom_decision_enabled = control_override
+            if self.logger:
+                status_toggle = "ativadas" if self.custom_decision_enabled else "desativadas"
+                self.logger.info(f"Decisões personalizadas {status_toggle} via controles")
+
+        self.custom_decision_active = bool(self.custom_detections) if self.custom_decision_enabled else False
+        try:
+            self.shared_serial_data[0] = 1 if self.custom_decision_active else 0
+        except Exception:
+            pass
+
+        if self.logger and self.custom_decision_enabled and self.custom_decision_active != self._last_custom_decision_state:
+            status = "ativada" if self.custom_decision_active else "desativada"
+            self.logger.info(f"Decisão personalizada {status} com base nas detecções atuais")
+
+        self._last_custom_decision_state = self.custom_decision_active
 
     def _parse_confidence(self, value: Optional[Union[str, float]]) -> Optional[float]:
         if value is None:
@@ -323,3 +369,20 @@ class ObjectDetector:
                     resolved.add(name_map[lowered])
 
         return resolved if resolved else None
+
+    def _parse_bool(self, value: Optional[Union[str, int, bool]]) -> Optional[bool]:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        try:
+            lowered = str(value).strip().lower()
+            if lowered in {"1", "true", "yes", "sim", "on"}:
+                return True
+            if lowered in {"0", "false", "no", "nao", "não", "off"}:
+                return False
+        except Exception:
+            return None
+        return None
