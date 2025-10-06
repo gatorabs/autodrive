@@ -64,8 +64,7 @@ class ObjectDetector:
         else:
             self.inference_kwargs["imgsz"] = CPU_INFERENCE_IMG_SIZE
 
-        self.custom_model = None
-        self.custom_model_names = {}
+        self.custom_models = []
         self.custom_default_label = os.getenv(CUSTOM_LABEL_ENV_VAR, "Custom Object")
         self.custom_default_conf = self._parse_env_confidence()
         self.custom_inference_kwargs = {
@@ -77,7 +76,7 @@ class ObjectDetector:
         else:
             self.custom_inference_kwargs["imgsz"] = CPU_INFERENCE_IMG_SIZE
 
-        self._load_custom_model()
+        self._load_custom_models()
 
         self.shared_serial_data[1] = 0  # semáforo
         self.shared_serial_data[2] = 0  # pessoa
@@ -123,87 +122,102 @@ class ObjectDetector:
                 seen.add(root)
         return ordered_roots
 
-    def _find_latest_trained_model(self, search_roots):
-        matches = []
-        for root in search_roots:
-            try:
-                for possible in root.glob("**/runs/detect/*/weights/best.pt"):
-                    if possible.exists():
-                        matches.append(possible)
-            except Exception:
-                continue
+    def _resolve_against_roots(self, path: Path, search_roots):
+        if path.is_absolute():
+            return path
 
-        if not matches:
-            return None
+        for root in search_roots:
+            candidate = (root / path)
+            if candidate.exists():
+                return candidate.resolve()
+
+        return (search_roots[0] / path).resolve()
+
+    def _discover_custom_model_paths(self):
+        search_roots = self._candidate_search_roots()
+        configured_path = os.getenv(CUSTOM_MODEL_ENV_VAR)
+
+        def add_path(path_obj, bucket, seen):
+            try:
+                resolved = path_obj.resolve()
+            except Exception:
+                resolved = path_obj
+
+            if not path_obj.exists() or resolved in seen:
+                return
+
+            seen.add(resolved)
+            bucket.append(path_obj)
+
+        seen_paths = set()
+        discovered = []
+
+        if configured_path:
+            configured = self._resolve_against_roots(Path(configured_path), search_roots)
+            if configured.is_dir():
+                for weight_path in sorted(configured.glob("**/weights/best.pt")):
+                    add_path(weight_path, discovered, seen_paths)
+            else:
+                if configured.exists():
+                    add_path(configured, discovered, seen_paths)
+                elif self.logger:
+                    self.logger.info(
+                        f"Modelo customizado não encontrado em {configured}. Detecção extra desativada.")
+
+            if discovered:
+                try:
+                    discovered.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+                except OSError:
+                    pass
+                return discovered
+
+        for root in search_roots:
+            default_candidate = (root / DEFAULT_CUSTOM_MODEL_PATH)
+            if default_candidate.exists():
+                add_path(default_candidate, discovered, seen_paths)
+
+        for root in search_roots:
+            runs_dir = root / "runs" / "detect"
+            if not runs_dir.exists():
+                continue
+            for weight_path in runs_dir.glob("*/weights/best.pt"):
+                add_path(weight_path, discovered, seen_paths)
 
         try:
-            matches.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+            discovered.sort(key=lambda path: path.stat().st_mtime, reverse=True)
         except OSError:
             pass
 
-        return matches[0]
+        return discovered
 
-    def _resolve_custom_model_path(self):
-        configured_path = os.getenv(CUSTOM_MODEL_ENV_VAR)
-        search_roots = self._candidate_search_roots()
-
-        if configured_path:
-            configured = Path(configured_path)
-            if configured.is_absolute():
-                return configured
-
-            for root in search_roots:
-                potential = root / configured
-                if potential.exists():
-                    return potential
-
-            return search_roots[0] / configured
-
-        candidate = DEFAULT_CUSTOM_MODEL_PATH
-
-        if candidate.is_absolute():
-            return candidate
-
-        for root in search_roots:
-            potential = root / candidate
-            if potential.exists():
-                return potential
-
-        fallback = self._find_latest_trained_model(search_roots)
-        if fallback:
+    def _load_custom_models(self):
+        self.custom_models = []
+        model_paths = self._discover_custom_model_paths()
+        if not model_paths:
             if self.logger:
                 self.logger.info(
-                    f"Modelo padrão não encontrado em {search_roots[0] / candidate}. Usando {fallback}.")
-            return fallback
-
-        return search_roots[0] / candidate
-
-    def _load_custom_model(self):
-        model_path = self._resolve_custom_model_path()
-        if not model_path:
+                    "Nenhum modelo customizado encontrado. Detecção extra desativada.")
             return
 
-        if not model_path.exists():
-            if self.logger:
-                self.logger.info(
-                    f"Modelo customizado não encontrado em {model_path}. Detecção extra desativada.")
-            return
+        for model_path in model_paths:
+            try:
+                model = YOLO(str(model_path))
+                model.to(self.device)
+                model.eval()
+                names = getattr(model, "names", {})
+                names_payload = names if isinstance(names, (dict, list)) else {}
+                self.custom_models.append({
+                    "model": model,
+                    "names": names_payload,
+                    "path": model_path,
+                })
+                if self.logger:
+                    self.logger.info(f"Modelo customizado carregado de {model_path}")
+            except Exception as exc:
+                if self.logger:
+                    self.logger.error(f"Falha ao carregar modelo customizado ({model_path}): {exc}")
 
-        try:
-            self.custom_model = YOLO(str(model_path))
-            self.custom_model.to(self.device)
-            self.custom_model.eval()
-            names = getattr(self.custom_model, "names", {})
-            self.custom_model_names = names if isinstance(names, (dict, list)) else {}
-            if self.logger:
-                self.logger.info(f"Modelo customizado carregado de {model_path}")
-        except Exception as exc:
-            if self.logger:
-                self.logger.error(f"Falha ao carregar modelo customizado ({model_path}): {exc}")
-            self.custom_model = None
-
-    def _get_custom_label(self, cls_id):
-        names = self.custom_model_names
+    def _get_custom_label(self, cls_id, names):
         if isinstance(names, dict):
             return names.get(cls_id, self.custom_default_label)
         if isinstance(names, list) and 0 <= cls_id < len(names):
@@ -223,14 +237,17 @@ class ObjectDetector:
         try:
             with torch.inference_mode():
                 results = self.model(frame, **self.inference_kwargs)
-                custom_results = None
-                if self.custom_model is not None:
+                custom_results = []
+                if self.custom_models:
                     custom_conf = self._get_custom_confidence()
-                    custom_results = self.custom_model(
-                        frame,
-                        conf=custom_conf,
-                        **self.custom_inference_kwargs,
-                    )
+                    for custom_model in self.custom_models:
+                        model = custom_model["model"]
+                        model_results = model(
+                            frame,
+                            conf=custom_conf,
+                            **self.custom_inference_kwargs,
+                        )
+                        custom_results.append((custom_model, model_results))
 
             person_detected = False
             traffic_light_state = 2
@@ -268,29 +285,31 @@ class ObjectDetector:
                         cv2.putText(frame, f"TL: {active_color}", (x1, y1 - 20),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
 
-            if custom_results is not None:
-                for result in custom_results:
-                    for box in result.boxes:
-                        cls = int(box.cls[0])
-                        x1, y1, x2, y2 = map(int, box.xyxy[0])
-                        box_height = y2 - y1
-                        box_width = x2 - x1
+            if custom_results:
+                for model_info, result_batch in custom_results:
+                    names = model_info.get("names", {})
+                    for result in result_batch:
+                        for box in result.boxes:
+                            cls = int(box.cls[0])
+                            x1, y1, x2, y2 = map(int, box.xyxy[0])
+                            box_height = y2 - y1
+                            box_width = x2 - x1
 
-                        if max(box_height, box_width) < min_custom_size:
-                            continue
+                            if max(box_height, box_width) < min_custom_size:
+                                continue
 
-                        custom_object_detected = True
-                        label = self._get_custom_label(cls)
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), CUSTOM_BOX_COLOR, 2)
-                        cv2.putText(
-                            frame,
-                            label,
-                            (x1, y1 - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            0.5,
-                            CUSTOM_BOX_COLOR,
-                            2,
-                        )
+                            custom_object_detected = True
+                            label = self._get_custom_label(cls, names)
+                            cv2.rectangle(frame, (x1, y1), (x2, y2), CUSTOM_BOX_COLOR, 2)
+                            cv2.putText(
+                                frame,
+                                label,
+                                (x1, y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                0.5,
+                                CUSTOM_BOX_COLOR,
+                                2,
+                            )
 
             return person_detected, traffic_light_state, custom_object_detected
 
