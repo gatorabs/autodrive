@@ -96,26 +96,85 @@ class ObjectDetector:
                     f"Valor inválido para {CUSTOM_CONF_ENV_VAR}: {env_value}. Usando 0.35.")
             return 0.35
 
-    def _resolve_custom_model_path(self):
-        configured_path = os.getenv(CUSTOM_MODEL_ENV_VAR)
-        if configured_path:
-            return Path(configured_path)
+    def _candidate_search_roots(self):
+        roots = [Path.cwd()]
 
-        candidate = DEFAULT_CUSTOM_MODEL_PATH
-        if candidate.is_absolute():
-            return candidate
-
-        search_roots = [Path.cwd()]
         try:
             repo_root = Path(__file__).resolve().parents[4]
-            search_roots.append(repo_root)
         except IndexError:
+            repo_root = None
+
+        if repo_root and repo_root not in roots:
+            roots.append(repo_root)
+
+        utils_dir = repo_root / "utils" if repo_root else None
+        if utils_dir and utils_dir.exists():
+            roots.append(utils_dir)
+            model_trainer_dir = utils_dir / "model_trainer"
+            if model_trainer_dir.exists():
+                roots.append(model_trainer_dir)
+
+        # Preserve order but remove duplicates
+        seen = set()
+        ordered_roots = []
+        for root in roots:
+            if root not in seen:
+                ordered_roots.append(root)
+                seen.add(root)
+        return ordered_roots
+
+    def _find_latest_trained_model(self, search_roots):
+        matches = []
+        for root in search_roots:
+            try:
+                for possible in root.glob("**/runs/detect/*/weights/best.pt"):
+                    if possible.exists():
+                        matches.append(possible)
+            except Exception:
+                continue
+
+        if not matches:
+            return None
+
+        try:
+            matches.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+        except OSError:
             pass
+
+        return matches[0]
+
+    def _resolve_custom_model_path(self):
+        configured_path = os.getenv(CUSTOM_MODEL_ENV_VAR)
+        search_roots = self._candidate_search_roots()
+
+        if configured_path:
+            configured = Path(configured_path)
+            if configured.is_absolute():
+                return configured
+
+            for root in search_roots:
+                potential = root / configured
+                if potential.exists():
+                    return potential
+
+            return search_roots[0] / configured
+
+        candidate = DEFAULT_CUSTOM_MODEL_PATH
+
+        if candidate.is_absolute():
+            return candidate
 
         for root in search_roots:
             potential = root / candidate
             if potential.exists():
                 return potential
+
+        fallback = self._find_latest_trained_model(search_roots)
+        if fallback:
+            if self.logger:
+                self.logger.info(
+                    f"Modelo padrão não encontrado em {search_roots[0] / candidate}. Usando {fallback}.")
+            return fallback
 
         return search_roots[0] / candidate
 
