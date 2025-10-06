@@ -1,5 +1,6 @@
 # Exemplo básico com três modelos treinados a partir de datasets diferentes.
-# Ajuste os caminhos de dataset/output e os parâmetros do YOLO conforme sua necessidade.
+# Cada caminho em "dataset" deve apontar para uma pasta que contenha "images/" e "labels/".
+# Após capturar com _capture_images.py, mova ou renomeie a pasta "dataset/" para o nome desejado.
 models:
   - name: modelo_parafuso
     dataset: datasets/parafusos

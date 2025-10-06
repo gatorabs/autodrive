@@ -10,6 +10,10 @@ Fluxo para coletar dados e treinar modelos customizados
 
    Utilize o script `_capture_images.py` para gravar vídeos ou imagens já com as bounding boxes.
    Os arquivos são salvos em `dataset/images` e as anotações em `dataset/labels`.
+   Para separar conjuntos diferentes (ex.: parafuso, porca, arruela), após a captura
+   mova ou renomeie a pasta `dataset/` para outro local (ex.: `datasets/parafusos/`)
+   e repita a coleta. Cada dataset precisa manter a mesma estrutura interna
+   (`images/` e `labels/`).
 
 2. **Organizar o dataset para cada modelo**
 
@@ -34,7 +38,9 @@ Fluxo para coletar dados e treinar modelos customizados
 3. **Treinar um ou mais modelos YOLO**
 
    Para treinar vários modelos de uma vez (por exemplo, três modelos distintos), crie um arquivo YAML com a lista de configurações.
-   Você pode usar `utils/model_trainer/sample_training_config.yaml` como ponto de partida:
+   Você pode usar `utils/model_trainer/sample_training_config.yaml` como ponto de partida
+   (note que cada caminho em `dataset:` deve apontar para uma pasta que contenha
+   `images/` e `labels/`).
 
    ```yaml
    # arquivo: training_config.yaml
