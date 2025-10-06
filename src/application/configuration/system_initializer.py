@@ -11,7 +11,7 @@ class SystemInitializer:
         return {
             **user_flags,
             "RUNNING": True,
-            "OBJECT_SERIAL_DATA": [0, 0, 0],
+            "OBJECT_SERIAL_DATA": [0, 0, 0, 0],
             "SAFE_STOP": False,
             "OBJ_SAFE_STOP": False,
         }
