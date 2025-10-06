@@ -142,6 +142,44 @@ def run_pipeline(configs: Sequence[TrainingConfig], *, dry_run: bool = False, sk
         _run_command(command, dry_run=dry_run)
 
 
+def _default_config_candidates(base: Path) -> List[Path]:
+    """Retorna caminhos candidatos para o arquivo de configuração padrão."""
+
+    cwd = base.resolve()
+    script_dir = Path(__file__).resolve().parent
+
+    candidates = [
+        cwd / "training_config.yaml",
+        cwd / "training_config.yml",
+        script_dir / "training_config.yaml",
+        script_dir / "training_config.yml",
+    ]
+
+    # Garantir unicidade preservando a ordem
+    seen = set()
+    unique_candidates: List[Path] = []
+    for candidate in candidates:
+        if candidate not in seen:
+            unique_candidates.append(candidate)
+            seen.add(candidate)
+
+    return unique_candidates
+
+
+def _resolve_config_path(provided: Path | None) -> Path:
+    if provided is not None:
+        return provided
+
+    for candidate in _default_config_candidates(Path.cwd()):
+        if candidate.exists():
+            return candidate
+
+    raise SystemExit(
+        "Nenhum arquivo de configuração encontrado. Informe --config PATH ou crie "
+        "um training_config.yaml na pasta atual ou em utils/model_trainer/."
+    )
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Prepara datasets e dispara o treinamento de múltiplos modelos YOLO."
@@ -149,8 +187,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=Path,
-        required=True,
-        help="Arquivo YAML com as configurações dos modelos.",
+        help="Arquivo YAML com as configurações dos modelos."
+             " Se omitido, procura por training_config.yaml.",
     )
     parser.add_argument(
         "--dry-run",
@@ -167,7 +205,10 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
-    config_path = args.config.resolve()
+    config_path = _resolve_config_path(args.config)
+    if not config_path.exists():
+        raise SystemExit(f"Arquivo de configuração não encontrado: {config_path}")
+    config_path = config_path.resolve()
     config_data = _load_yaml_config(config_path)
     configs = _parse_training_configs(config_data, base_dir=config_path.parent)
     run_pipeline(configs, dry_run=args.dry_run, skip_train=args.skip_train)

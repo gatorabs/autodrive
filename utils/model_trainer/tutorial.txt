@@ -79,10 +79,15 @@ Fluxo para coletar dados e treinar modelos customizados
          device: 0
    ```
 
-   Depois execute:
+   Copie ou renomeie esse arquivo para `training_config.yaml` (na mesma pasta onde pretende executar o comando)
+   para que o orquestrador o encontre automaticamente. Depois execute:
 
    ```bash
-   python utils/model_trainer/train_models.py --config training_config.yaml
+   # Se o arquivo estiver na pasta atual, não é necessário informar --config
+   python utils/model_trainer/train_models.py
+
+   # Ainda é possível apontar um caminho específico, se preferir
+   python utils/model_trainer/train_models.py --config outro_config.yaml
    ```
 
    O script prepara cada dataset, gera seu próprio `data.yaml` e chama o comando `yolo detect train ...` para cada entrada.

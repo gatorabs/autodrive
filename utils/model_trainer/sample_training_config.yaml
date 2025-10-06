@@ -3,6 +3,8 @@
 # O `_capture_images.py` já cria essa estrutura automaticamente quando você usa `--base-dir` e
 # avança com `h` entre os objetos (ex.: datasets/parafuso/{images,labels}) e, ao finalizar a
 # sessão, gera um `data.yaml` simples dentro de cada pasta.
+# Copie este arquivo para `training_config.yaml` (na pasta de execução) para que o `train_models.py`
+# o encontre automaticamente.
 models:
   - name: modelo_parafuso
     dataset: datasets/parafusos
