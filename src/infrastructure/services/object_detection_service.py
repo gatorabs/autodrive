@@ -48,9 +48,17 @@ def process_traffic_light_roi(roi):
 
     return active_color, color_bgr, traffic_light_state
 
-def publish_results(shared_serial_data, shared_frames, person_detected, traffic_light_state, object_queue, frame):
+def publish_results(shared_serial_data,
+                    shared_frames,
+                    person_detected,
+                    traffic_light_state,
+                    custom_object_detected,
+                    object_queue,
+                    frame):
     shared_serial_data[2] = 1 if person_detected else 0
     shared_serial_data[1] = traffic_light_state
+    if len(shared_serial_data) > 0:
+        shared_serial_data[0] = 1 if custom_object_detected else 0
 
     # mantém o frame bruto; consumidores decidem como codificar
     shared_frames["OBJECT_FRAME"] = frame.copy()
@@ -58,6 +66,7 @@ def publish_results(shared_serial_data, shared_frames, person_detected, traffic_
     object_data = {
         "OBJECT_PERSON_DATA": shared_serial_data[2],
         "TRAFFIC_LIGHT_DATA": shared_serial_data[1],
+        "CUSTOM_OBJECT_DATA": shared_serial_data[0],
     }
     if not object_queue.full():
         object_queue.put(object_data)
@@ -65,8 +74,14 @@ def publish_results(shared_serial_data, shared_frames, person_detected, traffic_
 def force_default_object_data(object_queue, shared_serial_data, shared_controls, logger, reason="CAMERA_ERROR"):
     shared_serial_data[1] = 2
     shared_serial_data[2] = 1
+    if len(shared_serial_data) > 0:
+        shared_serial_data[0] = 0
 
-    object_data = {"OBJECT_PERSON_DATA": 1, "TRAFFIC_LIGHT_DATA": 2}
+    object_data = {
+        "OBJECT_PERSON_DATA": 1,
+        "TRAFFIC_LIGHT_DATA": 2,
+        "CUSTOM_OBJECT_DATA": shared_serial_data[0] if len(shared_serial_data) > 0 else 0,
+    }
     if not object_queue.full():
         object_queue.put(object_data)
 
