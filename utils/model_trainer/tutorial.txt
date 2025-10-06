@@ -22,7 +22,8 @@ Fluxo para coletar dados e treinar modelos customizados
    Durante a captura, `h` avança para o próximo objeto/classe mantendo as mesmas teclas de tracking (`t`), gravação (`s`) e
    salvamento manual (`Space`). Cada objeto é salvo em uma subpasta própria contendo `images/` e `labels/`, por exemplo
    `datasets/parafuso/images` e `datasets/parafuso/labels`. Assim não é mais necessário renomear manualmente a pasta `dataset/`
-   entre uma coleta e outra.
+   entre uma coleta e outra. Ao encerrar a sessão (`q` ou `Esc`), o script gera automaticamente um `data.yaml` dentro de cada
+   pasta criada, apontando para as capturas realizadas.
 
 2. **Organizar o dataset para cada modelo**
 

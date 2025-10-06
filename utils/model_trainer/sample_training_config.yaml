@@ -1,7 +1,8 @@
 # Exemplo básico com três modelos treinados a partir de datasets diferentes.
 # Cada caminho em "dataset" deve apontar para uma pasta que contenha "images/" e "labels/".
 # O `_capture_images.py` já cria essa estrutura automaticamente quando você usa `--base-dir` e
-# avança com `h` entre os objetos (ex.: datasets/parafuso/{images,labels}).
+# avança com `h` entre os objetos (ex.: datasets/parafuso/{images,labels}) e, ao finalizar a
+# sessão, gera um `data.yaml` simples dentro de cada pasta.
 models:
   - name: modelo_parafuso
     dataset: datasets/parafusos

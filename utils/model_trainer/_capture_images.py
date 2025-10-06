@@ -1,5 +1,4 @@
 import argparse
-import os
 import re
 import time
 from dataclasses import dataclass
@@ -9,6 +8,7 @@ from typing import List, Optional
 
 import cv2
 import numpy as np
+import yaml
 
 
 def parse_args():
@@ -89,6 +89,7 @@ class ObjectSession:
     root: Path
     images_dir: Path
     labels_dir: Path
+    display_name: str
     saved: int = 0
 
 
@@ -109,6 +110,7 @@ sessions: List[ObjectSession] = []
 for idx, raw_name in enumerate(raw_names):
     fallback = f"objeto_{idx + 1:02d}"
     slug = slugify(raw_name, fallback)
+    display_name = raw_name or fallback
     if num_objects == 1:
         session_root = base_dir
     else:
@@ -125,6 +127,7 @@ for idx, raw_name in enumerate(raw_names):
             root=session_root,
             images_dir=images_dir,
             labels_dir=labels_dir,
+            display_name=display_name,
         )
     )
 
@@ -351,3 +354,31 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+
+
+def generate_data_yaml(session: ObjectSession) -> Path:
+    """Cria um ``data.yaml`` simples apontando para o dataset capturado."""
+
+    yaml_path = session.root / "data.yaml"
+    data = {
+        "path": str(session.root.resolve()),
+        "train": "images",
+        "val": "images",
+        "names": {session.class_id: session.display_name},
+    }
+
+    with yaml_path.open("w", encoding="utf-8") as fh:
+        yaml.safe_dump(data, fh, allow_unicode=True, sort_keys=False)
+
+    return yaml_path
+
+
+if sessions:
+    print("\nGerando arquivos data.yaml para os datasets capturados...")
+    for sess in sessions:
+        yaml_path = generate_data_yaml(sess)
+        print(f" - {yaml_path}")
+    print(
+        "Cada arquivo aponta para as pastas images/ e labels capturadas. "
+        "Ajuste conforme necessário antes do treinamento."
+    )
