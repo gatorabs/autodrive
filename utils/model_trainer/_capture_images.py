@@ -373,11 +373,13 @@ def generate_data_yaml(session: ObjectSession) -> Path:
     """Cria um ``data.yaml`` simples apontando para o dataset capturado."""
 
     yaml_path = session.root / "data.yaml"
+    names = [f"classe_{i:02d}" for i in range(session.class_id + 1)]
+    names[session.class_id] = session.display_name
     data = {
         "path": str(session.root.resolve()),
         "train": "images",
         "val": "images",
-        "names": {session.class_id: session.display_name},
+        "names": names,
     }
 
     with yaml_path.open("w", encoding="utf-8") as fh:
@@ -413,6 +415,7 @@ def generate_training_config(sessions: List[ObjectSession], base_dir: Path) -> P
                 "name": model_name,
                 "dataset": dataset_ref,
                 "classes": [sess.display_name],
+                "class_ids": [sess.class_id],
                 "output": f"yolo_runs/{model_name}",
                 "val_ratio": 0.2,
                 "train": {},

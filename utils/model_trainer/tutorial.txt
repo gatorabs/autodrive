@@ -45,6 +45,9 @@ Fluxo para coletar dados e treinar modelos customizados
    ```
 
    O comando cria `data.yaml` apontando para `images/train`, `images/val` e mapeia as classes fornecidas.
+   Caso seus arquivos `.txt` utilizem IDs diferentes (por exemplo, porque foram capturados na mesma
+   sessão e o segundo objeto ficou com ID `1`), use `--class-ids` para informar os IDs originais na
+   mesma ordem de `--classes`. O script remapeará automaticamente para começar em zero.
 
 3. **Treinar um ou mais modelos YOLO**
 
@@ -52,6 +55,8 @@ Fluxo para coletar dados e treinar modelos customizados
    `training_config.auto.yaml` gerado pelo capturador (ele já referencia cada pasta com `images/` e `labels/`).
    Caso queira personalizar, use `utils/model_trainer/sample_training_config.yaml` como ponto de partida
    (note que cada caminho em `dataset:` deve apontar para uma pasta que contenha `images/` e `labels/`).
+   Se algum dataset precisar de remapeamento de IDs, utilize o campo opcional `class_ids` para apontar
+   quais índices originais correspondem às classes listadas.
 
    ```yaml
    # arquivo: training_config.yaml

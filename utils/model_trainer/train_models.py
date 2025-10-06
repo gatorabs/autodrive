@@ -30,6 +30,7 @@ class TrainingConfig:
     name: str
     dataset: Path
     classes: Sequence[str]
+    class_ids: Sequence[int] | None = None
     output: Path
     val_ratio: float = 0.2
     train_args: Dict[str, Any] = field(default_factory=dict)
@@ -68,6 +69,15 @@ def _parse_training_configs(config_data: dict[str, Any], base_dir: Path) -> List
         if not isinstance(classes, Iterable) or isinstance(classes, (str, bytes)):
             raise ValueError("Campo 'classes' deve ser uma lista de strings.")
 
+        class_ids = entry.get("class_ids")
+        parsed_class_ids: List[int] | None
+        if class_ids is None:
+            parsed_class_ids = None
+        else:
+            if not isinstance(class_ids, Iterable) or isinstance(class_ids, (str, bytes)):
+                raise ValueError("Campo 'class_ids' deve ser uma lista de inteiros.")
+            parsed_class_ids = [int(value) for value in class_ids]
+
         output = entry.get("output")
         output_path = Path(output) if output else Path("yolo_data") / name
 
@@ -80,6 +90,7 @@ def _parse_training_configs(config_data: dict[str, Any], base_dir: Path) -> List
             name=name,
             dataset=(base_dir / dataset).resolve() if not dataset.is_absolute() else dataset,
             classes=list(classes),
+            class_ids=parsed_class_ids,
             output=(base_dir / output_path).resolve() if not output_path.is_absolute() else output_path,
             val_ratio=val_ratio,
             train_args=train_args.copy(),
@@ -125,6 +136,7 @@ def run_pipeline(configs: Sequence[TrainingConfig], *, dry_run: bool = False, sk
             output_dir=cfg.output,
             class_names=cfg.classes,
             val_ratio=cfg.val_ratio,
+            source_class_ids=cfg.class_ids,
         )
 
         print(

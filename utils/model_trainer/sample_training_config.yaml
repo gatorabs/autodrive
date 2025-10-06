@@ -5,12 +5,16 @@
 # sessão, gera um `data.yaml` simples dentro de cada pasta. Além disso, o script passa a criar
 # automaticamente um `training_config.auto.yaml` em `utils/model_trainer/` combinando todos os
 # objetos capturados. Use este arquivo como base ou copie o exemplo abaixo para `training_config.yaml`
-# se quiser ajustes manuais.
+# se quiser ajustes manuais. Caso o dataset tenha IDs diferentes (por exemplo, o segundo objeto
+# capturado ficou com ID 1), utilize o campo opcional `class_ids` para informar os IDs originais
+# que devem ser remapeados para a ordem de `classes`.
 models:
   - name: modelo_parafuso
     dataset: datasets/parafusos
     classes:
       - parafuso
+    # class_ids:
+    #   - 0  # ID original presente nos arquivos .txt (opcional, útil para remapear índices)
     output: yolo_runs/parafusos
     val_ratio: 0.2
     train:
@@ -24,6 +28,8 @@ models:
     dataset: datasets/porcas
     classes:
       - porca
+    # class_ids:
+    #   - 1
     output: yolo_runs/porcas
     val_ratio: 0.15
     train:
@@ -37,6 +43,8 @@ models:
     dataset: datasets/arruelas
     classes:
       - arruela
+    # class_ids:
+    #   - 2
     output: yolo_runs/arruelas
     val_ratio: 0.2
     train:

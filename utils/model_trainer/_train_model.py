@@ -43,10 +43,59 @@ def _gather_image_label_pairs(img_dir: Path, lab_dir: Path) -> list[tuple[Path, 
     return pairs
 
 
-def _copy_pairs(pairs: Iterable[tuple[Path, Path]], dest_images: Path, dest_labels: Path) -> None:
+def _rewrite_label_file(src: Path, dest: Path, class_mapping: dict[int, int]) -> None:
+    """Reescreve o arquivo de label aplicando o mapeamento informado."""
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    with src.open("r", encoding="utf-8") as fh:
+        lines = fh.readlines()
+
+    rewritten: list[str] = []
+    for raw_line in lines:
+        stripped = raw_line.strip()
+        if not stripped:
+            continue
+
+        parts = stripped.split()
+        if not parts:
+            continue
+
+        try:
+            original_id = int(float(parts[0]))
+        except ValueError as exc:  # pragma: no cover - defesa contra labels inválidos
+            raise ValueError(
+                f"ID de classe inválido encontrado no arquivo {src}: '{parts[0]}'"
+            ) from exc
+
+        if original_id not in class_mapping:
+            raise ValueError(
+                f"ID de classe {original_id} do arquivo {src} não está presente em class_ids."
+            )
+
+        parts[0] = str(class_mapping[original_id])
+        rewritten.append(" ".join(parts))
+
+    with dest.open("w", encoding="utf-8") as fh:
+        if rewritten:
+            fh.write("\n".join(rewritten) + "\n")
+        else:
+            fh.write("")
+
+
+def _copy_pairs(
+    pairs: Iterable[tuple[Path, Path]],
+    dest_images: Path,
+    dest_labels: Path,
+    *,
+    class_mapping: dict[int, int] | None = None,
+) -> None:
     for img, lab in pairs:
         shutil.copy2(img, dest_images / img.name)
-        shutil.copy2(lab, dest_labels / lab.name)
+        if class_mapping is None:
+            shutil.copy2(lab, dest_labels / lab.name)
+        else:
+            _rewrite_label_file(lab, dest_labels / lab.name, class_mapping)
 
 
 def prepare_dataset(dataset_dir: Path | str = DEFAULT_DATASET_DIR,
@@ -54,7 +103,8 @@ def prepare_dataset(dataset_dir: Path | str = DEFAULT_DATASET_DIR,
                     class_names: Sequence[str] = DEFAULT_CLASS_NAMES,
                     val_ratio: float = DEFAULT_VAL_RATIO,
                     shuffle_seed: int | None = 42,
-                    clean_output: bool = True) -> DatasetSummary:
+                    clean_output: bool = True,
+                    source_class_ids: Sequence[int] | None = None) -> DatasetSummary:
     """Organiza imagens/labels no formato esperado pelo YOLO.
 
     Parameters
@@ -71,6 +121,10 @@ def prepare_dataset(dataset_dir: Path | str = DEFAULT_DATASET_DIR,
         Semente usada para embaralhar os pares antes da divisão.
     clean_output:
         Se ``True`` remove o conteúdo existente do diretório de saída.
+
+    source_class_ids:
+        IDs originais esperados nos arquivos de label. Quando fornecido, os IDs
+        são remapeados para ``range(len(class_names))`` na mesma ordem.
 
     Returns
     -------
@@ -102,12 +156,31 @@ def prepare_dataset(dataset_dir: Path | str = DEFAULT_DATASET_DIR,
     if shuffle_seed is not None:
         random.Random(shuffle_seed).shuffle(pairs)
 
+    if source_class_ids is not None:
+        if len(source_class_ids) != len(class_names):
+            raise ValueError(
+                "class_ids deve possuir o mesmo tamanho da lista de classes."
+            )
+        class_mapping = {orig: idx for idx, orig in enumerate(source_class_ids)}
+    else:
+        class_mapping = None
+
     n_val = int(len(pairs) * val_ratio)
     val_pairs = pairs[:n_val]
     train_pairs = pairs[n_val:]
 
-    _copy_pairs(train_pairs, output_dir / "images" / "train", output_dir / "labels" / "train")
-    _copy_pairs(val_pairs, output_dir / "images" / "val", output_dir / "labels" / "val")
+    _copy_pairs(
+        train_pairs,
+        output_dir / "images" / "train",
+        output_dir / "labels" / "train",
+        class_mapping=class_mapping,
+    )
+    _copy_pairs(
+        val_pairs,
+        output_dir / "images" / "val",
+        output_dir / "labels" / "val",
+        class_mapping=class_mapping,
+    )
 
     data_yaml = output_dir / "data.yaml"
     data = {
@@ -151,6 +224,16 @@ def _parse_args() -> argparse.Namespace:
         help="Lista de nomes das classes (na ordem dos IDs).",
     )
     parser.add_argument(
+        "--class-ids",
+        nargs="*",
+        type=int,
+        help=(
+            "IDs originais presentes nos arquivos de label, na mesma ordem de --classes. "
+            "Permite remapear datasets capturados com índices diferentes para uma sequência"
+            " iniciando em zero."
+        ),
+    )
+    parser.add_argument(
         "--val-ratio",
         type=float,
         default=DEFAULT_VAL_RATIO,
@@ -179,6 +262,7 @@ def main() -> None:
         val_ratio=args.val_ratio,
         shuffle_seed=args.seed,
         clean_output=not args.no_clean,
+        source_class_ids=args.class_ids or None,
     )
 
     print("Feito!")
