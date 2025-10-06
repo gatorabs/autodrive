@@ -1,4 +1,5 @@
 import argparse
+import os
 import re
 import time
 from dataclasses import dataclass
@@ -51,6 +52,18 @@ def slugify(value: str, fallback: str) -> str:
     value = re.sub(r"[^0-9a-zA-Z_-]+", "-", value.strip())
     value = re.sub(r"-+", "-", value).strip("-_")
     return value or fallback
+
+
+def _relpath_for_config(path: Path, base: Path) -> str:
+    try:
+        return str(path.relative_to(base))
+    except ValueError:
+        pass
+
+    try:
+        return os.path.relpath(path, base)
+    except (ValueError, OSError):
+        return str(path.resolve())
 
 
 def ask_int(prompt: str) -> int:
@@ -381,4 +394,46 @@ if sessions:
     print(
         "Cada arquivo aponta para as pastas images/ e labels capturadas. "
         "Ajuste conforme necessário antes do treinamento."
+    )
+
+
+def generate_training_config(sessions: List[ObjectSession], base_dir: Path) -> Path:
+    """Cria (ou atualiza) um arquivo ``training_config.auto.yaml`` com os modelos."""
+
+    config_dir = Path(__file__).resolve().parent
+    config_path = config_dir / "training_config.auto.yaml"
+
+    models = []
+    for sess in sessions:
+        dataset_ref = _relpath_for_config(sess.root.resolve(), config_dir)
+        model_name = slugify(sess.display_name, f"modelo_{sess.index + 1:02d}")
+
+        models.append(
+            {
+                "name": model_name,
+                "dataset": dataset_ref,
+                "classes": [sess.display_name],
+                "output": f"yolo_runs/{model_name}",
+                "val_ratio": 0.2,
+                "train": {},
+            }
+        )
+
+    config_payload = {
+        "auto_generated": True,
+        "base_dataset": _relpath_for_config(base_dir.resolve(), config_dir),
+        "models": models,
+    }
+
+    with config_path.open("w", encoding="utf-8") as fh:
+        yaml.safe_dump(config_payload, fh, allow_unicode=True, sort_keys=False)
+
+    return config_path
+
+
+if sessions:
+    config_file = generate_training_config(sessions, base_dir)
+    print(
+        "\nArquivo de configuração agregado gerado em "
+        f"{config_file}. Use-o diretamente com train_models.py."
     )

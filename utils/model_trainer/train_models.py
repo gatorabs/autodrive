@@ -151,8 +151,12 @@ def _default_config_candidates(base: Path) -> List[Path]:
     candidates = [
         cwd / "training_config.yaml",
         cwd / "training_config.yml",
+        cwd / "training_config.auto.yaml",
+        cwd / "training_config.auto.yml",
         script_dir / "training_config.yaml",
         script_dir / "training_config.yml",
+        script_dir / "training_config.auto.yaml",
+        script_dir / "training_config.auto.yml",
     ]
 
     # Garantir unicidade preservando a ordem

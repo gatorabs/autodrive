@@ -23,7 +23,8 @@ Fluxo para coletar dados e treinar modelos customizados
    salvamento manual (`Space`). Cada objeto é salvo em uma subpasta própria contendo `images/` e `labels/`, por exemplo
    `datasets/parafuso/images` e `datasets/parafuso/labels`. Assim não é mais necessário renomear manualmente a pasta `dataset/`
    entre uma coleta e outra. Ao encerrar a sessão (`q` ou `Esc`), o script gera automaticamente um `data.yaml` dentro de cada
-   pasta criada, apontando para as capturas realizadas.
+   pasta criada **e** um `training_config.auto.yaml` agregado (em `utils/model_trainer/`) que lista todos os objetos
+   capturados, pronto para ser consumido pelo orquestrador de treinos.
 
 2. **Organizar o dataset para cada modelo**
 
@@ -47,10 +48,10 @@ Fluxo para coletar dados e treinar modelos customizados
 
 3. **Treinar um ou mais modelos YOLO**
 
-   Para treinar vários modelos de uma vez (por exemplo, três modelos distintos), crie um arquivo YAML com a lista de configurações.
-   Você pode usar `utils/model_trainer/sample_training_config.yaml` como ponto de partida
-   (note que cada caminho em `dataset:` deve apontar para uma pasta que contenha
-   `images/` e `labels/`).
+   Para treinar vários modelos de uma vez (por exemplo, três modelos distintos), você pode reutilizar o
+   `training_config.auto.yaml` gerado pelo capturador (ele já referencia cada pasta com `images/` e `labels/`).
+   Caso queira personalizar, use `utils/model_trainer/sample_training_config.yaml` como ponto de partida
+   (note que cada caminho em `dataset:` deve apontar para uma pasta que contenha `images/` e `labels/`).
 
    ```yaml
    # arquivo: training_config.yaml
@@ -79,8 +80,10 @@ Fluxo para coletar dados e treinar modelos customizados
          device: 0
    ```
 
-   Copie ou renomeie esse arquivo para `training_config.yaml` (na mesma pasta onde pretende executar o comando)
-   para que o orquestrador o encontre automaticamente. Depois execute:
+   Ao usar o arquivo gerado automaticamente, basta executar o comando abaixo — o `train_models.py`
+   detecta `training_config.auto.yaml` sozinho. Se preferir um arquivo customizado, copie ou renomeie o exemplo
+   para `training_config.yaml` (na mesma pasta onde pretende executar o comando) e ajuste as entradas conforme desejar.
+   Em seguida, execute:
 
    ```bash
    # Se o arquivo estiver na pasta atual, não é necessário informar --config
