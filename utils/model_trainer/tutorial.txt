@@ -1,0 +1,7 @@
+1-
+pip uninstall opencv-python -y
+pip install opencv-contrib-python
+
+
+2- Execute
+yolo detect train model=yolov8n.pt data=yolo_data/data.yaml imgsz=640 epochs=100 batch=16 device=0
