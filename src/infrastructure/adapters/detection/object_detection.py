@@ -4,6 +4,7 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 import torch
+import yaml
 from src.infrastructure.services.object_detection_service import process_traffic_light_roi
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.constants.video_constants import (
@@ -20,6 +21,55 @@ CUSTOM_CONF_ENV_VAR = "CUSTOM_OBJECT_CONFIDENCE"
 CUSTOM_MIN_SIZE_KEY = "Ex1"
 CUSTOM_CONF_KEY = "Ex2"
 CUSTOM_BOX_COLOR = (255, 140, 0)
+
+
+def _normalise_names_payload(raw_names):
+    """Converte diferentes representações de nomes do YOLO em um dicionário padronizado."""
+
+    if isinstance(raw_names, dict):
+        normalised: dict[int, str] = {}
+        for key, value in raw_names.items():
+            try:
+                idx = int(key)
+            except (TypeError, ValueError):
+                continue
+            normalised[idx] = str(value)
+        return normalised
+
+    if isinstance(raw_names, (list, tuple)):
+        return {idx: str(name) for idx, name in enumerate(raw_names)}
+
+    return {}
+
+
+def _load_names_from_metadata(model_path: Path) -> dict[int, str]:
+    """Tenta recuperar os nomes das classes a partir dos artefatos do treinamento."""
+
+    run_dir = model_path.parent.parent
+    candidates = [
+        run_dir / "args.yaml",
+        run_dir / "opt.yaml",
+        run_dir / "data.yaml",
+    ]
+
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
+
+        try:
+            with candidate.open("r", encoding="utf-8") as fh:
+                payload = yaml.safe_load(fh)
+        except Exception:
+            continue
+
+        if isinstance(payload, dict):
+            for key in ("names", "class_names"):
+                if key in payload:
+                    names = _normalise_names_payload(payload[key])
+                    if names:
+                        return names
+
+    return {}
 
 class ObjectDetector:
     def __init__(self,
@@ -204,22 +254,37 @@ class ObjectDetector:
                 model = YOLO(str(model_path))
                 model.to(self.device)
                 model.eval()
-                names = getattr(model, "names", {})
-                names_payload = names if isinstance(names, (dict, list)) else {}
+
+                names_payload = _normalise_names_payload(getattr(model, "names", {}))
+                if not names_payload:
+                    names_payload = _load_names_from_metadata(model_path)
+
                 self.custom_models.append({
                     "model": model,
                     "names": names_payload,
                     "path": model_path,
                 })
                 if self.logger:
-                    self.logger.info(f"Modelo customizado carregado de {model_path}")
+                    if names_payload:
+                        classes = ", ".join(sorted(names_payload.values()))
+                        self.logger.info(
+                            f"Modelo customizado carregado de {model_path} (classes: {classes})"
+                        )
+                    else:
+                        self.logger.info(
+                            f"Modelo customizado carregado de {model_path} (nomes não informados)"
+                        )
             except Exception as exc:
                 if self.logger:
                     self.logger.error(f"Falha ao carregar modelo customizado ({model_path}): {exc}")
 
     def _get_custom_label(self, cls_id, names):
         if isinstance(names, dict):
-            return names.get(cls_id, self.custom_default_label)
+            if cls_id in names:
+                return names[cls_id]
+            str_key = str(cls_id)
+            if str_key in names:
+                return names[str_key]
         if isinstance(names, list) and 0 <= cls_id < len(names):
             return names[cls_id]
         return self.custom_default_label
