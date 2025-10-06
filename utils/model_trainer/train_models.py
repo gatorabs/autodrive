@@ -30,9 +30,9 @@ class TrainingConfig:
     name: str
     dataset: Path
     classes: Sequence[str]
-    class_ids: Sequence[int] | None = None
     output: Path
     val_ratio: float = 0.2
+    class_ids: Sequence[int] | None = None
     train_args: Dict[str, Any] = field(default_factory=dict)
 
     def ensure_defaults(self) -> None:
