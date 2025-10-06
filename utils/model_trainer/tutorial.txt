@@ -9,11 +9,20 @@ Fluxo para coletar dados e treinar modelos customizados
    ```
 
    Utilize o script `_capture_images.py` para gravar vídeos ou imagens já com as bounding boxes.
-   Os arquivos são salvos em `dataset/images` e as anotações em `dataset/labels`.
-   Para separar conjuntos diferentes (ex.: parafuso, porca, arruela), após a captura
-   mova ou renomeie a pasta `dataset/` para outro local (ex.: `datasets/parafusos/`)
-   e repita a coleta. Cada dataset precisa manter a mesma estrutura interna
-   (`images/` e `labels/`).
+   Agora é possível planejar vários objetos na mesma sessão:
+
+   ```bash
+   # Ex.: captura de três objetos salvando tudo dentro de datasets/
+   python utils/model_trainer/_capture_images.py --base-dir datasets --objects 3
+
+   # Para pular as perguntas interativas de nome:
+   python utils/model_trainer/_capture_images.py --base-dir datasets --class-names parafuso porca arruela
+   ```
+
+   Durante a captura, `h` avança para o próximo objeto/classe mantendo as mesmas teclas de tracking (`t`), gravação (`s`) e
+   salvamento manual (`Space`). Cada objeto é salvo em uma subpasta própria contendo `images/` e `labels/`, por exemplo
+   `datasets/parafuso/images` e `datasets/parafuso/labels`. Assim não é mais necessário renomear manualmente a pasta `dataset/`
+   entre uma coleta e outra.
 
 2. **Organizar o dataset para cada modelo**
 

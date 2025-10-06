@@ -1,15 +1,136 @@
-import cv2
-import os, time
+import argparse
+import os
+import re
+import time
+from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
+from typing import List, Optional
+
+import cv2
 import numpy as np
 
-OUTPUT_DIR="dataset"; IMG_DIR="images"; LAB_DIR="labels"
-os.makedirs(os.path.join(OUTPUT_DIR, IMG_DIR), exist_ok=True)
-os.makedirs(os.path.join(OUTPUT_DIR, LAB_DIR), exist_ok=True)
 
-CLASS_ID=0
-TARGET_FPS=2.0
-SAVE_WHEN_NO_BOX=False
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Captura imagens com bounding boxes para treinar modelos YOLO."
+    )
+    parser.add_argument(
+        "--base-dir",
+        default="dataset",
+        help=(
+            "Diretório base onde as capturas serão armazenadas. Para múltiplos objetos, "
+            "cada um ganhará uma subpasta própria."
+        ),
+    )
+    parser.add_argument(
+        "--objects",
+        type=int,
+        help="Número de objetos/classe que serão capturados nesta sessão."
+    )
+    parser.add_argument(
+        "--class-names",
+        nargs="+",
+        help="Nomes (opcionais) para cada objeto. Define também a quantidade de objetos."
+    )
+    parser.add_argument(
+        "--target-fps",
+        type=float,
+        default=2.0,
+        help="Taxa máxima de salvamento automático em quadros por segundo.",
+    )
+    parser.add_argument(
+        "--save-when-no-box",
+        action="store_true",
+        help="Permite salvar imagens mesmo quando o tracker perdeu o alvo.",
+    )
+    return parser.parse_args()
+
+
+def slugify(value: str, fallback: str) -> str:
+    value = re.sub(r"[^0-9a-zA-Z_-]+", "-", value.strip())
+    value = re.sub(r"-+", "-", value).strip("-_")
+    return value or fallback
+
+
+def ask_int(prompt: str) -> int:
+    while True:
+        try:
+            value = int(input(prompt))
+        except ValueError:
+            print("Digite um número inteiro válido.")
+            continue
+        if value < 1:
+            print("Informe um valor maior ou igual a 1.")
+            continue
+        return value
+
+
+def maybe_ask_names(count: int, provided: Optional[List[str]]) -> List[str]:
+    names: List[str] = []
+    if provided:
+        if len(provided) != count:
+            raise SystemExit(
+                "Quantidade de nomes informados em --class-names difere do número de objetos."
+            )
+        return provided
+
+    for idx in range(count):
+        name = input(f"Nome do objeto {idx + 1} (opcional, Enter para usar padrão): ").strip()
+        names.append(name or f"objeto_{idx + 1:02d}")
+    return names
+
+
+@dataclass
+class ObjectSession:
+    index: int
+    name: str
+    class_id: int
+    root: Path
+    images_dir: Path
+    labels_dir: Path
+    saved: int = 0
+
+
+args = parse_args()
+
+if args.objects is not None:
+    num_objects = max(1, args.objects)
+elif args.class_names:
+    num_objects = len(args.class_names)
+else:
+    num_objects = ask_int("Quantos objetos deseja capturar nesta sessão? ")
+
+raw_names = maybe_ask_names(num_objects, args.class_names)
+
+base_dir = Path(args.base_dir)
+sessions: List[ObjectSession] = []
+
+for idx, raw_name in enumerate(raw_names):
+    fallback = f"objeto_{idx + 1:02d}"
+    slug = slugify(raw_name, fallback)
+    if num_objects == 1:
+        session_root = base_dir
+    else:
+        session_root = base_dir / slug
+    images_dir = session_root / "images"
+    labels_dir = session_root / "labels"
+    images_dir.mkdir(parents=True, exist_ok=True)
+    labels_dir.mkdir(parents=True, exist_ok=True)
+    sessions.append(
+        ObjectSession(
+            index=idx,
+            name=raw_name,
+            class_id=idx,
+            root=session_root,
+            images_dir=images_dir,
+            labels_dir=labels_dir,
+        )
+    )
+
+current_session = sessions[0]
+TARGET_FPS = max(1e-3, args.target_fps)
+SAVE_WHEN_NO_BOX = args.save_when_no_box
 
 # --- utils ---
 def bbox_to_yolo(x,y,w,h,img_w,img_h):
@@ -45,45 +166,69 @@ def on_mouse(event,x,y,flags,param):
         init_box=(x1,y1,w,h)
 
 cap=cv2.VideoCapture(0)
-if not cap.isOpened(): raise SystemExit("Webcam indisponível.")
+if not cap.isOpened():
+    raise SystemExit("Webcam indisponível.")
 
-win="webcam"; cv2.namedWindow(win); cv2.setMouseCallback(win,on_mouse)
+win="webcam"
+cv2.namedWindow(win)
+cv2.setMouseCallback(win,on_mouse)
 
-# tracker: escolha CSRT (mais estável) ou KCF (mais rápido)
+
 def create_tracker():
     if hasattr(cv2, "legacy"):
         return cv2.legacy.TrackerCSRT_create()
     return cv2.TrackerCSRT_create()
 
-tracker=None; tracking=False
-saving=False; last_save=0; save_interval=1.0/max(1e-6, TARGET_FPS)
-img_count=0
-prev_center=None
 
-help_lines=[
-    "'Clique e arraste' para definir bbox inicial",
-    "'t' iniciar/parar tracking  |  'r' redefinir bbox  |  's' gravar on/off",
-    "'Space' salvar manual  |  'q' sair"
-]
+def describe_current_session() -> List[str]:
+    display_name = current_session.name or f"classe_{current_session.class_id}"
+    folder_info = current_session.root if num_objects > 1 else base_dir
+    folder_str = str(folder_info)
+    return [
+        "'Clique e arraste' para definir bbox inicial",
+        "'t' iniciar/parar tracking  |  'r' redefinir bbox  |  's' gravar on/off",
+        "'Space' salvar manual  |  'h' próximo objeto  |  'q' sair",
+        f"Objeto atual ({current_session.index + 1}/{num_objects}): classe={current_session.class_id}  nome='{display_name}'",
+        f"Saída: {folder_str}",
+    ]
+
+
+def reset_state():
+    global tracker, tracking, saving, init_box, box_start, prev_center, last_save
+    tracker=None
+    tracking=False
+    saving=False
+    init_box=None
+    box_start=None
+    prev_center=None
+    last_save=0.0
+
+
+tracker=None
+tracking=False
+saving=False
+prev_center=None
+last_save=0.0
+save_interval=1.0 / TARGET_FPS
+
+help_lines = describe_current_session()
 
 while True:
     ok_frame,frame=cap.read()
-    if not ok_frame: break
+    if not ok_frame:
+        break
     h,w=frame.shape[:2]
     disp=frame.copy()
 
-    # desenhar bbox: enquanto arrasta...
     if init_box is not None and drawing:
         x,y,bb_w,bb_h=init_box
         cv2.rectangle(disp,(x,y),(x+bb_w,y+bb_h),(0,255,0),2)
-    # ...e manter após soltar (aqui estava faltando no seu código)
     elif init_box is not None and not drawing and not tracking:
         x,y,bb_w,bb_h=init_box
         cv2.rectangle(disp,(x,y),(x+bb_w,y+bb_h),(0,255,0),2)
         cv2.putText(disp,"BBox pronta: pressione 't' para iniciar tracking",
                     (10,30), cv2.FONT_HERSHEY_SIMPLEX,0.6,(0,255,0),2)
 
-    # atualizar tracker
     if tracking and tracker is not None:
         ok_track,bbox=tracker.update(frame)
         if ok_track:
@@ -106,71 +251,103 @@ while True:
             if saving and (now-last_save)>=save_interval:
                 if (stable and sharp_ok and jump_ok) or SAVE_WHEN_NO_BOX:
                     ts=datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-                    img=f"{ts}.jpg"; pimg=os.path.join(OUTPUT_DIR,IMG_DIR,img)
-                    cv2.imwrite(pimg, frame)
-                    lab=img.replace(".jpg",".txt"); plab=os.path.join(OUTPUT_DIR,LAB_DIR,lab)
+                    img=f"{ts}.jpg"
+                    pimg=current_session.images_dir / img
+                    cv2.imwrite(str(pimg), frame)
+                    lab=img.replace(".jpg",".txt")
+                    plab=current_session.labels_dir / lab
                     if stable:
                         xc,yc,wn,hn=bbox_to_yolo(x,y,bb_w,bb_h,w,h)
                         with open(plab,"w") as f:
-                            f.write(f"{CLASS_ID} {xc:.6f} {yc:.6f} {wn:.6f} {hn:.6f}\n")
+                            f.write(f"{current_session.class_id} {xc:.6f} {yc:.6f} {wn:.6f} {hn:.6f}\n")
                     else:
                         open(plab,"w").close()
-                    img_count+=1; last_save=now
+                    current_session.saved += 1
+                    last_save=now
         else:
             cv2.putText(disp,"[tracker perdeu o alvo] Pressione 'r' para redefinir bbox",
                         (10, h-20), cv2.FONT_HERSHEY_SIMPLEX,0.6,(0,0,255),2)
-            # opcional: pausar gravação quando perder
             saving=False
 
-    # overlays
-    y0=60
     for i,t in enumerate(help_lines):
-        cv2.putText(disp,t,(10,y0+20*i),cv2.FONT_HERSHEY_SIMPLEX,0.5,(220,220,220),1)
-    cv2.putText(disp,f"Tracking: {'ON' if tracking else 'OFF'}   Recording: {'ON' if saving else 'OFF'}   saved={img_count}",
-                (10,h-50),cv2.FONT_HERSHEY_SIMPLEX,0.6,(255,255,255),2)
+        cv2.putText(disp,t,(10,60+20*i),cv2.FONT_HERSHEY_SIMPLEX,0.5,(220,220,220),1)
+
+    cv2.putText(
+        disp,
+        (
+            f"Tracking: {'ON' if tracking else 'OFF'}   "
+            f"Recording: {'ON' if saving else 'OFF'}   "
+            f"capturadas={current_session.saved}"
+        ),
+        (10,h-50),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.6,
+        (255,255,255),
+        2,
+    )
 
     cv2.imshow(win,disp)
     key=cv2.waitKey(1)&0xFF
 
     if key==ord('t'):
-        # iniciar/parar tracking (precisa de init_box finalizada)
         if tracking:
-            tracking=False; tracker=None; prev_center=None
+            tracking=False
+            tracker=None
+            prev_center=None
         else:
             if init_box is not None and not drawing:
-                # garante inteiros e área > 0
                 x,y,bb_w,bb_h = [int(v) for v in init_box]
                 if bb_w > 1 and bb_h > 1:
                     tracker=create_tracker()
                     tracker.init(frame, (x,y,bb_w,bb_h))
-                    tracking=True; prev_center=None
+                    tracking=True
+                    prev_center=None
             else:
                 print("Defina a bbox (clique/arraste) e solte o mouse antes de 't'.")
     elif key==ord('r'):
-        tracking=False; tracker=None; prev_center=None; init_box=None
+        tracking=False
+        tracker=None
+        prev_center=None
+        init_box=None
     elif key==ord('s'):
-        saving=not saving; last_save=0
-    elif key==32: # Space: salvar manual
-        # usa bbox do tracker (se ativo) ou a init_box parada
+        saving=not saving
+        last_save=0.0
+    elif key==32: # Space
         use=None
         if tracking and tracker is not None:
             ok_track,bbox=tracker.update(frame)
-            if ok_track: use=[int(v) for v in bbox]
+            if ok_track:
+                use=[int(v) for v in bbox]
         elif init_box is not None and not drawing:
             use=[int(v) for v in init_box]
 
         ts=datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        img=f"{ts}.jpg"; pimg=os.path.join(OUTPUT_DIR,IMG_DIR,img)
-        cv2.imwrite(pimg, frame)
-        lab=img.replace(".jpg",".txt"); plab=os.path.join(OUTPUT_DIR,LAB_DIR,lab)
+        img=f"{ts}.jpg"
+        pimg=current_session.images_dir / img
+        cv2.imwrite(str(pimg), frame)
+        lab=img.replace(".jpg",".txt")
+        plab=current_session.labels_dir / lab
         if use is not None and use[2] > 1 and use[3] > 1:
             x,y,bb_w,bb_h=use
             xc,yc,wn,hn=bbox_to_yolo(x,y,bb_w,bb_h,w,h)
             with open(plab,"w") as f:
-                f.write(f"{CLASS_ID} {xc:.6f} {yc:.6f} {wn:.6f} {hn:.6f}\n")
+                f.write(f"{current_session.class_id} {xc:.6f} {yc:.6f} {wn:.6f} {hn:.6f}\n")
         else:
             open(plab,"w").close()
+        current_session.saved += 1
+    elif key==ord('h'):
+        if current_session.index + 1 < num_objects:
+            current_session = sessions[current_session.index + 1]
+            help_lines = describe_current_session()
+            reset_state()
+            print(
+                f"Alterando para objeto {current_session.index + 1}/{num_objects}: "
+                f"classe={current_session.class_id} nome='{current_session.name}'"
+            )
+        else:
+            print("Você já está no último objeto configurado.")
     elif key==ord('q') or key==27:
         break
 
-cap.release(); cv2.destroyAllWindows()
+cap.release()
+cv2.destroyAllWindows()
