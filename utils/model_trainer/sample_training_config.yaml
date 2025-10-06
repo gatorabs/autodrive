@@ -1,0 +1,41 @@
+# Exemplo básico com três modelos treinados a partir de datasets diferentes.
+# Ajuste os caminhos de dataset/output e os parâmetros do YOLO conforme sua necessidade.
+models:
+  - name: modelo_parafuso
+    dataset: datasets/parafusos
+    classes:
+      - parafuso
+    output: yolo_runs/parafusos
+    val_ratio: 0.2
+    train:
+      model: yolov8n.pt
+      epochs: 120
+      imgsz: 640
+      batch: 16
+      device: 0
+
+  - name: modelo_porca
+    dataset: datasets/porcas
+    classes:
+      - porca
+    output: yolo_runs/porcas
+    val_ratio: 0.15
+    train:
+      model: yolov8n.pt
+      epochs: 100
+      imgsz: 640
+      batch: 16
+      device: 0
+
+  - name: modelo_arruela
+    dataset: datasets/arruelas
+    classes:
+      - arruela
+    output: yolo_runs/arruelas
+    val_ratio: 0.2
+    train:
+      model: yolov8s.pt
+      epochs: 150
+      imgsz: 640
+      batch: 8
+      device: 0

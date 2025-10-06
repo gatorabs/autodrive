@@ -33,7 +33,8 @@ Fluxo para coletar dados e treinar modelos customizados
 
 3. **Treinar um ou mais modelos YOLO**
 
-   Para treinar vários modelos de uma vez (por exemplo, três modelos distintos), crie um arquivo YAML com a lista de configurações:
+   Para treinar vários modelos de uma vez (por exemplo, três modelos distintos), crie um arquivo YAML com a lista de configurações.
+   Você pode usar `utils/model_trainer/sample_training_config.yaml` como ponto de partida:
 
    ```yaml
    # arquivo: training_config.yaml
