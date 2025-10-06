@@ -1,7 +1,77 @@
-1-
-pip uninstall opencv-python -y
-pip install opencv-contrib-python
+Fluxo para coletar dados e treinar modelos customizados
+=======================================================
 
+1. **Preparar o ambiente de captura**
 
-2- Execute
-yolo detect train model=yolov8n.pt data=yolo_data/data.yaml imgsz=640 epochs=100 batch=16 device=0
+   ```bash
+   pip uninstall opencv-python -y
+   pip install opencv-contrib-python
+   ```
+
+   Utilize o script `_capture_images.py` para gravar vídeos ou imagens já com as bounding boxes.
+   Os arquivos são salvos em `dataset/images` e as anotações em `dataset/labels`.
+
+2. **Organizar o dataset para cada modelo**
+
+   O script `_train_model.py` agora pode ser executado diretamente ou importado como função.
+   Exemplos:
+
+   ```bash
+   # usa o dataset padrão e gera yolo_data/
+   python utils/model_trainer/_train_model.py --classes objeto
+
+   # dataset diferente e sem limpar a pasta de saída
+   python utils/model_trainer/_train_model.py \
+       --dataset datasets/cones \
+       --output yolo_data/cones \
+       --classes cone \
+       --val-ratio 0.1 \
+       --no-clean
+   ```
+
+   O comando cria `data.yaml` apontando para `images/train`, `images/val` e mapeia as classes fornecidas.
+
+3. **Treinar um ou mais modelos YOLO**
+
+   Para treinar vários modelos de uma vez (por exemplo, três modelos distintos), crie um arquivo YAML com a lista de configurações:
+
+   ```yaml
+   # arquivo: training_config.yaml
+   models:
+     - name: cones
+       dataset: datasets/cones
+       classes: ["cone"]
+       output: yolo_datasets/cones
+       train:
+         model: yolov8n.pt
+         epochs: 100
+         imgsz: 640
+         batch: 16
+     - name: placas
+       dataset: datasets/placas
+       classes: ["placa_parar", "placa_direita"]
+       train:
+         model: yolov8s.pt
+         epochs: 150
+     - name: pedestres
+       dataset: datasets/pedestres
+       classes: ["pessoa"]
+       train:
+         model: yolov8n.pt
+         epochs: 80
+         device: 0
+   ```
+
+   Depois execute:
+
+   ```bash
+   python utils/model_trainer/train_models.py --config training_config.yaml
+   ```
+
+   O script prepara cada dataset, gera seu próprio `data.yaml` e chama o comando `yolo detect train ...` para cada entrada.
+   Use `--dry-run` para apenas listar os comandos ou `--skip-train` para pular o treinamento após preparar os dados.
+
+4. **Executar o modelo na aplicação**
+
+   Copie o peso desejado (ex.: `runs/detect/<nome>/weights/best.pt`) para a pasta da aplicação ou defina a variável de ambiente `CUSTOM_OBJECT_MODEL_PATH` apontando para o arquivo.
+   A aplicação carregará o modelo customizado junto com o modelo padrão do YOLO.
