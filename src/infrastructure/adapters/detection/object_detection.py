@@ -210,7 +210,10 @@ class ObjectDetector:
                         self.logger.error(f"Falha ao executar detecção personalizada: {custom_error}")
                     self.custom_detections = []
 
-            self._update_custom_decision_state()
+            self._update_custom_decision_state(
+                person_detected=person_detected,
+                traffic_light_state=traffic_light_state,
+            )
 
             return person_detected, traffic_light_state
 
@@ -286,7 +289,9 @@ class ObjectDetector:
         except Exception:
             return None
 
-    def _update_custom_decision_state(self):
+    def _update_custom_decision_state(self,
+                                      person_detected: bool = False,
+                                      traffic_light_state: Optional[int] = None):
         control_override = self._parse_bool(self._get_control_value(CUSTOM_DECISION_CONTROL_KEY))
         if control_override is not None and control_override != self.custom_decision_enabled:
             self.custom_decision_enabled = control_override
@@ -294,7 +299,16 @@ class ObjectDetector:
                 status_toggle = "ativadas" if self.custom_decision_enabled else "desativadas"
                 self.logger.info(f"Decisões personalizadas {status_toggle} via controles")
 
-        self.custom_decision_active = bool(self.custom_detections) if self.custom_decision_enabled else False
+        base_alert_active = bool(person_detected)
+        if traffic_light_state is not None and traffic_light_state != 2:
+            base_alert_active = True
+
+        custom_alert_active = bool(self.custom_detections)
+
+        if self.custom_decision_enabled:
+            self.custom_decision_active = custom_alert_active or base_alert_active
+        else:
+            self.custom_decision_active = False
         try:
             self.shared_serial_data[0] = 1 if self.custom_decision_active else 0
         except Exception:
@@ -302,7 +316,17 @@ class ObjectDetector:
 
         if self.logger and self.custom_decision_enabled and self.custom_decision_active != self._last_custom_decision_state:
             status = "ativada" if self.custom_decision_active else "desativada"
-            self.logger.info(f"Decisão personalizada {status} com base nas detecções atuais")
+            reason = ""
+            if self.custom_decision_active:
+                if custom_alert_active and base_alert_active:
+                    reason = " (detecções personalizadas e padrão)"
+                elif custom_alert_active:
+                    reason = " (detecções personalizadas)"
+                elif base_alert_active:
+                    reason = " (detecções padrão)"
+            else:
+                reason = " com base nas detecções atuais"
+            self.logger.info(f"Decisão personalizada {status}{reason}")
 
         self._last_custom_decision_state = self.custom_decision_active
 
