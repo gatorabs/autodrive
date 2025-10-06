@@ -103,5 +103,5 @@ Fluxo para coletar dados e treinar modelos customizados
 
 4. **Executar o modelo na aplicação**
 
-   Copie o peso desejado (ex.: `runs/detect/<nome>/weights/best.pt`) para a pasta da aplicação ou defina a variável de ambiente `CUSTOM_OBJECT_MODEL_PATH` apontando para o arquivo.
-   A aplicação carregará o modelo customizado junto com o modelo padrão do YOLO.
+    Copie o peso desejado (ex.: `runs/detect/<nome>/weights/best.pt`) para a pasta da aplicação.
+    O detector procura automaticamente por arquivos `runs/detect/**/weights/best.pt` recentes e carrega todos junto com o modelo padrão do YOLO.

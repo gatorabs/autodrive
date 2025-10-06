@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import cv2
@@ -15,10 +14,9 @@ from src.infrastructure.constants.video_constants import (
 from .custom_model_utils import load_names_from_metadata, normalise_names_payload
 
 TARGET_CLASSES = {0, 9}
-CUSTOM_MODEL_ENV_VAR = "CUSTOM_OBJECT_MODEL_PATH"
 DEFAULT_CUSTOM_MODEL_PATH = Path("runs/detect/train/weights/best.pt")
-CUSTOM_LABEL_ENV_VAR = "CUSTOM_OBJECT_LABEL"
-CUSTOM_CONF_ENV_VAR = "CUSTOM_OBJECT_CONFIDENCE"
+DEFAULT_CUSTOM_LABEL = "Custom Object"
+DEFAULT_CUSTOM_CONFIDENCE = 0.35
 CUSTOM_MIN_SIZE_KEY = "Ex1"
 CUSTOM_CONF_KEY = "Ex2"
 CUSTOM_BOX_COLOR = (255, 140, 0)
@@ -67,8 +65,8 @@ class ObjectDetector:
             self.inference_kwargs["imgsz"] = CPU_INFERENCE_IMG_SIZE
 
         self.custom_models = []
-        self.custom_default_label = os.getenv(CUSTOM_LABEL_ENV_VAR, "Custom Object")
-        self.custom_default_conf = self._parse_env_confidence()
+        self.custom_default_label = DEFAULT_CUSTOM_LABEL
+        self.custom_default_conf = DEFAULT_CUSTOM_CONFIDENCE
         self.custom_inference_kwargs = {
             "verbose": False,
         }
@@ -84,18 +82,6 @@ class ObjectDetector:
         self.shared_serial_data[2] = 0  # pessoa
         if len(self.shared_serial_data) > 0:
             self.shared_serial_data[0] = 0  # objeto customizado
-
-    def _parse_env_confidence(self):
-        env_value = os.getenv(CUSTOM_CONF_ENV_VAR)
-        if env_value is None:
-            return 0.35
-        try:
-            return max(0.05, min(0.99, float(env_value)))
-        except ValueError:
-            if self.logger:
-                self.logger.warning(
-                    f"Valor inválido para {CUSTOM_CONF_ENV_VAR}: {env_value}. Usando 0.35.")
-            return 0.35
 
     def _candidate_search_roots(self):
         roots = [Path.cwd()]
@@ -124,21 +110,8 @@ class ObjectDetector:
                 seen.add(root)
         return ordered_roots
 
-    def _resolve_against_roots(self, path: Path, search_roots):
-        if path.is_absolute():
-            return path
-
-        for root in search_roots:
-            candidate = (root / path)
-            if candidate.exists():
-                return candidate.resolve()
-
-        return (search_roots[0] / path).resolve()
-
     def _discover_custom_model_paths(self):
         search_roots = self._candidate_search_roots()
-        configured_path = os.getenv(CUSTOM_MODEL_ENV_VAR)
-
         def add_path(path_obj, bucket, seen):
             try:
                 resolved = path_obj.resolve()
@@ -153,25 +126,6 @@ class ObjectDetector:
 
         seen_paths = set()
         discovered = []
-
-        if configured_path:
-            configured = self._resolve_against_roots(Path(configured_path), search_roots)
-            if configured.is_dir():
-                for weight_path in sorted(configured.glob("**/weights/best.pt")):
-                    add_path(weight_path, discovered, seen_paths)
-            else:
-                if configured.exists():
-                    add_path(configured, discovered, seen_paths)
-                elif self.logger:
-                    self.logger.info(
-                        f"Modelo customizado não encontrado em {configured}. Detecção extra desativada.")
-
-            if discovered:
-                try:
-                    discovered.sort(key=lambda path: path.stat().st_mtime, reverse=True)
-                except OSError:
-                    pass
-                return discovered
 
         for root in search_roots:
             default_candidate = (root / DEFAULT_CUSTOM_MODEL_PATH)
@@ -207,9 +161,9 @@ class ObjectDetector:
                 model.to(self.device)
                 model.eval()
 
-                names_payload = _normalise_names_payload(getattr(model, "names", {}))
+                names_payload = normalise_names_payload(getattr(model, "names", {}))
                 if not names_payload:
-                    names_payload = _load_names_from_metadata(model_path)
+                    names_payload = load_names_from_metadata(model_path)
 
                 self.custom_models.append({
                     "model": model,
