@@ -4,7 +4,6 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 import torch
-import yaml
 from src.infrastructure.services.object_detection_service import process_traffic_light_roi
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.constants.video_constants import (
@@ -12,6 +11,8 @@ from src.infrastructure.constants.video_constants import (
     FRAME_HEIGHT,
     CPU_INFERENCE_IMG_SIZE,
 )
+
+from .custom_model_utils import load_names_from_metadata, normalise_names_payload
 
 TARGET_CLASSES = {0, 9}
 CUSTOM_MODEL_ENV_VAR = "CUSTOM_OBJECT_MODEL_PATH"
@@ -21,55 +22,6 @@ CUSTOM_CONF_ENV_VAR = "CUSTOM_OBJECT_CONFIDENCE"
 CUSTOM_MIN_SIZE_KEY = "Ex1"
 CUSTOM_CONF_KEY = "Ex2"
 CUSTOM_BOX_COLOR = (255, 140, 0)
-
-
-def _normalise_names_payload(raw_names):
-    """Converte diferentes representações de nomes do YOLO em um dicionário padronizado."""
-
-    if isinstance(raw_names, dict):
-        normalised: dict[int, str] = {}
-        for key, value in raw_names.items():
-            try:
-                idx = int(key)
-            except (TypeError, ValueError):
-                continue
-            normalised[idx] = str(value)
-        return normalised
-
-    if isinstance(raw_names, (list, tuple)):
-        return {idx: str(name) for idx, name in enumerate(raw_names)}
-
-    return {}
-
-
-def _load_names_from_metadata(model_path: Path) -> dict[int, str]:
-    """Tenta recuperar os nomes das classes a partir dos artefatos do treinamento."""
-
-    run_dir = model_path.parent.parent
-    candidates = [
-        run_dir / "args.yaml",
-        run_dir / "opt.yaml",
-        run_dir / "data.yaml",
-    ]
-
-    for candidate in candidates:
-        if not candidate.exists():
-            continue
-
-        try:
-            with candidate.open("r", encoding="utf-8") as fh:
-                payload = yaml.safe_load(fh)
-        except Exception:
-            continue
-
-        if isinstance(payload, dict):
-            for key in ("names", "class_names"):
-                if key in payload:
-                    names = _normalise_names_payload(payload[key])
-                    if names:
-                        return names
-
-    return {}
 
 class ObjectDetector:
     def __init__(self,
@@ -280,13 +232,10 @@ class ObjectDetector:
 
     def _get_custom_label(self, cls_id, names):
         if isinstance(names, dict):
-            if cls_id in names:
-                return names[cls_id]
-            str_key = str(cls_id)
-            if str_key in names:
-                return names[str_key]
-        if isinstance(names, list) and 0 <= cls_id < len(names):
-            return names[cls_id]
+            try:
+                return names[int(cls_id)]
+            except (KeyError, TypeError, ValueError):
+                pass
         return self.custom_default_label
 
     def _get_custom_confidence(self):
