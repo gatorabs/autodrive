@@ -19,6 +19,9 @@ DEFAULT_CUSTOM_LABEL = "Custom Object"
 DEFAULT_CUSTOM_CONFIDENCE = 0.35
 CUSTOM_MIN_SIZE_KEY = "Ex1"
 CUSTOM_CONF_KEY = "Ex2"
+CUSTOM_CONF_OVERRIDES_KEY = "CUSTOM_CONF_OVERRIDES"
+CUSTOM_CONF_METADATA_KEY = "CUSTOM_CONF_METADATA"
+CUSTOM_CONF_DEFAULT_KEY = "CUSTOM_CONF_DEFAULT"
 CUSTOM_BOX_COLOR = (255, 140, 0)
 
 class ObjectDetector:
@@ -77,6 +80,7 @@ class ObjectDetector:
             self.custom_inference_kwargs["imgsz"] = CPU_INFERENCE_IMG_SIZE
 
         self._load_custom_models()
+        self._publish_custom_conf_metadata()
 
         self.shared_serial_data[1] = 0  # semáforo
         self.shared_serial_data[2] = 0  # pessoa
@@ -165,10 +169,15 @@ class ObjectDetector:
                 if not names_payload:
                     names_payload = load_names_from_metadata(model_path)
 
+                conf_keys = {}
+                for cls_id in names_payload:
+                    conf_keys[int(cls_id)] = self._build_conf_key(model_path, int(cls_id))
+
                 self.custom_models.append({
                     "model": model,
                     "names": names_payload,
                     "path": model_path,
+                    "conf_keys": conf_keys,
                 })
                 if self.logger:
                     if names_payload:
@@ -192,14 +201,93 @@ class ObjectDetector:
                 pass
         return self.custom_default_label
 
+    def _build_conf_key(self, model_path: Path, cls_id: int) -> str:
+        try:
+            resolved = model_path.resolve()
+        except OSError:
+            resolved = model_path
+        return f"{resolved.as_posix()}::{cls_id}"
+
+    def _publish_custom_conf_metadata(self):
+        metadata = {}
+        raw_overrides = self.tk_controls.get(CUSTOM_CONF_OVERRIDES_KEY, {})
+        overrides = dict(raw_overrides) if isinstance(raw_overrides, dict) else {}
+        changed_overrides = False
+
+        for custom_model in self.custom_models:
+            model_path: Path = custom_model.get("path")
+            if not isinstance(model_path, Path):
+                model_path = Path(model_path)
+            run_name = None
+            try:
+                run_name = model_path.parent.parent.name
+            except Exception:
+                run_name = model_path.stem
+            if not run_name:
+                run_name = model_path.stem
+
+            for cls_id, label in custom_model.get("names", {}).items():
+                safe_label = str(label) if label is not None else f"cls_{cls_id}"
+                key = custom_model.get("conf_keys", {}).get(int(cls_id))
+                if not key:
+                    key = self._build_conf_key(model_path, int(cls_id))
+                    custom_model.setdefault("conf_keys", {})[int(cls_id)] = key
+                metadata[key] = {
+                    "label": safe_label,
+                    "model": str(run_name) if run_name else "",
+                }
+                if key not in overrides:
+                    overrides[key] = self.custom_default_conf
+                    changed_overrides = True
+
+        stale_keys = set(overrides.keys()) - set(metadata.keys())
+        if stale_keys:
+            for key in stale_keys:
+                overrides.pop(key, None)
+            changed_overrides = True
+
+        self.tk_controls[CUSTOM_CONF_METADATA_KEY] = metadata
+        self.tk_controls[CUSTOM_CONF_DEFAULT_KEY] = self.custom_default_conf
+        if changed_overrides or self.tk_controls.get(CUSTOM_CONF_OVERRIDES_KEY) != overrides:
+            self.tk_controls[CUSTOM_CONF_OVERRIDES_KEY] = overrides
+
     def _get_custom_confidence(self):
         slider_value = self.tk_controls.get(CUSTOM_CONF_KEY)
         if slider_value is None:
-            return self.custom_default_conf
-        try:
-            return max(0.05, min(0.99, float(slider_value) / 10.0))
-        except (TypeError, ValueError):
-            return self.custom_default_conf
+            base_conf = self.custom_default_conf
+        else:
+            try:
+                base_conf = max(0.05, min(0.99, float(slider_value) / 10.0))
+            except (TypeError, ValueError):
+                base_conf = self.custom_default_conf
+
+        overrides = self.tk_controls.get(CUSTOM_CONF_OVERRIDES_KEY, {})
+        if isinstance(overrides, dict) and overrides:
+            try:
+                min_override = min(
+                    max(0.05, min(0.99, float(value)))
+                    for value in overrides.values()
+                )
+            except (TypeError, ValueError):
+                min_override = None
+            if min_override is not None:
+                return min(base_conf, min_override)
+        return base_conf
+
+    def _resolve_conf_threshold(self, model_info: dict, cls_id: int) -> float:
+        overrides = self.tk_controls.get(CUSTOM_CONF_OVERRIDES_KEY, {})
+        if not isinstance(overrides, dict):
+            overrides = {}
+
+        conf_keys = model_info.get("conf_keys", {})
+        key = conf_keys.get(int(cls_id)) if isinstance(conf_keys, dict) else None
+        if key:
+            try:
+                value = float(overrides.get(key, self.custom_default_conf))
+            except (TypeError, ValueError):
+                value = self.custom_default_conf
+            return max(0.05, min(0.99, value))
+        return self.custom_default_conf
 
     def process_frame(self, frame):
         try:
@@ -259,6 +347,13 @@ class ObjectDetector:
                     for result in result_batch:
                         for box in result.boxes:
                             cls = int(box.cls[0])
+                            threshold = self._resolve_conf_threshold(model_info, cls)
+                            try:
+                                confidence = float(box.conf[0])
+                            except (TypeError, ValueError, IndexError):
+                                confidence = 0.0
+                            if confidence < threshold:
+                                continue
                             x1, y1, x2, y2 = map(int, box.xyxy[0])
                             box_height = y2 - y1
                             box_width = x2 - x1
@@ -271,7 +366,7 @@ class ObjectDetector:
                             cv2.rectangle(frame, (x1, y1), (x2, y2), CUSTOM_BOX_COLOR, 2)
                             cv2.putText(
                                 frame,
-                                label,
+                                f"{label} ({confidence:.2f})",
                                 (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX,
                                 0.5,
