@@ -20,7 +20,6 @@ def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
     if manual_md:
         obj_data.object_person_data = 0
         obj_data.traffic_light_data = 2
-        obj_data.custom_object_data = 0
         while not object_queue.empty():
             try:
                 object_queue.get_nowait()
