@@ -225,6 +225,13 @@ class ObjectDetector:
             min_traffic_size = self.tk_controls["Traffic"]
             min_custom_size = self.tk_controls.get(CUSTOM_MIN_SIZE_KEY, 0)
 
+            frame_height, frame_width = frame.shape[:2]
+            left_person_boundary = frame_width // 3
+            right_person_boundary = frame_width - left_person_boundary
+
+            cv2.line(frame, (left_person_boundary, 0), (left_person_boundary, frame_height), (255, 255, 255), 1)
+            cv2.line(frame, (right_person_boundary, 0), (right_person_boundary, frame_height), (255, 255, 255), 1)
+
             for result in results:
                 for box in result.boxes:
                     cls = int(box.cls[0])
@@ -235,6 +242,10 @@ class ObjectDetector:
                     #box_area = (x2 - x1) * (y2 - y1)
 
                     if cls == 0 and (box_height >= min_person_size or box_width >= min_person_size):
+                        bbox_center_x = (x1 + x2) // 2
+                        if not (left_person_boundary <= bbox_center_x <= right_person_boundary):
+                            continue
+
                         person_detected = True
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                         cv2.putText(frame, "Person", (x1, y1 - 10),
