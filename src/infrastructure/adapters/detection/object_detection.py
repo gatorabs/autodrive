@@ -224,13 +224,15 @@ class ObjectDetector:
 
             frame_height, frame_width = frame.shape[:2]
             roi_polygon = self._get_person_roi_polygon(frame_width, frame_height)
-            central_bounds = self._get_central_bounds(frame_width, frame_height)
+            detection_band = self._get_person_detection_band(
+                frame_width, frame_height, roi_polygon
+            )
 
             if roi_polygon is not None:
                 cv2.polylines(frame, [roi_polygon], True, (255, 0, 0), 2)
-            elif central_bounds is not None:
-                x_min, x_max, y_min, y_max = central_bounds
-                cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (255, 0, 0), 2)
+
+            if detection_band is not None:
+                self._draw_person_detection_band(frame, detection_band)
 
             min_person_size = self.tk_controls["Person"]
             min_traffic_size = self.tk_controls["Traffic"]
@@ -252,8 +254,9 @@ class ObjectDetector:
                         if roi_polygon is not None:
                             if cv2.pointPolygonTest(roi_polygon, (float(cx), float(cy)), False) < 0:
                                 continue
-                        elif central_bounds is not None:
-                            x_min, x_max, y_min, y_max = central_bounds
+
+                        if detection_band is not None:
+                            x_min, x_max, y_min, y_max = detection_band
                             if not (x_min <= cx <= x_max and y_min <= cy <= y_max):
                                 continue
 
@@ -340,19 +343,48 @@ class ObjectDetector:
         polygon = np.array(points, dtype=np.int32).reshape((-1, 1, 2))
         return polygon
 
-    def _get_central_bounds(self, frame_width, frame_height):
+    def _get_person_detection_band(self, frame_width, frame_height, roi_polygon):
         if frame_width <= 0 or frame_height <= 0:
             return None
 
-        margin_x = int(frame_width * 0.25)
-        margin_y = int(frame_height * 0.2)
+        if roi_polygon is not None and len(roi_polygon) >= 3:
+            points = roi_polygon.reshape((-1, 2))
+            x_vals = points[:, 0]
+            y_vals = points[:, 1]
 
-        x_min = max(0, margin_x)
-        x_max = min(frame_width - 1, frame_width - margin_x)
-        y_min = max(0, margin_y)
-        y_max = min(frame_height - 1, frame_height - margin_y)
+            roi_x_min = int(np.min(x_vals))
+            roi_x_max = int(np.max(x_vals))
+            roi_y_min = int(np.min(y_vals))
+            roi_y_max = int(np.max(y_vals))
+
+            roi_width = roi_x_max - roi_x_min
+            if roi_width <= 0:
+                return None
+
+            band_half_width = max(1, roi_width // 4)
+            center_x = roi_x_min + roi_width // 2
+
+            x_min = max(0, center_x - band_half_width)
+            x_max = min(frame_width - 1, center_x + band_half_width)
+            y_min = max(0, roi_y_min)
+            y_max = min(frame_height - 1, roi_y_max)
+        else:
+            band_half_width = max(1, frame_width // 4)
+            center_x = frame_width // 2
+
+            x_min = max(0, center_x - band_half_width)
+            x_max = min(frame_width - 1, center_x + band_half_width)
+            y_min = 0
+            y_max = frame_height - 1
 
         if x_min >= x_max or y_min >= y_max:
             return None
 
         return x_min, x_max, y_min, y_max
+
+    def _draw_person_detection_band(self, frame, detection_band):
+        x_min, x_max, y_min, y_max = detection_band
+
+        cv2.line(frame, (x_min, y_min), (x_min, y_max), (0, 0, 255), 2)
+        cv2.line(frame, (x_max, y_min), (x_max, y_max), (0, 0, 255), 2)
+
