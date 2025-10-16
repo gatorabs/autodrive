@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Controle de Velocidade</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 80px;
+    }
+    h2 { color: #333; }
+    input[type="range"] {
+      width: 300px;
+      margin-top: 20px;
+    }
+    .value {
+      font-size: 20px;
+      margin-top: 10px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h2>Controle de Velocidade</h2>
+  <input id="speedSlider" type="range" min="0" max="100" value="0">
+  <div class="value">Velocidade: <span id="speedValue">0</span></div>
+  <button onclick="sendSpeed()">Enviar</button>
+
+  <script>
+    const slider = document.getElementById("speedSlider");
+    const valueDisplay = document.getElementById("speedValue");
+
+    slider.oninput = () => {
+      valueDisplay.textContent = slider.value;
+    };
+
+    function sendSpeed() {
+      const speed = parseInt(slider.value);
+      fetch("/api/set-speed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ speed })
+      })
+      .then(response => response.json())
+      .then(data => alert(data.message || data.error))
+      .catch(err => alert("Erro ao enviar velocidade: " + err));
+    }
+  </script>
+</body>
+</html>

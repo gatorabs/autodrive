@@ -18,6 +18,21 @@ def car_api_info(app, shared_controls):
         }
         return jsonify(info)
 
+    @app.route('/api/set-speed', methods=['POST'])
+    def set_speed():
+        try:
+            data = request.get_json()
+            speed = data.get("speed")
+
+            if not isinstance(speed, (int, float)) or speed < 0:
+                return jsonify({"error": "Invalid speed value"}), 400
+
+            shared_controls["SPEED"] = speed
+            return jsonify({"message": f"Speed set to {speed}"}), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
 def video_api_info(app, shared_frames, logger):
     @app.route('/video_feed/<string:key>')
     def video_feed(key):
@@ -62,3 +77,4 @@ def video_api_info(app, shared_frames, logger):
             except Exception as e:
                 logger.error(f"Erro no streaming '{key}': {e}")
                 break
+

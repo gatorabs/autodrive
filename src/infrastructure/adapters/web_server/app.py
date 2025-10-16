@@ -8,6 +8,7 @@ from src.infrastructure.logging.werkzeug_filters import SuppressCodesFilter
 import logging
 shared_frames = {}
 shared_controls = {}
+from flask import render_template
 
 logger = Logger("FlaskServer")
 
@@ -18,13 +19,17 @@ def create_app(frames_dict, controls_dict):
     shared_frames = frames_dict
     shared_controls = controls_dict
 
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder="templates")
 
     CORS(app)
     shutdown_server(app)
     car_api_info(app, shared_controls)
     video_api_info(app, shared_frames, logger)
     process_api_info(app, shared_controls)
+
+    @app.route('/speed')
+    def speed_page():
+        return render_template('speed_control.html')
 
     return app
 
