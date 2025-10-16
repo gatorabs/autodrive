@@ -1,0 +1,107 @@
+Fluxo para coletar dados e treinar modelos customizados
+=======================================================
+
+1. **Preparar o ambiente de captura**
+
+   ```bash
+   pip uninstall opencv-python -y
+   pip install opencv-contrib-python
+   ```
+
+   Utilize o script `_capture_images.py` para gravar vídeos ou imagens já com as bounding boxes.
+   Agora é possível planejar vários objetos na mesma sessão:
+
+   ```bash
+   # Ex.: captura de três objetos salvando tudo dentro de datasets/
+   python utils/model_trainer/_capture_images.py --base-dir datasets --objects 3
+
+   # Para pular as perguntas interativas de nome:
+   python utils/model_trainer/_capture_images.py --base-dir datasets --class-names parafuso porca arruela
+   ```
+
+   Durante a captura, `h` avança para o próximo objeto/classe mantendo as mesmas teclas de tracking (`t`), gravação (`s`) e
+   salvamento manual (`Space`). Cada objeto é salvo em uma subpasta própria contendo `images/` e `labels/`, por exemplo
+   `datasets/parafuso/images` e `datasets/parafuso/labels`. Assim não é mais necessário renomear manualmente a pasta `dataset/`
+   entre uma coleta e outra. Ao encerrar a sessão (`q` ou `Esc`), o script gera automaticamente um `data.yaml` dentro de cada
+   pasta criada **e** um `training_config.auto.yaml` agregado (em `utils/model_trainer/`) que lista todos os objetos
+   capturados, pronto para ser consumido pelo orquestrador de treinos.
+
+2. **Organizar o dataset para cada modelo**
+
+   O script `_train_model.py` agora pode ser executado diretamente ou importado como função.
+   Exemplos:
+
+   ```bash
+   # usa o dataset padrão e gera yolo_data/
+   python utils/model_trainer/_train_model.py --classes objeto
+
+   # dataset diferente e sem limpar a pasta de saída
+   python utils/model_trainer/_train_model.py \
+       --dataset datasets/cones \
+       --output yolo_data/cones \
+       --classes cone \
+       --val-ratio 0.1 \
+       --no-clean
+   ```
+
+   O comando cria `data.yaml` apontando para `images/train`, `images/val` e mapeia as classes fornecidas.
+   Caso seus arquivos `.txt` utilizem IDs diferentes (por exemplo, porque foram capturados na mesma
+   sessão e o segundo objeto ficou com ID `1`), use `--class-ids` para informar os IDs originais na
+   mesma ordem de `--classes`. O script remapeará automaticamente para começar em zero.
+
+3. **Treinar um ou mais modelos YOLO**
+
+   Para treinar vários modelos de uma vez (por exemplo, três modelos distintos), você pode reutilizar o
+   `training_config.auto.yaml` gerado pelo capturador (ele já referencia cada pasta com `images/` e `labels/`).
+   Caso queira personalizar, use `utils/model_trainer/sample_training_config.yaml` como ponto de partida
+   (note que cada caminho em `dataset:` deve apontar para uma pasta que contenha `images/` e `labels/`).
+   Se algum dataset precisar de remapeamento de IDs, utilize o campo opcional `class_ids` para apontar
+   quais índices originais correspondem às classes listadas.
+
+   ```yaml
+   # arquivo: training_config.yaml
+   models:
+     - name: cones
+       dataset: datasets/cones
+       classes: ["cone"]
+       output: yolo_datasets/cones
+       train:
+         model: yolov8n.pt
+         epochs: 100
+         imgsz: 640
+         batch: 16
+     - name: placas
+       dataset: datasets/placas
+       classes: ["placa_parar", "placa_direita"]
+       train:
+         model: yolov8s.pt
+         epochs: 150
+     - name: pedestres
+       dataset: datasets/pedestres
+       classes: ["pessoa"]
+       train:
+         model: yolov8n.pt
+         epochs: 80
+         device: 0
+   ```
+
+   Ao usar o arquivo gerado automaticamente, basta executar o comando abaixo — o `train_models.py`
+   detecta `training_config.auto.yaml` sozinho. Se preferir um arquivo customizado, copie ou renomeie o exemplo
+   para `training_config.yaml` (na mesma pasta onde pretende executar o comando) e ajuste as entradas conforme desejar.
+   Em seguida, execute:
+
+   ```bash
+   # Se o arquivo estiver na pasta atual, não é necessário informar --config
+   python utils/model_trainer/train_models.py
+
+   # Ainda é possível apontar um caminho específico, se preferir
+   python utils/model_trainer/train_models.py --config outro_config.yaml
+   ```
+
+   O script prepara cada dataset, gera seu próprio `data.yaml` e chama o comando `yolo detect train ...` para cada entrada.
+   Use `--dry-run` para apenas listar os comandos ou `--skip-train` para pular o treinamento após preparar os dados.
+
+4. **Executar o modelo na aplicação**
+
+    Copie o peso desejado (ex.: `runs/detect/<nome>/weights/best.pt`) para a pasta da aplicação.
+    O detector procura automaticamente por arquivos `runs/detect/**/weights/best.pt` recentes e carrega todos junto com o modelo padrão do YOLO.

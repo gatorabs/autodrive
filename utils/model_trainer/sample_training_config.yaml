@@ -1,0 +1,55 @@
+# Exemplo básico com três modelos treinados a partir de datasets diferentes.
+# Cada caminho em "dataset" deve apontar para uma pasta que contenha "images/" e "labels/".
+# O `_capture_images.py` já cria essa estrutura automaticamente quando você usa `--base-dir` e
+# avança com `h` entre os objetos (ex.: datasets/parafuso/{images,labels}) e, ao finalizar a
+# sessão, gera um `data.yaml` simples dentro de cada pasta. Além disso, o script passa a criar
+# automaticamente um `training_config.auto.yaml` em `utils/model_trainer/` combinando todos os
+# objetos capturados. Use este arquivo como base ou copie o exemplo abaixo para `training_config.yaml`
+# se quiser ajustes manuais. Caso o dataset tenha IDs diferentes (por exemplo, o segundo objeto
+# capturado ficou com ID 1), utilize o campo opcional `class_ids` para informar os IDs originais
+# que devem ser remapeados para a ordem de `classes`.
+models:
+  - name: modelo_parafuso
+    dataset: datasets/parafusos
+    classes:
+      - parafuso
+    # class_ids:
+    #   - 0  # ID original presente nos arquivos .txt (opcional, útil para remapear índices)
+    output: yolo_runs/parafusos
+    val_ratio: 0.2
+    train:
+      model: yolov8n.pt
+      epochs: 120
+      imgsz: 640
+      batch: 16
+      device: 0
+
+  - name: modelo_porca
+    dataset: datasets/porcas
+    classes:
+      - porca
+    # class_ids:
+    #   - 1
+    output: yolo_runs/porcas
+    val_ratio: 0.15
+    train:
+      model: yolov8n.pt
+      epochs: 100
+      imgsz: 640
+      batch: 16
+      device: 0
+
+  - name: modelo_arruela
+    dataset: datasets/arruelas
+    classes:
+      - arruela
+    # class_ids:
+    #   - 2
+    output: yolo_runs/arruelas
+    val_ratio: 0.2
+    train:
+      model: yolov8s.pt
+      epochs: 150
+      imgsz: 640
+      batch: 8
+      device: 0

@@ -4,5 +4,5 @@ profiles_settings.xml
 __pycache__/
 *.pyc
 yolov8n.pt
-
+yolo11n.pt
 /frontend/cart-view-navigator-dashboard-main/src/components/ui
