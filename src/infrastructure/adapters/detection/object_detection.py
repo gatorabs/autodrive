@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import cv2
+import numpy as np
 from ultralytics import YOLO
 import torch
 from src.infrastructure.services.object_detection_service import process_traffic_light_roi
@@ -221,6 +222,16 @@ class ObjectDetector:
             traffic_light_state = 2
             custom_object_detected = False
 
+            frame_height, frame_width = frame.shape[:2]
+            roi_polygon = self._get_person_roi_polygon(frame_width, frame_height)
+            central_bounds = self._get_central_bounds(frame_width, frame_height)
+
+            if roi_polygon is not None:
+                cv2.polylines(frame, [roi_polygon], True, (255, 0, 0), 2)
+            elif central_bounds is not None:
+                x_min, x_max, y_min, y_max = central_bounds
+                cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (255, 0, 0), 2)
+
             min_person_size = self.tk_controls["Person"]
             min_traffic_size = self.tk_controls["Traffic"]
             min_custom_size = self.tk_controls.get(CUSTOM_MIN_SIZE_KEY, 0)
@@ -235,6 +246,17 @@ class ObjectDetector:
                     #box_area = (x2 - x1) * (y2 - y1)
 
                     if cls == 0 and (box_height >= min_person_size or box_width >= min_person_size):
+                        cx = x1 + box_width // 2
+                        cy = y1 + box_height // 2
+
+                        if roi_polygon is not None:
+                            if cv2.pointPolygonTest(roi_polygon, (float(cx), float(cy)), False) < 0:
+                                continue
+                        elif central_bounds is not None:
+                            x_min, x_max, y_min, y_max = central_bounds
+                            if not (x_min <= cx <= x_max and y_min <= cy <= y_max):
+                                continue
+
                         person_detected = True
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                         cv2.putText(frame, "Person", (x1, y1 - 10),
@@ -288,3 +310,49 @@ class ObjectDetector:
         if self.video_processor:
             self.video_processor.release()
         cv2.destroyAllWindows()
+
+    def _get_person_roi_polygon(self, frame_width, frame_height):
+        keys = (
+            ("tl_x", "tl_y"),
+            ("tr_x", "tr_y"),
+            ("br_x", "br_y"),
+            ("bl_x", "bl_y"),
+        )
+
+        points = []
+        for x_key, y_key in keys:
+            try:
+                x_val = int(self.tk_controls.get(x_key))
+                y_val = int(self.tk_controls.get(y_key))
+            except (TypeError, ValueError):
+                return None
+
+            if x_val is None or y_val is None:
+                return None
+
+            x_val = max(0, min(frame_width - 1, x_val))
+            y_val = max(0, min(frame_height - 1, y_val))
+            points.append((x_val, y_val))
+
+        if len(points) < 3:
+            return None
+
+        polygon = np.array(points, dtype=np.int32).reshape((-1, 1, 2))
+        return polygon
+
+    def _get_central_bounds(self, frame_width, frame_height):
+        if frame_width <= 0 or frame_height <= 0:
+            return None
+
+        margin_x = int(frame_width * 0.25)
+        margin_y = int(frame_height * 0.2)
+
+        x_min = max(0, margin_x)
+        x_max = min(frame_width - 1, frame_width - margin_x)
+        y_min = max(0, margin_y)
+        y_max = min(frame_height - 1, frame_height - margin_y)
+
+        if x_min >= x_max or y_min >= y_max:
+            return None
+
+        return x_min, x_max, y_min, y_max
