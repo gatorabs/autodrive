@@ -63,7 +63,7 @@ def object_detection_process(object_queue,
                 continue
 
             try:
-                person_detected, traffic_light_state, custom_object_detected = object_detector.process_frame(frame)
+                person_detected, traffic_light_state = object_detector.process_frame(frame)
             except Exception as e:
                 logger.error(f"Object detector failure: {e}")
                 continue
@@ -73,7 +73,6 @@ def object_detection_process(object_queue,
                 shared_frames=shared_frames,
                 person_detected=person_detected,
                 traffic_light_state=traffic_light_state,
-                custom_object_detected=custom_object_detected,
                 object_queue=object_queue,
                 frame=frame
             )
