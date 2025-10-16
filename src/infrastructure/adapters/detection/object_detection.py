@@ -361,21 +361,20 @@ class ObjectDetector:
             if roi_width <= 0:
                 return None
 
-            band_half_width = max(1, roi_width // 4)
-            center_x = roi_x_min + roi_width // 2
-
-            x_min = max(0, center_x - band_half_width)
-            x_max = min(frame_width - 1, center_x + band_half_width)
+            third_width = roi_width / 3.0
+            x_min = int(np.floor(roi_x_min + third_width))
+            x_max = int(np.ceil(roi_x_max - third_width))
             y_min = max(0, roi_y_min)
             y_max = min(frame_height - 1, roi_y_max)
         else:
-            band_half_width = max(1, frame_width // 4)
-            center_x = frame_width // 2
-
-            x_min = max(0, center_x - band_half_width)
-            x_max = min(frame_width - 1, center_x + band_half_width)
+            third_width = frame_width / 3.0
+            x_min = int(np.floor(third_width))
+            x_max = int(np.ceil(frame_width - third_width))
             y_min = 0
             y_max = frame_height - 1
+
+        x_min = max(0, min(frame_width - 1, x_min))
+        x_max = max(0, min(frame_width - 1, x_max))
 
         if x_min >= x_max or y_min >= y_max:
             return None
