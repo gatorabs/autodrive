@@ -8,5 +8,6 @@ class ObjectRoiSection(SliderSection):
             SliderConfig("Traffic", "Traffic Sign", 0, 240),
             SliderConfig("Ex1", "Extra Object", 0, 10),
             SliderConfig("Ex2", "Extra Object 2", 0, 10),
+            SliderConfig("PeopleRegion", "People Region", 10, 100),
         ]
         super().__init__(master, "ROI de Objetos", tk_controls, calibration_data, sliders, **kwargs)

@@ -20,6 +20,8 @@ DEFAULT_CUSTOM_CONFIDENCE = 0.35
 CUSTOM_MIN_SIZE_KEY = "Ex1"
 CUSTOM_CONF_KEY = "Ex2"
 CUSTOM_BOX_COLOR = (255, 140, 0)
+PERSON_REGION_WIDTH_KEY = "PeopleRegion"
+DEFAULT_PERSON_REGION_PERCENT = 33
 
 class ObjectDetector:
     def __init__(self,
@@ -82,6 +84,9 @@ class ObjectDetector:
         self.shared_serial_data[2] = 0  # pessoa
         if len(self.shared_serial_data) > 0:
             self.shared_serial_data[0] = 0  # objeto customizado
+
+        if PERSON_REGION_WIDTH_KEY not in self.tk_controls:
+            self.tk_controls[PERSON_REGION_WIDTH_KEY] = DEFAULT_PERSON_REGION_PERCENT
 
     def _candidate_search_roots(self):
         roots = [Path.cwd()]
@@ -226,8 +231,21 @@ class ObjectDetector:
             min_custom_size = self.tk_controls.get(CUSTOM_MIN_SIZE_KEY, 0)
 
             frame_height, frame_width = frame.shape[:2]
-            left_person_boundary = frame_width // 3
-            right_person_boundary = frame_width - left_person_boundary
+            person_region_percent = self.tk_controls.get(
+                PERSON_REGION_WIDTH_KEY,
+                DEFAULT_PERSON_REGION_PERCENT,
+            )
+            try:
+                person_region_percent = float(person_region_percent)
+            except (TypeError, ValueError):
+                person_region_percent = DEFAULT_PERSON_REGION_PERCENT
+
+            person_region_percent = max(1.0, min(100.0, person_region_percent))
+            region_width = max(1.0, frame_width * (person_region_percent / 100.0))
+            half_region_width = max(1, int(round(region_width / 2)))
+            frame_center_x = frame_width // 2
+            left_person_boundary = max(0, frame_center_x - half_region_width)
+            right_person_boundary = min(frame_width - 1, frame_center_x + half_region_width)
 
             cv2.line(frame, (left_person_boundary, 0), (left_person_boundary, frame_height), (255, 255, 255), 1)
             cv2.line(frame, (right_person_boundary, 0), (right_person_boundary, frame_height), (255, 255, 255), 1)

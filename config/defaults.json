@@ -11,6 +11,7 @@
     "KD": 0.015,
     "Person": 0,
     "Traffic": 0,
+    "PeopleRegion": 33,
     "tl_x": 120,
     "tl_y": 180,
     "tr_x": 360,
