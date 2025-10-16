@@ -18,6 +18,7 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data):
 
 def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
     if manual_md:
+        obj_data.custom_object_data = 0
         obj_data.object_person_data = 0
         obj_data.traffic_light_data = 2
         while not object_queue.empty():
