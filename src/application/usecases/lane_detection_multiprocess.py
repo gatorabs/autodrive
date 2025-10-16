@@ -86,7 +86,7 @@ def lane_detection_process(lane_queue,
                 default_kp=KP, default_ki=KI, default_kd=KD
             )
 
-            speed, direction = compute_speed_and_direction(
+            speed, direction, side = compute_speed_and_direction(
                 pid=pid,
                 avg_left=avg_left,
                 avg_right=avg_right,

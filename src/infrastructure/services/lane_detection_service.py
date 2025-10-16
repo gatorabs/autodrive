@@ -56,7 +56,7 @@ def compute_distances(warped_roi, side, num_lines):
         warped_roi, interval)
 
     lost_ref = ((side == 1 and avg_right == float('inf')) or
-                (side == 0 and avg_left == float('inf')))
+                (side == 2 and avg_left == float('inf')))
     has_ref = not lost_ref
 
     return avg_left, avg_right, has_ref, left_lines, right_lines
@@ -69,29 +69,32 @@ def compute_speed_and_direction(pid,
                                 tk_controls,
                                 direction):
 
-    if not has_ref:
-        return 0, direction
+    def _lane_value(selected_side):
+        return avg_right if selected_side == 1 else avg_left
+
+    def _swap_side(selected_side):
+        return 2 if selected_side == 1 else 1
 
     speed = tk_controls.get("Speed")
-    lane_val = avg_right if side == 1 else avg_left
+    lane_val = _lane_value(side)
 
-    if not math.isfinite(lane_val):
+    if (not has_ref) or (not math.isfinite(lane_val)):
         pid.fallback(FALLBACK_PID_INPUT)
 
-        side = 0 if side == 1 else 1
-        lane_val = avg_right if side == 1 else avg_left
+        side = _swap_side(side)
+        tk_controls["Side"] = side
+        lane_val = _lane_value(side)
 
         if not math.isfinite(lane_val):
-            return speed, direction
+            return 0, direction, side
 
     # Calcula a direção com o novo valor de lane_val
     raw_direction = pid.calculate(lane_val)
 
     if raw_direction is None or not math.isfinite(raw_direction):
         pid.fallback(FALLBACK_PID_OUTPUT)
-        return speed, direction
-
-    return speed, round(raw_direction)
+        return speed, direction, side
+    return speed, round(raw_direction), side
 
 def force_safe_stop(lane_queue, shared_controls, logger, reason="CAMERA_ERROR"):
 
