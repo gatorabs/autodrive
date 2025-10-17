@@ -8,7 +8,6 @@ from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.constants.video_constants import (
     FRAME_WIDTH,
     FRAME_HEIGHT,
-    CPU_INFERENCE_IMG_SIZE,
 )
 
 from .custom_model_utils import load_names_from_metadata, normalise_names_payload
@@ -16,12 +15,45 @@ from .custom_model_utils import load_names_from_metadata, normalise_names_payloa
 TARGET_CLASSES = {0, 9}
 DEFAULT_CUSTOM_MODEL_PATH = Path("runs/detect/train/weights/best.pt")
 DEFAULT_CUSTOM_LABEL = "Custom Object"
-DEFAULT_CUSTOM_CONFIDENCE = 0.35
+DEFAULT_CUSTOM_CONFIDENCE = 0.45
 CUSTOM_MIN_SIZE_KEY = "Ex1"
 CUSTOM_CONF_KEY = "Ex2"
 CUSTOM_BOX_COLOR = (255, 140, 0)
 PERSON_REGION_WIDTH_KEY = "PeopleRegion"
 DEFAULT_PERSON_REGION_PERCENT = 33
+DEFAULT_PREPROCESS_SIZE = 640
+
+
+def preprocess_bchw(frame, size=DEFAULT_PREPROCESS_SIZE, device="cuda", fp16=True):
+    import cv2  # local import to align with helper guidance
+    import numpy as np
+    import torch
+
+    h, w = frame.shape[:2]
+    r = min(size / h, size / w)
+    new_unpad = (int(round(w * r)), int(round(h * r)))
+    dw, dh = size - new_unpad[0], size - new_unpad[1]
+    dw //= 2
+    dh //= 2
+
+    img = cv2.resize(frame, new_unpad, interpolation=cv2.INTER_LINEAR)
+    img = cv2.copyMakeBorder(
+        img,
+        dh,
+        size - new_unpad[1] - dh,
+        dw,
+        size - new_unpad[0] - dw,
+        cv2.BORDER_CONSTANT,
+        value=(114, 114, 114),
+    )
+    img = img[:, :, ::-1]
+    img = img.transpose(2, 0, 1)
+    img = np.ascontiguousarray(img)
+    tensor = torch.from_numpy(img).to(device)
+    tensor = tensor.float().div_(255.0).unsqueeze(0)
+    if fp16:
+        tensor = tensor.half()
+    return tensor
 
 class ObjectDetector:
     def __init__(self,
@@ -56,29 +88,36 @@ class ObjectDetector:
             logger.error(f"Falha ao carregar modelo YOLO: {e}")
             raise
 
+        self.preprocess_size = DEFAULT_PREPROCESS_SIZE
         self.inference_kwargs = {
             "classes": list(TARGET_CLASSES),
             "verbose": False,
+            "conf": 0.4,
+            "max_det": 100,
+            "iou": 0.6,
         }
 
         if self.device == "cuda":
             self.inference_kwargs["half"] = True  # FP16 na GPU
         else:
-            self.inference_kwargs["imgsz"] = CPU_INFERENCE_IMG_SIZE
+            self.inference_kwargs["imgsz"] = self.preprocess_size
 
         self.custom_models = []
         self.custom_default_label = DEFAULT_CUSTOM_LABEL
         self.custom_default_conf = DEFAULT_CUSTOM_CONFIDENCE
         self.custom_inference_kwargs = {
             "verbose": False,
+            "max_det": 100,
+            "iou": 0.6,
         }
 
         if self.device == "cuda":
             self.custom_inference_kwargs["half"] = True
         else:
-            self.custom_inference_kwargs["imgsz"] = CPU_INFERENCE_IMG_SIZE
+            self.custom_inference_kwargs["imgsz"] = self.preprocess_size
 
         self._load_custom_models()
+        self._warmup_models()
 
         self.shared_serial_data[1] = 0  # semáforo
         self.shared_serial_data[2] = 0  # pessoa
@@ -208,15 +247,21 @@ class ObjectDetector:
 
     def process_frame(self, frame):
         try:
+            tensor_bchw = preprocess_bchw(
+                frame,
+                size=self.preprocess_size,
+                device=self.device,
+                fp16=self.device == "cuda",
+            )
             with torch.inference_mode():
-                results = self.model(frame, **self.inference_kwargs)
+                results = self.model(tensor_bchw, **self.inference_kwargs)
                 custom_results = []
                 if self.custom_models:
                     custom_conf = self._get_custom_confidence()
                     for custom_model in self.custom_models:
                         model = custom_model["model"]
                         model_results = model(
-                            frame,
+                            tensor_bchw,
                             conf=custom_conf,
                             **self.custom_inference_kwargs,
                         )
@@ -328,3 +373,32 @@ class ObjectDetector:
         if self.video_processor:
             self.video_processor.release()
         cv2.destroyAllWindows()
+
+    def _warmup_models(self):
+        if self.device != "cuda":
+            return
+
+        dummy = torch.zeros(
+            1,
+            3,
+            self.preprocess_size,
+            self.preprocess_size,
+            device=self.device,
+        ).half()
+        try:
+            for _ in range(10):
+                self.model(dummy, **self.inference_kwargs)
+            for custom_model in self.custom_models:
+                model = custom_model.get("model")
+                if model is None:
+                    continue
+                for _ in range(10):
+                    model(
+                        dummy,
+                        conf=self.custom_default_conf,
+                        **self.custom_inference_kwargs,
+                    )
+            torch.cuda.synchronize()
+        except Exception as exc:
+            if self.logger:
+                self.logger.warning(f"Falha no aquecimento dos modelos: {exc}")
