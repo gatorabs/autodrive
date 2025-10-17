@@ -1,0 +1,5 @@
+path: C:\Users\gabri\Documents\Github\autonomous-car_2025\utils\model_trainer\yolo_runs\placa_desvio
+train: images/train
+val: images/val
+names:
+  0: PLACA_DESVIO
