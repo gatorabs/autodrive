@@ -1,0 +1,7 @@
+path: C:\Users\Gabriel\Documents\GitHub\autonomous-car_2025\utils\model_trainer\dataset\PLACA_DESVIO
+train: images
+val: images
+names:
+- classe_00
+- classe_01
+- PLACA_DESVIO
