@@ -89,13 +89,17 @@ def _copy_pairs(
     dest_labels: Path,
     *,
     class_mapping: dict[int, int] | None = None,
+    name_prefix: str = "",
 ) -> None:
     for img, lab in pairs:
-        shutil.copy2(img, dest_images / img.name)
+        image_name = name_prefix + img.name
+        label_name = name_prefix + lab.name
+
+        shutil.copy2(img, dest_images / image_name)
         if class_mapping is None:
-            shutil.copy2(lab, dest_labels / lab.name)
+            shutil.copy2(lab, dest_labels / label_name)
         else:
-            _rewrite_label_file(lab, dest_labels / lab.name, class_mapping)
+            _rewrite_label_file(lab, dest_labels / label_name, class_mapping)
 
 
 def prepare_dataset(dataset_dir: Path | str = DEFAULT_DATASET_DIR,
@@ -195,6 +199,122 @@ def prepare_dataset(dataset_dir: Path | str = DEFAULT_DATASET_DIR,
 
     return DatasetSummary(
         total_pairs=len(pairs),
+        train_pairs=len(train_pairs),
+        val_pairs=len(val_pairs),
+        data_yaml=data_yaml,
+    )
+
+
+def prepare_dataset_from_parts(
+    dataset_dirs: Sequence[Path | str],
+    output_dir: Path | str = DEFAULT_OUTPUT_DIR,
+    class_names: Sequence[str] = DEFAULT_CLASS_NAMES,
+    val_ratio: float = DEFAULT_VAL_RATIO,
+    shuffle_seed: int | None = 42,
+    clean_output: bool = True,
+    source_class_ids: Sequence[int] | None = None,
+) -> DatasetSummary:
+    """Monta um dataset único a partir de múltiplas pastas (uma por classe).
+
+    Cada entrada em ``dataset_dirs`` deve conter subpastas ``images/`` e ``labels/``.
+    As listas ``class_names`` e ``source_class_ids`` (quando fornecida) devem
+    possuir o mesmo tamanho de ``dataset_dirs``.
+    """
+
+    if not dataset_dirs:
+        raise ValueError("É necessário informar ao menos um diretório de dataset.")
+
+    if len(class_names) != len(dataset_dirs):
+        raise ValueError(
+            "class_names deve possuir o mesmo tamanho da lista de diretórios."
+        )
+
+    if source_class_ids is None:
+        source_ids = [0 for _ in dataset_dirs]
+    else:
+        if len(source_class_ids) != len(dataset_dirs):
+            raise ValueError(
+                "class_ids deve possuir o mesmo tamanho da lista de diretórios."
+            )
+        source_ids = list(source_class_ids)
+
+    output_dir = Path(output_dir)
+    if clean_output and output_dir.exists():
+        shutil.rmtree(output_dir)
+
+    images_train = output_dir / "images" / "train"
+    images_val = output_dir / "images" / "val"
+    labels_train = output_dir / "labels" / "train"
+    labels_val = output_dir / "labels" / "val"
+
+    images_train.mkdir(parents=True, exist_ok=True)
+    images_val.mkdir(parents=True, exist_ok=True)
+    labels_train.mkdir(parents=True, exist_ok=True)
+    labels_val.mkdir(parents=True, exist_ok=True)
+
+    indexed_pairs: list[tuple[int, tuple[Path, Path]]] = []
+    for idx, raw_dir in enumerate(dataset_dirs):
+        dataset_dir = Path(raw_dir)
+        img_dir = dataset_dir / "images"
+        lab_dir = dataset_dir / "labels"
+        if not img_dir.exists() or not lab_dir.exists():
+            raise FileNotFoundError(
+                f"Estrutura de dataset inválida em {dataset_dir}. "
+                "É esperado encontrar pastas 'images/' e 'labels/'."
+            )
+
+        pairs = _gather_image_label_pairs(img_dir, lab_dir)
+        for pair in pairs:
+            indexed_pairs.append((idx, pair))
+
+    if shuffle_seed is not None:
+        random.Random(shuffle_seed).shuffle(indexed_pairs)
+
+    n_val = int(len(indexed_pairs) * val_ratio)
+    val_pairs = indexed_pairs[:n_val]
+    train_pairs = indexed_pairs[n_val:]
+
+    train_by_source: dict[int, list[tuple[Path, Path]]] = {i: [] for i in range(len(dataset_dirs))}
+    val_by_source: dict[int, list[tuple[Path, Path]]] = {i: [] for i in range(len(dataset_dirs))}
+
+    for src_idx, pair in train_pairs:
+        train_by_source[src_idx].append(pair)
+    for src_idx, pair in val_pairs:
+        val_by_source[src_idx].append(pair)
+
+    for src_idx, pairs in train_by_source.items():
+        class_mapping = {source_ids[src_idx]: src_idx}
+        _copy_pairs(
+            pairs,
+            images_train,
+            labels_train,
+            class_mapping=class_mapping,
+            name_prefix=f"{src_idx:02d}_",
+        )
+
+    for src_idx, pairs in val_by_source.items():
+        class_mapping = {source_ids[src_idx]: src_idx}
+        _copy_pairs(
+            pairs,
+            images_val,
+            labels_val,
+            class_mapping=class_mapping,
+            name_prefix=f"{src_idx:02d}_",
+        )
+
+    data_yaml = output_dir / "data.yaml"
+    data = {
+        "path": str(output_dir.resolve()),
+        "train": "images/train",
+        "val": "images/val",
+        "names": {i: name for i, name in enumerate(class_names)},
+    }
+
+    with data_yaml.open("w", encoding="utf-8") as f:
+        yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
+
+    return DatasetSummary(
+        total_pairs=len(indexed_pairs),
         train_pairs=len(train_pairs),
         val_pairs=len(val_pairs),
         data_yaml=data_yaml,
