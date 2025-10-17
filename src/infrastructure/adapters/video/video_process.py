@@ -7,8 +7,8 @@ class VideoProcessor:
         self.video_source = video_source
         self.output_width = frame_width
         self.output_height = frame_height
-        self.internal_width = WIDE_CAPTURE_WIDTH
-        self.internal_height = WIDE_CAPTURE_HEIGHT
+        self.internal_width = frame_width
+        self.internal_height = frame_height
 
         self.is_cam = False
         self.cam_index = None
@@ -31,8 +31,27 @@ class VideoProcessor:
             raise RuntimeError(f"Não foi possível abrir a fonte de vídeo: {video_source}")
 
         if self.is_cam:
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.internal_width)
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.internal_height)
+            requested_sizes = [
+                (self.output_width, self.output_height),
+                (WIDE_CAPTURE_WIDTH, WIDE_CAPTURE_HEIGHT),
+            ]
+
+            for width, height in requested_sizes:
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+
+                actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+                if actual_width == width and actual_height == height:
+                    self.internal_width = width
+                    self.internal_height = height
+                    break
+            else:
+                actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                self.internal_width = actual_width or self.output_width
+                self.internal_height = actual_height or self.output_height
 
         actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))

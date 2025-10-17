@@ -247,19 +247,10 @@ class ObjectDetector:
             left_person_boundary = max(0, frame_center_x - half_region_width)
             right_person_boundary = min(frame_width - 1, frame_center_x + half_region_width)
 
-            overlay = frame.copy()
-            cv2.rectangle(
-                overlay,
-                (left_person_boundary, 0),
-                (right_person_boundary, frame_height - 1),
-                (255, 0, 0),
-                -1,
-            )
-            cv2.addWeighted(overlay, 0.2, frame, 0.8, 0, frame)
-
-            line_color = (255, 0, 0)
-            cv2.line(frame, (left_person_boundary, 0), (left_person_boundary, frame_height), line_color, 2)
-            cv2.line(frame, (right_person_boundary, 0), (right_person_boundary, frame_height), line_color, 2)
+            if self.tk_controls.get("SHOW_ROI", True):
+                line_color = (255, 0, 0)
+                cv2.line(frame, (left_person_boundary, 0), (left_person_boundary, frame_height), line_color, 2)
+                cv2.line(frame, (right_person_boundary, 0), (right_person_boundary, frame_height), line_color, 2)
 
             for result in results:
                 for box in result.boxes:

@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
+from src.infrastructure.utils.frame_utils import encode_frame
 
 def process_traffic_light_roi(roi):
     active_color = "Unknown"
@@ -63,8 +64,10 @@ def publish_results(
     if len(shared_serial_data) > 0:
         shared_serial_data[0] = custom_serial_value
 
-    # mantém o frame bruto; consumidores decidem como codificar
-    shared_frames["OBJECT_FRAME"] = frame.copy()
+    try:
+        shared_frames["OBJECT_FRAME"] = encode_frame(frame)
+    except Exception:
+        shared_frames["OBJECT_FRAME"] = frame.copy() if isinstance(frame, np.ndarray) else frame
 
     object_data = {
         "OBJECT_PERSON_DATA": shared_serial_data[2],
