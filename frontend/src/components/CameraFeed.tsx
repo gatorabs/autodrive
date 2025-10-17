@@ -17,7 +17,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ label }) => {
   const [imgKey, setImgKey] = useState(0); // forçar reload do <img>
 
   const key = keyMap[label];
-  const streamUrl = `http://192.168.15.12:5000/video_feed/${key}`;
+  const streamUrl = `http://192.40.226.220:5000/video_feed/${key}`;
 
   // Verificação periódica da disponibilidade do stream
   useEffect(() => {

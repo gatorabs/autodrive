@@ -17,12 +17,12 @@ const ManualMode = () => {
     const [hasError, setHasError] = useState(false);
     const [imgKey, setImgKey] = useState(0);
     const [isExitModalOpen, setIsExitModalOpen] = useState(false);
-    const streamUrl = 'http://192.168.15.12:5000/video_feed/TAB2_FRAME';
+    const streamUrl = 'http://192.40.226.220:5000/video_feed/TAB2_FRAME';
 
     const handleBackConfirm = async () => {
         setIsExitModalOpen(false);
         try {
-            await fetch('http://192.168.15.12:5000/api/v2/manual-mode', {
+            await fetch('http://192.40.226.220:5000/api/v2/manual-mode', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ active: false })
@@ -36,7 +36,7 @@ const ManualMode = () => {
 
     const handleJoystickMove = (data: { x: number; y: number }) => {
         setJoystickData(data);
-        fetch('http://192.168.15.12:5000/api/v2/manual-controls', {
+        fetch('http://192.40.226.220:5000/api/v2/manual-controls', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -45,7 +45,7 @@ const ManualMode = () => {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            fetch('http://192.168.15.12:5000/api/car-info')
+            fetch('http://192.40.226.220:5000/api/car-info')
                 .then(res => res.json())
                 .then(data => {
                     if (!data.manual_mode && data.webview) {

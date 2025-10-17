@@ -81,7 +81,7 @@ const LogsModal = ({ logs, onClearLogs, open, onOpenChange }: LogsModalProps) =>
   };
 
   const fetchProcesses = () => {
-    fetch('http://192.168.15.12:5000/api/v2/python-processes')
+    fetch('http://192.40.226.220:5000/api/v2/python-processes')
       .then(res => res.json())
       .then(data => setSystemInfo(data))
       .catch(err => console.error('Error fetching processes:', err));

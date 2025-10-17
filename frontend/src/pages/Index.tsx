@@ -39,7 +39,7 @@ const Index = () => {
   const handleManualModeConfirm = async () => {
     setIsManualModeModalOpen(false);
     try {
-      await fetch('http://192.168.15.12:5000/api/v2/manual-mode', {
+      await fetch('http://192.40.226.220:5000/api/v2/manual-mode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: true })
@@ -55,7 +55,7 @@ const Index = () => {
 
   useEffect(() => {
   const interval = setInterval(() => {
-    fetch("http://192.168.15.12:5000/api/car-info")
+    fetch("http://192.40.226.220:5000/api/car-info")
       .then(res => res.json())
       .then(data => {
         if (data.manual_mode && data.webview) {
