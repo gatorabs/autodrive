@@ -1,7 +1,7 @@
 from src.infrastructure.adapters.video.video_utility_process import generate_placeholder_image
 from src.infrastructure.utils.frame_utils import encode_frame
 from src.infrastructure.adapters.web_server import app_settings
-from flask import Response, jsonify
+from flask import Response, jsonify, request
 import time
 
 def car_api_info(app, shared_controls):
@@ -21,13 +21,21 @@ def car_api_info(app, shared_controls):
     @app.route('/api/set-speed', methods=['POST'])
     def set_speed():
         try:
-            data = request.get_json()
-            speed = data.get("speed")
+            data = request.get_json(silent=True) or {}
+            raw_speed = data.get("speed")
 
-            if not isinstance(speed, (int, float)) or speed < 0:
+            if not isinstance(raw_speed, (int, float)):
                 return jsonify({"error": "Invalid speed value"}), 400
 
-            shared_controls["SPEED"] = speed
+            speed = int(round(raw_speed))
+            speed = max(0, min(speed, 255))
+
+            shared_controls["SPEED_OVERRIDE"] = speed
+
+            car_info = dict(shared_controls.get("CAR_INFO") or {})
+            car_info["CAR_SPEED_DATA"] = speed
+            shared_controls["CAR_INFO"] = car_info
+
             return jsonify({"message": f"Speed set to {speed}"}), 200
 
         except Exception as e:
