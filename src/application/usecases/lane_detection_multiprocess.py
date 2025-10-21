@@ -11,7 +11,7 @@ from src.infrastructure.logging.logger import Logger
 from src.infrastructure.services.lane_detection_service import (
     compute_distances,
     publish,
-    compute_speed_and_direction, define_and_calculate_side,
+    compute_speed_and_direction, define_and_calculate_side, apply_speed_override,
 )
 from src.infrastructure.services.pid_service import (
     update_pid_from_controls,
@@ -96,13 +96,8 @@ def lane_detection_process(lane_queue,
                 direction=direction
             )
 
-            override_speed = shared_controls.get("SPEED_OVERRIDE")
-            if isinstance(override_speed, (int, float)):
-                override_speed = int(round(override_speed))
-                override_speed = max(0, min(override_speed, 255))
-                if tk_controls.get("Speed") != override_speed:
-                    tk_controls["Speed"] = override_speed
-                speed = override_speed
+            speed = apply_speed_override(shared_controls=shared_controls,
+                                         tk_controls=tk_controls, current_speed=speed)
 
             mapped_direction = define_and_calculate_side(direction=direction,
                                                          side=side)

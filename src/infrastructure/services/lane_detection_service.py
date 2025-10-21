@@ -137,3 +137,31 @@ def define_and_calculate_side(direction, side):
     else:
         mapped_direction = map_direction(value=direction)
         return mapped_direction
+
+def apply_speed_override(
+    shared_controls,
+    tk_controls,
+    current_speed,
+    key="SPEED_OVERRIDE",
+    tk_key="Speed",
+    min_val=0,
+    max_val=255,
+):
+
+    override = shared_controls.get(key)
+
+    if override is None:
+        return current_speed
+    if isinstance(override, float) and math.isnan(override):
+        return current_speed
+
+    if not isinstance(override, (int, float)):
+        return current_speed
+
+    normalized = int(round(override))
+    normalized = max(min_val, min(normalized, max_val))
+
+    if tk_controls.get(tk_key) != normalized:
+        tk_controls[tk_key] = normalized
+
+    return normalized
