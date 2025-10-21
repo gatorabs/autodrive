@@ -406,9 +406,17 @@ def generate_training_config(sessions: List[ObjectSession], base_dir: Path) -> P
     config_path = config_dir / "training_config.auto.yaml"
 
     models = []
+    dataset_refs: List[str] = []
+    class_names: List[str] = []
+    class_ids: List[int] = []
+
     for sess in sessions:
         dataset_ref = _relpath_for_config(sess.root.resolve(), config_dir)
         model_name = slugify(sess.display_name, f"modelo_{sess.index + 1:02d}")
+
+        dataset_refs.append(dataset_ref)
+        class_names.append(sess.display_name)
+        class_ids.append(sess.class_id)
 
         models.append(
             {
@@ -417,6 +425,20 @@ def generate_training_config(sessions: List[ObjectSession], base_dir: Path) -> P
                 "classes": [sess.display_name],
                 "class_ids": [sess.class_id],
                 "output": f"yolo_runs/{model_name}",
+                "val_ratio": 0.2,
+                "train": {},
+            }
+        )
+
+    if len(sessions) > 1:
+        combined_name = slugify("todos_objetos", "modelo_agregado")
+        models.append(
+            {
+                "name": combined_name,
+                "dataset": dataset_refs,
+                "classes": class_names,
+                "class_ids": class_ids,
+                "output": f"yolo_runs/{combined_name}",
                 "val_ratio": 0.2,
                 "train": {},
             }
