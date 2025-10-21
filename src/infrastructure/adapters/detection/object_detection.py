@@ -160,6 +160,8 @@ class ObjectDetector:
                     "Nenhum modelo customizado encontrado. Detecção extra desativada.")
             return
 
+        covered_classes = set()
+
         for model_path in model_paths:
             try:
                 model = YOLO(str(model_path))
@@ -170,6 +172,26 @@ class ObjectDetector:
                 if not names_payload:
                     names_payload = load_names_from_metadata(model_path)
 
+                if isinstance(names_payload, dict):
+                    names_iterable = names_payload.values()
+                else:
+                    names_iterable = names_payload or []
+
+                class_names = {
+                    str(name).strip()
+                    for name in names_iterable
+                    if str(name).strip()
+                }
+                display_path = self._format_model_path_for_log(model_path)
+
+                if class_names and class_names.issubset(covered_classes):
+                    if self.logger:
+                        classes_repr = ", ".join(sorted(class_names))
+                        self.logger.info(
+                            f"Ignorando modelo customizado {display_path} (classes já cobertas: {classes_repr})"
+                        )
+                    continue
+
                 self.custom_models.append({
                     "model": model,
                     "names": names_payload,
@@ -179,15 +201,43 @@ class ObjectDetector:
                     if names_payload:
                         classes = ", ".join(sorted(names_payload.values()))
                         self.logger.info(
-                            f"Modelo customizado carregado de {model_path} (classes: {classes})"
+                            f"Modelo customizado carregado de {display_path} (classes: {classes})"
                         )
                     else:
                         self.logger.info(
-                            f"Modelo customizado carregado de {model_path} (nomes não informados)"
+                            f"Modelo customizado carregado de {display_path} (nomes não informados)"
                         )
+                covered_classes.update(class_names)
             except Exception as exc:
                 if self.logger:
-                    self.logger.error(f"Falha ao carregar modelo customizado ({model_path}): {exc}")
+                    display_path = self._format_model_path_for_log(model_path)
+                    self.logger.error(
+                        f"Falha ao carregar modelo customizado ({display_path}): {exc}")
+
+    def _format_model_path_for_log(self, model_path: Path) -> str:
+        try:
+            resolved_path = model_path.resolve()
+        except Exception:
+            resolved_path = model_path
+
+        candidate_roots = []
+
+        try:
+            candidate_roots.append(Path(__file__).resolve().parents[4])
+        except Exception:
+            pass
+
+        candidate_roots.append(Path.cwd())
+
+        for root in candidate_roots:
+            if not root:
+                continue
+            try:
+                return str(resolved_path.relative_to(root))
+            except Exception:
+                continue
+
+        return str(resolved_path)
 
     def _get_custom_label(self, cls_id, names):
         if isinstance(names, dict):
