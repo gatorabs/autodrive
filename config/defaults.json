@@ -11,6 +11,7 @@
     "KD": 0.015,
     "Person": 0,
     "Traffic": 0,
+    "BaseConf": 5,
     "PeopleRegion": 33,
     "tl_x": 120,
     "tl_y": 180,

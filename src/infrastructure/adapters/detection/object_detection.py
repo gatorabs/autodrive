@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 
 import cv2
@@ -17,11 +18,14 @@ TARGET_CLASSES = {0, 9}
 DEFAULT_CUSTOM_MODEL_PATH = Path("runs/detect/train/weights/best.pt")
 DEFAULT_CUSTOM_LABEL = "Custom Object"
 DEFAULT_CUSTOM_CONFIDENCE = 0.35
+DEFAULT_BASE_CONFIDENCE = 0.35
 CUSTOM_MIN_SIZE_KEY = "Ex1"
 CUSTOM_CONF_KEY = "Ex2"
+BASE_CONF_KEY = "BaseConf"
 CUSTOM_BOX_COLOR = (255, 140, 0)
 PERSON_REGION_WIDTH_KEY = "PeopleRegion"
 DEFAULT_PERSON_REGION_PERCENT = 33
+CUSTOM_NMS_IOU_THRESHOLD = 0.45
 
 class ObjectDetector:
     def __init__(self,
@@ -69,6 +73,7 @@ class ObjectDetector:
         self.custom_models = []
         self.custom_default_label = DEFAULT_CUSTOM_LABEL
         self.custom_default_conf = DEFAULT_CUSTOM_CONFIDENCE
+        self.base_default_conf = DEFAULT_BASE_CONFIDENCE
         self.custom_inference_kwargs = {
             "verbose": False,
         }
@@ -87,6 +92,17 @@ class ObjectDetector:
 
         if PERSON_REGION_WIDTH_KEY not in self.tk_controls:
             self.tk_controls[PERSON_REGION_WIDTH_KEY] = DEFAULT_PERSON_REGION_PERCENT
+        if BASE_CONF_KEY not in self.tk_controls:
+            self.tk_controls[BASE_CONF_KEY] = int(round(self.base_default_conf * 10))
+
+    def _get_base_confidence(self):
+        slider_value = self.tk_controls.get(BASE_CONF_KEY)
+        if slider_value is None:
+            return self.base_default_conf
+        try:
+            return max(0.05, min(0.99, float(slider_value) / 10.0))
+        except (TypeError, ValueError):
+            return self.base_default_conf
 
     def _candidate_search_roots(self):
         roots = [Path.cwd()]
@@ -230,8 +246,14 @@ class ObjectDetector:
     def process_frame(self, frame):
         try:
             with torch.inference_mode():
-                results = self.model(frame, **self.inference_kwargs)
+                base_conf = self._get_base_confidence()
+                results = self.model(
+                    frame,
+                    conf=base_conf,
+                    **self.inference_kwargs,
+                )
                 custom_results = []
+                custom_conf = None
                 if self.custom_models:
                     custom_conf = self._get_custom_confidence()
                     for custom_model in self.custom_models:
@@ -285,6 +307,9 @@ class ObjectDetector:
             for result in results:
                 for box in result.boxes:
                     cls = int(box.cls[0])
+                    conf = float(box.conf[0]) if hasattr(box, "conf") else 0.0
+                    if conf < base_conf:
+                        continue
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
                     box_height = y2 - y1
                     box_width = x2 - x1
@@ -315,35 +340,101 @@ class ObjectDetector:
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
 
             if custom_results:
+                custom_conf_threshold = custom_conf or self.custom_default_conf
+                raw_detections = []
                 for model_info, result_batch in custom_results:
                     names = model_info.get("names", {})
                     for result in result_batch:
                         for box in result.boxes:
                             cls = int(box.cls[0])
-                            x1, y1, x2, y2 = map(int, box.xyxy[0])
+                            conf = float(box.conf[0]) if hasattr(box, "conf") else 0.0
+                            if conf < custom_conf_threshold:
+                                continue
+                            x1, y1, x2, y2 = map(float, box.xyxy[0])
                             box_height = y2 - y1
                             box_width = x2 - x1
 
                             if max(box_height, box_width) < min_custom_size:
                                 continue
 
-                            custom_object_detected = True
                             label = self._get_custom_label(cls, names)
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), CUSTOM_BOX_COLOR, 2)
-                            cv2.putText(
-                                frame,
-                                label,
-                                (x1, y1 - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                0.5,
-                                CUSTOM_BOX_COLOR,
-                                2,
+                            raw_detections.append(
+                                {
+                                    "cls": cls,
+                                    "conf": conf,
+                                    "box": (x1, y1, x2, y2),
+                                    "label": label,
+                                }
                             )
+
+                merged_detections = self._merge_custom_detections(
+                    raw_detections, CUSTOM_NMS_IOU_THRESHOLD
+                )
+
+                for detection in merged_detections:
+                    custom_object_detected = True
+                    x1, y1, x2, y2 = map(int, detection["box"])
+                    label = detection["label"]
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), CUSTOM_BOX_COLOR, 2)
+                    cv2.putText(
+                        frame,
+                        label,
+                        (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        CUSTOM_BOX_COLOR,
+                        2,
+                    )
 
             return person_detected, traffic_light_state, custom_object_detected
 
         except Exception as e:
             self.logger.error(f"Erro ao processar frame: {e}")
+
+    @staticmethod
+    def _merge_custom_detections(detections, iou_threshold):
+        if not detections:
+            return []
+
+        grouped = defaultdict(list)
+        for det in detections:
+            grouped[det["cls"]].append(det)
+
+        merged = []
+        for cls, det_list in grouped.items():
+            det_list.sort(key=lambda item: item["conf"], reverse=True)
+            while det_list:
+                current = det_list.pop(0)
+                merged.append(current)
+                remaining = []
+                for candidate in det_list:
+                    if ObjectDetector._iou(current["box"], candidate["box"]) < iou_threshold:
+                        remaining.append(candidate)
+                det_list = remaining
+        return merged
+
+    @staticmethod
+    def _iou(box_a, box_b):
+        ax1, ay1, ax2, ay2 = box_a
+        bx1, by1, bx2, by2 = box_b
+
+        inter_x1 = max(ax1, bx1)
+        inter_y1 = max(ay1, by1)
+        inter_x2 = min(ax2, bx2)
+        inter_y2 = min(ay2, by2)
+
+        if inter_x2 <= inter_x1 or inter_y2 <= inter_y1:
+            return 0.0
+
+        inter_area = (inter_x2 - inter_x1) * (inter_y2 - inter_y1)
+        area_a = max(0.0, (ax2 - ax1)) * max(0.0, (ay2 - ay1))
+        area_b = max(0.0, (bx2 - bx1)) * max(0.0, (by2 - by1))
+
+        union_area = area_a + area_b - inter_area
+        if union_area <= 0:
+            return 0.0
+
+        return inter_area / union_area
 
     def cleanup(self):
         if self.video_processor:
