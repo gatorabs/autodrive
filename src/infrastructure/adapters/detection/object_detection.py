@@ -160,8 +160,6 @@ class ObjectDetector:
                     "Nenhum modelo customizado encontrado. Detecção extra desativada.")
             return
 
-        covered_classes = set()
-
         for model_path in model_paths:
             try:
                 model = YOLO(str(model_path))
@@ -171,24 +169,6 @@ class ObjectDetector:
                 names_payload = normalise_names_payload(getattr(model, "names", {}))
                 if not names_payload:
                     names_payload = load_names_from_metadata(model_path)
-
-                if isinstance(names_payload, dict):
-                    names_iterable = names_payload.values()
-                else:
-                    names_iterable = names_payload or []
-
-                class_names = {
-                    str(name).strip()
-                    for name in names_iterable
-                    if str(name).strip()
-                }
-                if class_names and class_names.issubset(covered_classes):
-                    if self.logger:
-                        classes_repr = ", ".join(sorted(class_names))
-                        self.logger.info(
-                            f"Ignorando modelo customizado {model_path} (classes já cobertas: {classes_repr})"
-                        )
-                    continue
 
                 self.custom_models.append({
                     "model": model,
@@ -205,7 +185,6 @@ class ObjectDetector:
                         self.logger.info(
                             f"Modelo customizado carregado de {model_path} (nomes não informados)"
                         )
-                covered_classes.update(class_names)
             except Exception as exc:
                 if self.logger:
                     self.logger.error(f"Falha ao carregar modelo customizado ({model_path}): {exc}")
