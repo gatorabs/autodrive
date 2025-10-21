@@ -65,7 +65,8 @@ def data_sender_process(lane_queue,
 
             publish_emergency_stop(obj_data=obj_data,
                                    shared_controls=shared_controls,
-                                   lane_data=lane_data)
+                                   lane_data=lane_data,
+                                   tk_controls=tk_controls)
 
             publish(obj_data=obj_data,
                     lane_data=lane_data,

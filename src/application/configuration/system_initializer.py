@@ -14,6 +14,14 @@ class SystemInitializer:
             "OBJECT_SERIAL_DATA": [0, 0, 0],
             "SAFE_STOP": False,
             "OBJ_SAFE_STOP": False,
+            "STOP_SIGN_STATE": {
+                "active_until": 0.0,
+                "awaiting_clear": False,
+                "resumed": False,
+                "restore_speed": None,
+            },
+            "DETOUR_SIGN_DETECTED": False,
+            "SPEED_BUMP_SIGN_DETECTED": False,
         }
 
     @staticmethod

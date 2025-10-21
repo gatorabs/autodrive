@@ -66,7 +66,7 @@ def object_detection_process(object_queue,
                 (
                     person_detected,
                     traffic_light_state,
-                    custom_object_detected,
+                    custom_detection_state,
                 ) = object_detector.process_frame(frame)
             except Exception as e:
                 logger.error(f"Object detector failure: {e}")
@@ -79,7 +79,7 @@ def object_detection_process(object_queue,
                 traffic_light_state=traffic_light_state,
                 object_queue=object_queue,
                 frame=frame,
-                custom_object_detected=custom_object_detected,
+                custom_detection_state=custom_detection_state,
             )
 
     except Exception as e:

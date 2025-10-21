@@ -19,13 +19,33 @@ DEFAULT_CUSTOM_MODEL_PATH = Path("runs/detect/train/weights/best.pt")
 DEFAULT_CUSTOM_LABEL = "Custom Object"
 DEFAULT_CUSTOM_CONFIDENCE = 0.35
 DEFAULT_BASE_CONFIDENCE = 0.35
-CUSTOM_MIN_SIZE_KEY = "Ex1"
-CUSTOM_CONF_KEY = "Ex2"
+CUSTOM_CONF_KEY = "CustomConf"
 BASE_CONF_KEY = "BaseConf"
 CUSTOM_BOX_COLOR = (255, 140, 0)
 PERSON_REGION_WIDTH_KEY = "PeopleRegion"
 DEFAULT_PERSON_REGION_PERCENT = 33
 CUSTOM_NMS_IOU_THRESHOLD = 0.45
+
+STOP_SIGN_MIN_SIZE_KEY = "StopSign"
+DETOUR_SIGN_MIN_SIZE_KEY = "DetourSign"
+SPEED_BUMP_MIN_SIZE_KEY = "SpeedBumpSign"
+
+CUSTOM_CLASS_MAP = {
+    "PLACA_PARE": "stop_sign",
+    "STOP_SIGN": "stop_sign",
+    "STOP": "stop_sign",
+    "PLACA_DESVIO": "detour_sign",
+    "DESVIO": "detour_sign",
+    "PLACA_LAMPADA": "speed_bump_sign",
+    "LOMBADA": "speed_bump_sign",
+    "SPEED_BUMP": "speed_bump_sign",
+}
+
+CUSTOM_DISPLAY_LABELS = {
+    "stop_sign": "Placa Pare",
+    "detour_sign": "Placa Desvio",
+    "speed_bump_sign": "Placa Lombada",
+}
 
 class ObjectDetector:
     def __init__(self,
@@ -94,6 +114,14 @@ class ObjectDetector:
             self.tk_controls[PERSON_REGION_WIDTH_KEY] = DEFAULT_PERSON_REGION_PERCENT
         if BASE_CONF_KEY not in self.tk_controls:
             self.tk_controls[BASE_CONF_KEY] = int(round(self.base_default_conf * 10))
+        if CUSTOM_CONF_KEY not in self.tk_controls:
+            self.tk_controls[CUSTOM_CONF_KEY] = int(round(self.custom_default_conf * 10))
+        for size_key in (
+            STOP_SIGN_MIN_SIZE_KEY,
+            DETOUR_SIGN_MIN_SIZE_KEY,
+            SPEED_BUMP_MIN_SIZE_KEY,
+        ):
+            self.tk_controls.setdefault(size_key, 0)
 
     def _get_base_confidence(self):
         slider_value = self.tk_controls.get(BASE_CONF_KEY)
@@ -103,6 +131,19 @@ class ObjectDetector:
             return max(0.05, min(0.99, float(slider_value) / 10.0))
         except (TypeError, ValueError):
             return self.base_default_conf
+
+    def _get_slider_threshold(self, key, default=0.0):
+        value = self.tk_controls.get(key, default)
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return float(default)
+
+    @staticmethod
+    def _normalise_custom_label(label):
+        if not label:
+            return ""
+        return label.strip().upper().replace(" ", "_")
 
     def _candidate_search_roots(self):
         roots = [Path.cwd()]
@@ -267,11 +308,18 @@ class ObjectDetector:
 
             person_detected = False
             traffic_light_state = 2
-            custom_object_detected = False
+            custom_detection_state = {
+                "any": False,
+                "stop_sign": False,
+                "detour_sign": False,
+                "speed_bump_sign": False,
+            }
 
             min_person_size = self.tk_controls["Person"]
             min_traffic_size = self.tk_controls["Traffic"]
-            min_custom_size = self.tk_controls.get(CUSTOM_MIN_SIZE_KEY, 0)
+            stop_sign_min_size = self._get_slider_threshold(STOP_SIGN_MIN_SIZE_KEY)
+            detour_min_size = self._get_slider_threshold(DETOUR_SIGN_MIN_SIZE_KEY)
+            speed_bump_min_size = self._get_slider_threshold(SPEED_BUMP_MIN_SIZE_KEY)
 
             frame_height, frame_width = frame.shape[:2]
             person_region_percent = self.tk_controls.get(
@@ -351,12 +399,6 @@ class ObjectDetector:
                             if conf < custom_conf_threshold:
                                 continue
                             x1, y1, x2, y2 = map(float, box.xyxy[0])
-                            box_height = y2 - y1
-                            box_width = x2 - x1
-
-                            if max(box_height, box_width) < min_custom_size:
-                                continue
-
                             label = self._get_custom_label(cls, names)
                             raw_detections.append(
                                 {
@@ -371,14 +413,35 @@ class ObjectDetector:
                     raw_detections, CUSTOM_NMS_IOU_THRESHOLD
                 )
 
+                size_thresholds = {
+                    "stop_sign": max(0.0, stop_sign_min_size),
+                    "detour_sign": max(0.0, detour_min_size),
+                    "speed_bump_sign": max(0.0, speed_bump_min_size),
+                }
+
                 for detection in merged_detections:
-                    custom_object_detected = True
                     x1, y1, x2, y2 = map(int, detection["box"])
-                    label = detection["label"]
+                    label = detection.get("label")
+                    normalized_label = self._normalise_custom_label(label)
+                    category = CUSTOM_CLASS_MAP.get(normalized_label)
+                    box_height = y2 - y1
+                    box_width = x2 - x1
+                    max_dimension = max(box_height, box_width)
+
+                    if category:
+                        threshold = size_thresholds.get(category, 0.0)
+                        if max_dimension < threshold:
+                            continue
+                        custom_detection_state[category] = True
+                        display_label = CUSTOM_DISPLAY_LABELS.get(category, label)
+                    else:
+                        display_label = label or self.custom_default_label
+
+                    custom_detection_state["any"] = True
                     cv2.rectangle(frame, (x1, y1), (x2, y2), CUSTOM_BOX_COLOR, 2)
                     cv2.putText(
                         frame,
-                        label,
+                        display_label,
                         (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.5,
@@ -386,7 +449,7 @@ class ObjectDetector:
                         2,
                     )
 
-            return person_detected, traffic_light_state, custom_object_detected
+            return person_detected, traffic_light_state, custom_detection_state
 
         except Exception as e:
             self.logger.error(f"Erro ao processar frame: {e}")

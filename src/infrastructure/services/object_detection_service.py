@@ -55,11 +55,12 @@ def publish_results(
     traffic_light_state,
     object_queue,
     frame,
-    custom_object_detected=False,
+    custom_detection_state=None,
 ):
+    custom_detection_state = custom_detection_state or {}
     shared_serial_data[2] = 1 if person_detected else 0
     shared_serial_data[1] = traffic_light_state
-    custom_serial_value = 1 if custom_object_detected else 0
+    custom_serial_value = 1 if custom_detection_state.get("any") else 0
     if len(shared_serial_data) > 0:
         shared_serial_data[0] = custom_serial_value
 
@@ -72,6 +73,9 @@ def publish_results(
         "CUSTOM_OBJECT_DATA": (
             shared_serial_data[0] if len(shared_serial_data) > 0 else custom_serial_value
         ),
+        "STOP_SIGN_DATA": 1 if custom_detection_state.get("stop_sign") else 0,
+        "DETOUR_SIGN_DATA": 1 if custom_detection_state.get("detour_sign") else 0,
+        "SPEED_BUMP_SIGN_DATA": 1 if custom_detection_state.get("speed_bump_sign") else 0,
     }
     if not object_queue.full():
         object_queue.put(object_data)
@@ -89,11 +93,22 @@ def force_default_object_data(object_queue, shared_serial_data, shared_controls,
         "CUSTOM_OBJECT_DATA": (
             shared_serial_data[0] if len(shared_serial_data) > 0 else custom_serial_value
         ),
+        "STOP_SIGN_DATA": 0,
+        "DETOUR_SIGN_DATA": 0,
+        "SPEED_BUMP_SIGN_DATA": 0,
     }
     if not object_queue.full():
         object_queue.put(object_data)
 
     shared_controls["OBJ_SAFE_STOP"] = True
+    shared_controls["DETOUR_SIGN_DETECTED"] = False
+    shared_controls["SPEED_BUMP_SIGN_DETECTED"] = False
+    shared_controls["STOP_SIGN_STATE"] = {
+        "active_until": 0.0,
+        "awaiting_clear": False,
+        "resumed": False,
+        "restore_speed": None,
+    }
     logger.warning(f"OBJ-SAFE-STOP ativado ({reason}).")
 
 def try_capture_or_mark_for_reopen(video_proc,
