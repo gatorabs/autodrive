@@ -269,6 +269,13 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         self.slider_configs = slider_configs or [
             SettingsSliderConfig("BaseConf", "YOLO Confidence", 0, 10, 1),
             SettingsSliderConfig("Timestamp", "Timestamp", 0, 10, 1),
+            SettingsSliderConfig(
+                "StopDecelerationInterval",
+                "Intervalo de desaceleração (s)",
+                0.0,
+                1.0,
+                0.05,
+            ),
         ]
         self.slider_controls: Dict[str, dict] = {}
 

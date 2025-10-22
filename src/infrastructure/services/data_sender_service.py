@@ -142,11 +142,111 @@ def _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time):
     return next_speed
 
 
+def _start_stop_sign_acceleration(
+    shared_controls, current_speed, target_speed, tk_controls, current_time
+):
+    step = _get_stop_sign_deceleration_step(tk_controls)
+    interval = _get_stop_sign_deceleration_interval(tk_controls)
+
+    try:
+        starting_speed = int(current_speed)
+    except (TypeError, ValueError):
+        starting_speed = 0
+
+    try:
+        desired_speed = int(target_speed)
+    except (TypeError, ValueError):
+        desired_speed = 0
+
+    desired_speed = max(0, min(255, desired_speed))
+    starting_speed = max(0, min(desired_speed, starting_speed))
+
+    if desired_speed <= 0:
+        shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
+        return
+
+    shared_controls["STOP_SIGN_ACCEL_STATE"] = {
+        "current_speed": starting_speed,
+        "target_speed": desired_speed,
+        "step": step,
+        "interval": interval,
+        "last_update": current_time - interval,
+    }
+
+
+def _apply_stop_sign_acceleration(shared_controls, tk_controls, current_time):
+    state = shared_controls.get("STOP_SIGN_ACCEL_STATE")
+    if not state:
+        return None
+
+    try:
+        target_speed = int(state.get("target_speed", 0))
+    except (TypeError, ValueError):
+        target_speed = 0
+
+    latest_target = shared_controls.get("STOP_SIGN_PREV_SPEED")
+    if latest_target is not None:
+        try:
+            latest_target_int = int(latest_target)
+        except (TypeError, ValueError):
+            latest_target_int = target_speed
+        latest_target_int = max(0, min(255, latest_target_int))
+        if latest_target_int != target_speed:
+            target_speed = latest_target_int
+            state["target_speed"] = target_speed
+
+    target_speed = max(0, target_speed)
+
+    try:
+        current_speed = int(state.get("current_speed", 0))
+    except (TypeError, ValueError):
+        current_speed = 0
+
+    current_speed = max(0, current_speed)
+
+    slider_step = _get_stop_sign_deceleration_step(tk_controls)
+    step = state.get("step")
+    if not isinstance(step, int) or step != slider_step:
+        step = slider_step
+        state["step"] = step
+
+    slider_interval = _get_stop_sign_deceleration_interval(tk_controls)
+    interval = state.get("interval")
+    if not isinstance(interval, (int, float)) or interval != slider_interval:
+        interval = slider_interval
+        state["interval"] = interval
+
+    if target_speed <= 0 or current_speed >= target_speed:
+        shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
+        return target_speed, True
+
+    last_update = state.get("last_update")
+    if not isinstance(last_update, (int, float)):
+        last_update = current_time - interval
+
+    if interval > 0 and current_time - last_update < interval:
+        state["last_update"] = last_update
+        shared_controls["STOP_SIGN_ACCEL_STATE"] = state
+        return current_speed, False
+
+    next_speed = min(current_speed + step, target_speed)
+    state["current_speed"] = next_speed
+    state["last_update"] = current_time
+
+    if next_speed >= target_speed:
+        shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
+        return target_speed, True
+
+    shared_controls["STOP_SIGN_ACCEL_STATE"] = state
+    return next_speed, False
+
+
 def _clear_stop_sign_state(shared_controls):
     shared_controls.pop("STOP_SIGN_DECEL_STATE", None)
     shared_controls.pop("STOP_SIGN_HOLD_SECONDS", None)
     shared_controls.pop("STOP_SIGN_RESUME_TIME", None)
     shared_controls.pop("STOP_SIGN_ACTIVE", None)
+    shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
 
 
 def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *, now=None):
@@ -210,16 +310,44 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         should_stop = True
 
     if should_stop:
+        shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
         if stop_sign_hold and shared_controls.get("STOP_SIGN_DECEL_STATE"):
             target_speed = _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time)
             _update_car_speed(shared_controls, lane_data, target_speed)
         else:
             _update_car_speed(shared_controls, lane_data, 0)
     else:
-        prev_speed = shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
-        if prev_speed is not None and lane_data.car_speed_data == 0:
-            _update_car_speed(shared_controls, lane_data, prev_speed)
-        _clear_stop_sign_state(shared_controls)
+        shared_controls.pop("STOP_SIGN_DECEL_STATE", None)
+        prev_speed = shared_controls.get("STOP_SIGN_PREV_SPEED")
+        if prev_speed is not None:
+            accel_state = shared_controls.get("STOP_SIGN_ACCEL_STATE")
+            if not accel_state:
+                _start_stop_sign_acceleration(
+                    shared_controls,
+                    lane_data.car_speed_data,
+                    prev_speed,
+                    tk_controls,
+                    current_time,
+                )
+
+            result = _apply_stop_sign_acceleration(shared_controls, tk_controls, current_time)
+            if result is not None:
+                speed, finished = result
+                _update_car_speed(shared_controls, lane_data, speed)
+                if finished:
+                    shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
+                    _clear_stop_sign_state(shared_controls)
+            else:
+                try:
+                    fallback_speed = int(prev_speed)
+                except (TypeError, ValueError):
+                    fallback_speed = 0
+                fallback_speed = max(0, fallback_speed)
+                _update_car_speed(shared_controls, lane_data, fallback_speed)
+                shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
+                _clear_stop_sign_state(shared_controls)
+        else:
+            _clear_stop_sign_state(shared_controls)
 
 
 def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
