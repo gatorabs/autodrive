@@ -44,6 +44,15 @@ def _get_stop_sign_deceleration_step(tk_controls):
     return max(1, step)
 
 
+def _get_stop_sign_deceleration_interval(tk_controls):
+    tk_controls = tk_controls or {}
+    try:
+        interval = float(tk_controls.get("StopDecelerationInterval", 0.2))
+    except (TypeError, ValueError):
+        interval = 0.2
+    return max(0.0, interval)
+
+
 def _record_stop_sign_requested_speed(shared_controls, lane_data, *, force=False):
     try:
         requested_speed = int(lane_data.car_speed_data)
@@ -62,10 +71,18 @@ def _record_stop_sign_requested_speed(shared_controls, lane_data, *, force=False
     shared_controls["STOP_SIGN_PREV_SPEED"] = requested_speed
 
 
-def _start_stop_sign_deceleration(shared_controls, initial_speed, tk_controls):
+def _start_stop_sign_deceleration(shared_controls, initial_speed, tk_controls, current_time):
+    step = _get_stop_sign_deceleration_step(tk_controls)
+    interval = _get_stop_sign_deceleration_interval(tk_controls)
+    try:
+        starting_speed = int(initial_speed)
+    except (TypeError, ValueError):
+        starting_speed = 0
     shared_controls["STOP_SIGN_DECEL_STATE"] = {
-        "current_speed": max(0, int(initial_speed)),
-        "step": _get_stop_sign_deceleration_step(tk_controls),
+        "current_speed": max(0, starting_speed),
+        "step": step,
+        "interval": interval,
+        "last_update": current_time - interval,
     }
 
 
@@ -87,10 +104,17 @@ def _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time):
         return 0
 
     current_speed = max(0, int(state.get("current_speed", 0)))
+    slider_step = _get_stop_sign_deceleration_step(tk_controls)
     step = state.get("step")
-    if not isinstance(step, int):
-        step = _get_stop_sign_deceleration_step(tk_controls)
+    if not isinstance(step, int) or step != slider_step:
+        step = slider_step
         state["step"] = step
+
+    slider_interval = _get_stop_sign_deceleration_interval(tk_controls)
+    interval = state.get("interval")
+    if not isinstance(interval, (int, float)) or interval != slider_interval:
+        interval = slider_interval
+        state["interval"] = interval
 
     if current_speed <= 0:
         state["current_speed"] = 0
@@ -98,8 +122,18 @@ def _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time):
         _ensure_stop_sign_hold_timer(shared_controls, current_time)
         return 0
 
+    last_update = state.get("last_update")
+    if not isinstance(last_update, (int, float)):
+        last_update = current_time - interval
+
+    if interval > 0 and current_time - last_update < interval:
+        state["last_update"] = last_update
+        shared_controls["STOP_SIGN_DECEL_STATE"] = state
+        return current_speed
+
     next_speed = max(current_speed - step, 0)
     state["current_speed"] = next_speed
+    state["last_update"] = current_time
     shared_controls["STOP_SIGN_DECEL_STATE"] = state
 
     if next_speed == 0:
@@ -145,7 +179,9 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         shared_controls["STOP_SIGN_HOLD_SECONDS"] = hold_seconds
         _record_stop_sign_requested_speed(shared_controls, lane_data, force=True)
         shared_controls["STOP_SIGN_IGNORE"] = True
-        _start_stop_sign_deceleration(shared_controls, lane_data.car_speed_data, tk_controls)
+        _start_stop_sign_deceleration(
+            shared_controls, lane_data.car_speed_data, tk_controls, current_time
+        )
         stop_sign_hold = True
 
     if custom_label != STOP_SIGN_LABEL and not shared_controls.get("STOP_SIGN_ACTIVE", False):
