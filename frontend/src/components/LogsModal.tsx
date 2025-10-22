@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Trash2, Download, Filter, Cpu, MemoryStick, HardDrive } from 'lucide-react';
 import { LogEntry } from '@/hooks/useLogs';
+import { endpoints } from '@/config/api';
 
 interface ProcessInfo {
   pid: number;
@@ -81,7 +82,7 @@ const LogsModal = ({ logs, onClearLogs, open, onOpenChange }: LogsModalProps) =>
   };
 
   const fetchProcesses = () => {
-    fetch('http://192.40.226.220:5000/api/v2/python-processes')
+    fetch(endpoints.pythonProcesses)
       .then(res => res.json())
       .then(data => setSystemInfo(data))
       .catch(err => console.error('Error fetching processes:', err));

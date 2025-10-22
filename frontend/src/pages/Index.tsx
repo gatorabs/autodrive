@@ -11,6 +11,7 @@ import { Cog } from "lucide-react";
 import PerformanceMonitor from "@/components/PerformanceMonitor";
 import LogsModal from "@/components/LogsModal";
 import { useLogsContext } from "@/contexts/LogsContext";
+import { endpoints } from "@/config/api";
 const RIGHT_SIGNAL_THRESH = 100;
 const LEFT_SIGNAL_THRESH = 80;
 
@@ -39,7 +40,7 @@ const Index = () => {
   const handleManualModeConfirm = async () => {
     setIsManualModeModalOpen(false);
     try {
-      await fetch('http://192.40.226.220:5000/api/v2/manual-mode', {
+      await fetch(endpoints.manualMode, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: true })
@@ -55,7 +56,7 @@ const Index = () => {
 
   useEffect(() => {
   const interval = setInterval(() => {
-    fetch("http://192.40.226.220:5000/api/car-info")
+    fetch(endpoints.carInfo)
       .then(res => res.json())
       .then(data => {
         if (data.manual_mode && data.webview) {
