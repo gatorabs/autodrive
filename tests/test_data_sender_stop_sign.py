@@ -115,4 +115,25 @@ def test_stop_sign_flow_gradual_speed_changes():
         later >= earlier for earlier, later in zip(accelerated_speeds, accelerated_speeds[1:])
     )
     assert not shared_controls.get("STOP_SIGN_ACTIVE", False)
+    assert shared_controls.get("STOP_SIGN_IGNORE", False) is True
+
+    # A continued stop-sign detection should be ignored until the label changes.
+    publish_emergency_stop(
+        obj_data,
+        shared_controls,
+        lane_data,
+        tk_controls,
+        now=resume_time + 1.0,
+    )
+    assert lane_data.car_speed_data == 150
+    assert shared_controls.get("STOP_SIGN_ACTIVE", False) is False
+
+    # When the stop sign is no longer detected, allow future detections again.
+    publish_emergency_stop(
+        _make_stop_object(label=""),
+        shared_controls,
+        lane_data,
+        tk_controls,
+        now=resume_time + 2.0,
+    )
     assert shared_controls.get("STOP_SIGN_IGNORE", False) is False

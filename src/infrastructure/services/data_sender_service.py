@@ -75,7 +75,6 @@ def _handle_stop_sign_state(shared_controls, lane_data, *, current_time):
         if _approach_speed(shared_controls, lane_data, target_speed):
             shared_controls["STOP_SIGN_ACTIVE"] = False
             shared_controls["STOP_SIGN_STATE"] = None
-            shared_controls["STOP_SIGN_IGNORE"] = False
             shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
             shared_controls.pop("STOP_SIGN_RESUME_TIME", None)
             shared_controls.pop("STOP_SIGN_HOLD_SECONDS", None)
