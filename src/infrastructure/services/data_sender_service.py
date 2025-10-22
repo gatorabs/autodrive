@@ -16,6 +16,7 @@ STOP_SIGN_SPEED_STEP = 10
 STOP_SIGN_DECELERATING = "DECELERATING"
 STOP_SIGN_HOLDING = "HOLDING"
 STOP_SIGN_ACCELERATING = "ACCELERATING"
+STOP_SIGN_PROGRESS_SPEED_KEY = "STOP_SIGN_PROGRESS_SPEED"
 
 
 def _update_car_speed(shared_controls, lane_data, speed):
@@ -31,27 +32,48 @@ def _resolve_custom_label(obj_data):
     return CUSTOM_OBJECT_LABEL_BY_CODE.get(obj_data.custom_object_data, "")
 
 
-def _approach_speed(shared_controls, lane_data, target_speed, step=STOP_SIGN_SPEED_STEP):
-    current_speed = lane_data.car_speed_data
-    if current_speed == target_speed:
-        return True
+def _approach_speed(
+    shared_controls,
+    lane_data,
+    target_speed,
+    *,
+    progress_key=None,
+    step=STOP_SIGN_SPEED_STEP,
+):
+    if progress_key is not None:
+        current_speed = shared_controls.get(progress_key, lane_data.car_speed_data)
+    else:
+        current_speed = lane_data.car_speed_data
 
-    if current_speed < target_speed:
+    if current_speed == target_speed:
+        reached_target = True
+        new_speed = target_speed
+    elif current_speed < target_speed:
         new_speed = min(target_speed, current_speed + step)
+        reached_target = new_speed == target_speed
     else:
         new_speed = max(target_speed, current_speed - step)
+        reached_target = new_speed == target_speed
 
-    if new_speed != current_speed:
+    if progress_key is not None:
+        shared_controls[progress_key] = new_speed
+
+    if new_speed != lane_data.car_speed_data:
         _update_car_speed(shared_controls, lane_data, new_speed)
 
-    return new_speed == target_speed
+    return reached_target
 
 
 def _handle_stop_sign_state(shared_controls, lane_data, *, current_time):
     state = shared_controls.get("STOP_SIGN_STATE")
 
     if state == STOP_SIGN_DECELERATING:
-        reached_zero = _approach_speed(shared_controls, lane_data, 0)
+        reached_zero = _approach_speed(
+            shared_controls,
+            lane_data,
+            0,
+            progress_key=STOP_SIGN_PROGRESS_SPEED_KEY,
+        )
         if reached_zero:
             hold_seconds = shared_controls.get("STOP_SIGN_HOLD_SECONDS", 0.0)
             resume_time = current_time + hold_seconds
@@ -65,6 +87,7 @@ def _handle_stop_sign_state(shared_controls, lane_data, *, current_time):
     if state == STOP_SIGN_HOLDING:
         if lane_data.car_speed_data != 0:
             _update_car_speed(shared_controls, lane_data, 0)
+        shared_controls[STOP_SIGN_PROGRESS_SPEED_KEY] = 0
         resume_time = shared_controls.get("STOP_SIGN_RESUME_TIME", current_time)
         if current_time >= resume_time:
             shared_controls["STOP_SIGN_STATE"] = STOP_SIGN_ACCELERATING
@@ -72,12 +95,18 @@ def _handle_stop_sign_state(shared_controls, lane_data, *, current_time):
 
     if state == STOP_SIGN_ACCELERATING:
         target_speed = shared_controls.get("STOP_SIGN_PREV_SPEED", 0)
-        if _approach_speed(shared_controls, lane_data, target_speed):
+        if _approach_speed(
+            shared_controls,
+            lane_data,
+            target_speed,
+            progress_key=STOP_SIGN_PROGRESS_SPEED_KEY,
+        ):
             shared_controls["STOP_SIGN_ACTIVE"] = False
             shared_controls["STOP_SIGN_STATE"] = None
             shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
             shared_controls.pop("STOP_SIGN_RESUME_TIME", None)
             shared_controls.pop("STOP_SIGN_HOLD_SECONDS", None)
+            shared_controls.pop(STOP_SIGN_PROGRESS_SPEED_KEY, None)
         return False
 
     return False
@@ -111,9 +140,11 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         shared_controls["STOP_SIGN_PREV_SPEED"] = lane_data.car_speed_data
         shared_controls["STOP_SIGN_HOLD_SECONDS"] = hold_seconds
         shared_controls["STOP_SIGN_IGNORE"] = True
+        shared_controls[STOP_SIGN_PROGRESS_SPEED_KEY] = lane_data.car_speed_data
 
     if custom_label != STOP_SIGN_LABEL and not shared_controls.get("STOP_SIGN_ACTIVE", False):
         shared_controls["STOP_SIGN_IGNORE"] = False
+        shared_controls.pop(STOP_SIGN_PROGRESS_SPEED_KEY, None)
 
     stop_sign_forcing_stop = False
     if shared_controls.get("STOP_SIGN_ACTIVE", False):

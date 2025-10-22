@@ -137,3 +137,67 @@ def test_stop_sign_flow_gradual_speed_changes():
         now=resume_time + 2.0,
     )
     assert shared_controls.get("STOP_SIGN_IGNORE", False) is False
+
+
+def test_stop_sign_deceleration_ignores_external_speed_resets():
+    lane_data = LaneData(car_speed_data=200)
+    obj_data = _make_stop_object()
+    shared_controls = {}
+    tk_controls = {"Timestamp": 1}
+
+    now = 0.0
+
+    publish_emergency_stop(
+        obj_data,
+        shared_controls,
+        lane_data,
+        tk_controls,
+        now=now,
+    )
+
+    assert shared_controls["STOP_SIGN_STATE"] == STOP_SIGN_DECELERATING
+    assert shared_controls["STOP_SIGN_PREV_SPEED"] == 200
+
+    # Even if another subsystem overrides the lane speed between calls,
+    # the stop-sign handler must continue decelerating until a full stop.
+    for _ in range(30):
+        now += 0.1
+        lane_data.car_speed_data = 200
+        publish_emergency_stop(
+            obj_data,
+            shared_controls,
+            lane_data,
+            tk_controls,
+            now=now,
+        )
+        if shared_controls["STOP_SIGN_STATE"] == STOP_SIGN_HOLDING:
+            break
+
+    assert shared_controls["STOP_SIGN_STATE"] == STOP_SIGN_HOLDING
+    assert lane_data.car_speed_data == 0
+
+    resume_time = shared_controls["STOP_SIGN_RESUME_TIME"]
+    publish_emergency_stop(
+        obj_data,
+        shared_controls,
+        lane_data,
+        tk_controls,
+        now=resume_time,
+    )
+    assert shared_controls["STOP_SIGN_STATE"] == STOP_SIGN_ACCELERATING
+
+    for _ in range(30):
+        resume_time += 0.1
+        lane_data.car_speed_data = 0
+        publish_emergency_stop(
+            obj_data,
+            shared_controls,
+            lane_data,
+            tk_controls,
+            now=resume_time,
+        )
+        if not shared_controls.get("STOP_SIGN_ACTIVE", False):
+            break
+
+    assert not shared_controls.get("STOP_SIGN_ACTIVE", False)
+    assert lane_data.car_speed_data == 200
