@@ -35,6 +35,86 @@ def _get_stop_hold_seconds(tk_controls):
     return max(0.0, hold_seconds)
 
 
+def _get_stop_sign_deceleration_step(tk_controls):
+    tk_controls = tk_controls or {}
+    try:
+        step = int(round(float(tk_controls.get("StopDecelerationStep", 10))))
+    except (TypeError, ValueError):
+        step = 10
+    return max(1, step)
+
+
+def _record_stop_sign_requested_speed(shared_controls, lane_data, *, force=False):
+    try:
+        requested_speed = int(lane_data.car_speed_data)
+    except (TypeError, ValueError):
+        return
+
+    requested_speed = max(0, min(255, requested_speed))
+
+    if not force:
+        decel_state = shared_controls.get("STOP_SIGN_DECEL_STATE")
+        if decel_state:
+            current_speed = max(0, int(decel_state.get("current_speed", 0)))
+            if requested_speed == current_speed:
+                return
+
+    shared_controls["STOP_SIGN_PREV_SPEED"] = requested_speed
+
+
+def _start_stop_sign_deceleration(shared_controls, initial_speed, tk_controls):
+    shared_controls["STOP_SIGN_DECEL_STATE"] = {
+        "current_speed": max(0, int(initial_speed)),
+        "step": _get_stop_sign_deceleration_step(tk_controls),
+    }
+
+
+def _ensure_stop_sign_hold_timer(shared_controls, current_time):
+    hold_seconds = shared_controls.get("STOP_SIGN_HOLD_SECONDS", 0.0)
+    if hold_seconds > 0:
+        resume_time = shared_controls.get("STOP_SIGN_RESUME_TIME")
+        if resume_time is None or current_time > resume_time:
+            shared_controls["STOP_SIGN_RESUME_TIME"] = current_time + hold_seconds
+        shared_controls["STOP_SIGN_ACTIVE"] = True
+    else:
+        shared_controls["STOP_SIGN_ACTIVE"] = False
+        shared_controls["STOP_SIGN_RESUME_TIME"] = current_time
+
+
+def _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time):
+    state = shared_controls.get("STOP_SIGN_DECEL_STATE")
+    if not state:
+        return 0
+
+    current_speed = max(0, int(state.get("current_speed", 0)))
+    step = state.get("step")
+    if not isinstance(step, int):
+        step = _get_stop_sign_deceleration_step(tk_controls)
+        state["step"] = step
+
+    if current_speed <= 0:
+        state["current_speed"] = 0
+        shared_controls["STOP_SIGN_DECEL_STATE"] = state
+        _ensure_stop_sign_hold_timer(shared_controls, current_time)
+        return 0
+
+    next_speed = max(current_speed - step, 0)
+    state["current_speed"] = next_speed
+    shared_controls["STOP_SIGN_DECEL_STATE"] = state
+
+    if next_speed == 0:
+        _ensure_stop_sign_hold_timer(shared_controls, current_time)
+
+    return next_speed
+
+
+def _clear_stop_sign_state(shared_controls):
+    shared_controls.pop("STOP_SIGN_DECEL_STATE", None)
+    shared_controls.pop("STOP_SIGN_HOLD_SECONDS", None)
+    shared_controls.pop("STOP_SIGN_RESUME_TIME", None)
+    shared_controls.pop("STOP_SIGN_ACTIVE", None)
+
+
 def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *, now=None):
     current_time = time.monotonic() if now is None else now
 
@@ -46,13 +126,14 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
     stop_sign_hold = False
 
     if stop_sign_active:
-        resume_time = shared_controls.get("STOP_SIGN_RESUME_TIME", current_time)
-        if current_time >= resume_time:
+        resume_time = shared_controls.get("STOP_SIGN_RESUME_TIME")
+        if resume_time is not None and current_time >= resume_time:
             shared_controls["STOP_SIGN_ACTIVE"] = False
+            shared_controls.pop("STOP_SIGN_RESUME_TIME", None)
+            shared_controls.pop("STOP_SIGN_HOLD_SECONDS", None)
         else:
             stop_sign_hold = True
-            if lane_data.car_speed_data > 0:
-                shared_controls["STOP_SIGN_PREV_SPEED"] = lane_data.car_speed_data
+            _record_stop_sign_requested_speed(shared_controls, lane_data)
 
     if (
         not shared_controls.get("STOP_SIGN_ACTIVE", False)
@@ -60,13 +141,21 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         and not stop_sign_ignore
     ):
         shared_controls["STOP_SIGN_ACTIVE"] = hold_seconds > 0
-        shared_controls["STOP_SIGN_RESUME_TIME"] = current_time + hold_seconds
-        shared_controls["STOP_SIGN_PREV_SPEED"] = lane_data.car_speed_data
+        shared_controls["STOP_SIGN_RESUME_TIME"] = None
+        shared_controls["STOP_SIGN_HOLD_SECONDS"] = hold_seconds
+        _record_stop_sign_requested_speed(shared_controls, lane_data, force=True)
         shared_controls["STOP_SIGN_IGNORE"] = True
+        _start_stop_sign_deceleration(shared_controls, lane_data.car_speed_data, tk_controls)
         stop_sign_hold = True
 
     if custom_label != STOP_SIGN_LABEL and not shared_controls.get("STOP_SIGN_ACTIVE", False):
         shared_controls["STOP_SIGN_IGNORE"] = False
+
+    decel_state = shared_controls.get("STOP_SIGN_DECEL_STATE")
+    if decel_state:
+        _record_stop_sign_requested_speed(shared_controls, lane_data)
+        if decel_state.get("current_speed", 0) > 0:
+            stop_sign_hold = True
 
     should_stop = (
         obj_data.object_person_data == 1
@@ -84,15 +173,17 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
     if stop_sign_hold:
         should_stop = True
 
-    if shared_controls.get("STOP_SIGN_ACTIVE", False) and current_time >= shared_controls.get("STOP_SIGN_RESUME_TIME", current_time):
-        shared_controls["STOP_SIGN_ACTIVE"] = False
-
     if should_stop:
-        _update_car_speed(shared_controls, lane_data, 0)
+        if stop_sign_hold and shared_controls.get("STOP_SIGN_DECEL_STATE"):
+            target_speed = _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time)
+            _update_car_speed(shared_controls, lane_data, target_speed)
+        else:
+            _update_car_speed(shared_controls, lane_data, 0)
     else:
         prev_speed = shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
         if prev_speed is not None and lane_data.car_speed_data == 0:
             _update_car_speed(shared_controls, lane_data, prev_speed)
+        _clear_stop_sign_state(shared_controls)
 
 
 def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
