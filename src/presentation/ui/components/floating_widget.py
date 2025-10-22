@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import Dict
+
 import customtkinter as ctk
 
 from src.infrastructure.data.repository.calibration_repository import (
@@ -225,6 +228,15 @@ class FloatingWidget(ctk.CTkFrame):
         self._close_checkbox_modal()
 
 
+@dataclass(frozen=True)
+class SettingsSliderConfig:
+    name: str
+    label: str
+    min_val: float
+    max_val: float
+    step: float = 1.0
+
+
 class SettingsFloatingWidget(ctk.CTkFrame):
     """Floating widget dedicated to quick access configuration controls."""
 
@@ -234,11 +246,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         tk_controls,
         calibration_data,
         *,
-        slider_name="BaseConf",
-        slider_label="YOLO Confidence",
-        slider_min=0,
-        slider_max=10,
-        slider_step=1,
+        slider_configs=None,
         **kwargs,
     ):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
@@ -246,11 +254,11 @@ class SettingsFloatingWidget(ctk.CTkFrame):
 
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
-        self.slider_name = slider_name
-        self.slider_label = slider_label
-        self.slider_min = slider_min
-        self.slider_max = slider_max
-        self.slider_step = slider_step
+        self.slider_configs = slider_configs or [
+            SettingsSliderConfig("BaseConf", "YOLO Confidence", 0, 10, 1),
+            SettingsSliderConfig("Timestamp", "Timestamp", 0, 10, 1),
+        ]
+        self.slider_controls: Dict[str, dict] = {}
 
         self.settings_modal = None
         self.settings_modal_open = False
@@ -326,81 +334,113 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         content = ctk.CTkFrame(self.settings_modal, fg_color="#2b2b2b")
         content.pack(fill="both", expand=True, padx=12, pady=12)
 
-        self._build_slider(content)
+        self.slider_controls = {}
+        self._build_sliders(content)
         self.settings_modal_open = True
 
-    def _build_slider(self, parent: ctk.CTkFrame) -> None:
-        row = ctk.CTkFrame(parent, fg_color="transparent")
-        row.pack(fill="x")
-        row.columnconfigure(1, weight=1)
+    def _build_sliders(self, parent: ctk.CTkFrame) -> None:
+        for index, config in enumerate(self.slider_configs):
+            row = ctk.CTkFrame(parent, fg_color="transparent")
+            pady = (0, 8) if index == len(self.slider_configs) - 1 else (0, 4)
+            row.pack(fill="x", pady=pady)
+            row.columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(row, text=self.slider_label).grid(row=0, column=0, padx=(10, 5))
+            ctk.CTkLabel(row, text=config.label).grid(row=0, column=0, padx=(10, 5))
 
-        num_steps = int(round((self.slider_max - self.slider_min) / self.slider_step))
-        self.slider = ctk.CTkSlider(
-            row,
-            from_=self.slider_min,
-            to=self.slider_max,
-            number_of_steps=num_steps,
-            command=lambda value: self._on_slider_change(value),
-        )
+            num_steps = self._calculate_steps(config)
+            slider = ctk.CTkSlider(
+                row,
+                from_=config.min_val,
+                to=config.max_val,
+                number_of_steps=num_steps,
+                command=lambda value, name=config.name: self._on_slider_change(name, value),
+            )
 
-        default_value = self._get_current_value()
-        self.slider.set(default_value)
-        self.slider.grid(row=0, column=1, padx=5, sticky="ew")
+            default_value = self._get_current_value(config)
+            slider.set(default_value)
+            slider.grid(row=0, column=1, padx=5, sticky="ew")
 
-        self.value_entry = ctk.CTkEntry(row, width=45)
-        self.value_entry.insert(0, self._format_value(default_value))
-        self.value_entry.grid(row=0, column=2, padx=(5, 10))
-        self.value_entry.bind("<Return>", self._on_value_submit)
-        self.value_entry.bind("<FocusOut>", self._on_value_focus_out)
+            entry = ctk.CTkEntry(row, width=55 if config.step < 1 else 45)
+            entry.insert(0, self._format_value(default_value, config.step))
+            entry.grid(row=0, column=2, padx=(5, 10))
+            entry.bind("<Return>", lambda event, name=config.name: self._on_value_submit(event, name))
+            entry.bind("<FocusOut>", lambda event, name=config.name: self._on_value_focus_out(event, name))
 
-    def _get_current_value(self) -> float:
-        if self.slider_name in self.calibration_data:
-            return self.calibration_data[self.slider_name]
-        return self.tk_controls.get(self.slider_name, self.slider_min)
+            self.slider_controls[config.name] = {
+                "slider": slider,
+                "entry": entry,
+                "config": config,
+            }
 
-    def _format_value(self, value: float) -> str:
-        if self.slider_step < 1:
+    def _calculate_steps(self, config: SettingsSliderConfig) -> int:
+        if config.step <= 0:
+            return 1
+        span = config.max_val - config.min_val
+        if span <= 0:
+            return 1
+        return max(1, int(round(span / config.step)))
+
+    def _get_current_value(self, config: SettingsSliderConfig) -> float:
+        if config.name in self.calibration_data:
+            return self.calibration_data[config.name]
+        return self.tk_controls.get(config.name, config.min_val)
+
+    def _format_value(self, value: float, step: float) -> str:
+        if step < 1:
             return f"{value:.3f}"
         return str(int(round(value)))
 
-    def _on_slider_change(self, value: float) -> None:
-        stepped_value = self._apply_step(value)
-        self.value_entry.delete(0, "end")
-        self.value_entry.insert(0, self._format_value(stepped_value))
-        self._persist_value(stepped_value)
+    def _on_slider_change(self, name: str, value: float) -> None:
+        slider_info = self.slider_controls.get(name)
+        if not slider_info:
+            return
+        config: SettingsSliderConfig = slider_info["config"]
+        stepped_value = self._apply_step(value, config)
+        entry: ctk.CTkEntry = slider_info["entry"]
+        entry.delete(0, "end")
+        entry.insert(0, self._format_value(stepped_value, config.step))
+        self._persist_value(name, stepped_value)
 
-    def _on_value_submit(self, event):
-        self._apply_entry_value()
+    def _on_value_submit(self, event, name: str):
+        self._apply_entry_value(name)
         event.widget.winfo_toplevel().focus()
 
-    def _on_value_focus_out(self, _event):
-        self._apply_entry_value()
+    def _on_value_focus_out(self, _event, name: str):
+        self._apply_entry_value(name)
 
-    def _apply_entry_value(self) -> None:
+    def _apply_entry_value(self, name: str) -> None:
+        slider_info = self.slider_controls.get(name)
+        if not slider_info:
+            return
+
+        entry: ctk.CTkEntry = slider_info["entry"]
+        slider: ctk.CTkSlider = slider_info["slider"]
+        config: SettingsSliderConfig = slider_info["config"]
+
         try:
-            value = float(self.value_entry.get())
+            value = float(entry.get())
         except ValueError:
-            value = self.slider.get()
+            value = slider.get()
 
-        value = max(min(value, self.slider_max), self.slider_min)
-        stepped_value = self._apply_step(value)
-        self.slider.set(stepped_value)
-        self.value_entry.delete(0, "end")
-        self.value_entry.insert(0, self._format_value(stepped_value))
-        self._persist_value(stepped_value)
+        value = max(min(value, config.max_val), config.min_val)
+        stepped_value = self._apply_step(value, config)
+        slider.set(stepped_value)
+        entry.delete(0, "end")
+        entry.insert(0, self._format_value(stepped_value, config.step))
+        self._persist_value(name, stepped_value)
 
-    def _apply_step(self, value: float) -> float:
-        stepped = round((value - self.slider_min) / self.slider_step) * self.slider_step + self.slider_min
-        if self.slider_step >= 1:
+    def _apply_step(self, value: float, config: SettingsSliderConfig) -> float:
+        if config.step <= 0:
+            return value
+        stepped = round((value - config.min_val) / config.step) * config.step + config.min_val
+        if config.step >= 1:
             return int(round(stepped))
         return stepped
 
-    def _persist_value(self, value: float) -> None:
-        self.tk_controls[self.slider_name] = value
-        self.calibration_data[self.slider_name] = value
-        refresh_json({self.slider_name: value}, CALIBRATION_FILE)
+    def _persist_value(self, name: str, value: float) -> None:
+        self.tk_controls[name] = value
+        self.calibration_data[name] = value
+        refresh_json({name: value}, CALIBRATION_FILE)
 
     def close_modal(self):
         self._close_settings_modal()

@@ -11,7 +11,6 @@ class ExtrasControls(SliderSection):
             SliderConfig("Distance", "Distance", 0, 270),
             SliderConfig("Speed", "Speed", 0, 255),
             SliderConfig("Side", "Side", 1, 2),
-            SliderConfig("Timestamp", "Timestamp", 0, 10)
         ]
 
         super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
