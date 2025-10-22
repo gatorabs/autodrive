@@ -26,17 +26,20 @@ def _resolve_custom_label(obj_data):
     return CUSTOM_OBJECT_LABEL_BY_CODE.get(obj_data.custom_object_data, "")
 
 
-def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *, now=None):
+def _get_stop_hold_seconds(tk_controls):
     tk_controls = tk_controls or {}
+    try:
+        hold_seconds = float(tk_controls.get("Timestamp", 5))
+    except (TypeError, ValueError):
+        hold_seconds = 5.0
+    return max(0.0, hold_seconds)
+
+
+def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *, now=None):
     current_time = time.monotonic() if now is None else now
 
-    try:
-        hold_seconds = float(tk_controls.get("Timestamp", 0) or 0)
-    except (TypeError, ValueError):
-        hold_seconds = 0.0
-    hold_seconds = max(0.0, hold_seconds)
-
     custom_label = _resolve_custom_label(obj_data)
+    hold_seconds = _get_stop_hold_seconds(tk_controls) if custom_label == STOP_SIGN_LABEL else 0.0
 
     stop_sign_ignore = shared_controls.get("STOP_SIGN_IGNORE", False)
     stop_sign_active = shared_controls.get("STOP_SIGN_ACTIVE", False)
@@ -51,7 +54,11 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
             if lane_data.car_speed_data > 0:
                 shared_controls["STOP_SIGN_PREV_SPEED"] = lane_data.car_speed_data
 
-    if not shared_controls.get("STOP_SIGN_ACTIVE", False) and custom_label == STOP_SIGN_LABEL and not stop_sign_ignore:
+    if (
+        not shared_controls.get("STOP_SIGN_ACTIVE", False)
+        and custom_label == STOP_SIGN_LABEL
+        and not stop_sign_ignore
+    ):
         shared_controls["STOP_SIGN_ACTIVE"] = hold_seconds > 0
         shared_controls["STOP_SIGN_RESUME_TIME"] = current_time + hold_seconds
         shared_controls["STOP_SIGN_PREV_SPEED"] = lane_data.car_speed_data

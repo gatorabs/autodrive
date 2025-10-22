@@ -25,6 +25,7 @@
     "br_x": 430,
     "br_y": 270,
     "Distance": 160,
+    "Timestamp": 5,
     "Lines": 10,
     "SHOW_LINES": false
 }
