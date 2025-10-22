@@ -6,8 +6,9 @@ class ObjectRoiSection(SliderSection):
         sliders = [
             SliderConfig("Person", "Person", 0, 240),
             SliderConfig("Traffic", "Traffic Sign", 0, 240),
-            SliderConfig("Ex1", "Extra Object", 0, 10),
-            SliderConfig("Ex2", "Extra Object 2", 0, 10),
+            SliderConfig("PLACA_PARE", "Placa Pare", 0, 240),
+            SliderConfig("PLACA_DESVIO", "Placa Desvio", 0, 240),
+            SliderConfig("PLACA_LOMBADA", "Placa Lombada", 0, 240),
             SliderConfig("BaseConf", "YOLO Confidence", 0, 10),
             SliderConfig("PeopleRegion", "People Region", 10, 100),
         ]

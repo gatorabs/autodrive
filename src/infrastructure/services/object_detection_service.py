@@ -3,6 +3,15 @@ import numpy as np
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 
+
+CUSTOM_OBJECT_PRIORITY = [
+    ("PLACA_PARE", 1),
+    ("PLACA_DESVIO", 2),
+    ("PLACA_LOMBADA", 3),
+]
+CUSTOM_OBJECT_CODE_BY_LABEL = {label: code for label, code in CUSTOM_OBJECT_PRIORITY}
+CUSTOM_OBJECT_LABEL_BY_CODE = {code: label for label, code in CUSTOM_OBJECT_PRIORITY}
+
 def process_traffic_light_roi(roi):
     active_color = "Unknown"
     color_bgr = (255, 255, 255)  # branco padrão
@@ -55,11 +64,24 @@ def publish_results(
     traffic_light_state,
     object_queue,
     frame,
-    custom_object_detected=False,
+    detected_custom_objects=None,
 ):
     shared_serial_data[2] = 1 if person_detected else 0
     shared_serial_data[1] = traffic_light_state
-    custom_serial_value = 1 if custom_object_detected else 0
+
+    if detected_custom_objects is None:
+        detected_custom_objects = set()
+    else:
+        detected_custom_objects = set(detected_custom_objects)
+
+    custom_label = ""
+    custom_serial_value = 0
+    for label, code in CUSTOM_OBJECT_PRIORITY:
+        if label in detected_custom_objects:
+            custom_label = label
+            custom_serial_value = code
+            break
+
     if len(shared_serial_data) > 0:
         shared_serial_data[0] = custom_serial_value
 
@@ -72,6 +94,7 @@ def publish_results(
         "CUSTOM_OBJECT_DATA": (
             shared_serial_data[0] if len(shared_serial_data) > 0 else custom_serial_value
         ),
+        "CUSTOM_OBJECT_LABEL": custom_label,
     }
     if not object_queue.full():
         object_queue.put(object_data)
@@ -89,6 +112,7 @@ def force_default_object_data(object_queue, shared_serial_data, shared_controls,
         "CUSTOM_OBJECT_DATA": (
             shared_serial_data[0] if len(shared_serial_data) > 0 else custom_serial_value
         ),
+        "CUSTOM_OBJECT_LABEL": "",
     }
     if not object_queue.full():
         object_queue.put(object_data)

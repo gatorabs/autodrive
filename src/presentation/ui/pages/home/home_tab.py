@@ -69,6 +69,6 @@ class HomeTab(ctk.CTkFrame):
 
         col2 = ctk.CTkFrame(self, fg_color="transparent")
         col2.grid(row=1, column=2, sticky="nsew")
-        self.object_roi_controls = _make_section(col2, 220, ObjectRoiSection, tk_controls, calibration_data)
+        self.object_roi_controls = _make_section(col2, 260, ObjectRoiSection, tk_controls, calibration_data)
         self.extras_controls = _make_section(col2, 210, ExtrasControls, tk_controls, shared_controls, shared_controls)
 
