@@ -218,6 +218,5 @@ class FloatingWidget(ctk.CTkFrame):
         self._close_save_modal()
 
     def close_modal(self):
-        """Close any open modal to prevent orphaned windows when switching tabs."""
         self._close_save_modal()
         self._close_checkbox_modal()

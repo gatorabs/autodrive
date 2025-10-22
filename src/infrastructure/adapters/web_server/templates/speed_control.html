@@ -13,7 +13,6 @@
   <main>
     <header>
       <h1>Controle de Velocidade</h1>
-      <p>Ajuste a intensidade desejada e confirme para enviar ao veículo.</p>
     </header>
     <section class="slider-group">
       <label for="speedSlider">
@@ -23,9 +22,6 @@
       <input id="speedSlider" type="range" min="0" max="255" value="0" step="1">
     </section>
     <button type="button" id="sendSpeedButton">Enviar velocidade</button>
-    <footer>
-      <strong>Dica:</strong> utilize toques suaves, sem necessidade de zoom, mesmo em telas menores.
-    </footer>
   </main>
 
   <script src="{{ url_for('static', filename='speed_control.js') }}" defer></script>
