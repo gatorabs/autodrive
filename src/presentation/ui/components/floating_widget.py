@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict
+from typing import Callable, Dict, Optional
 
 import customtkinter as ctk
 
@@ -13,6 +13,35 @@ from src.infrastructure.constants.ui_constants.file_constants import (
     DEFAULTS_FILE,
 )
 from src.presentation.ui.components.checkbox import CheckboxSection
+
+
+def _destroy_modal_window(modal: Optional[ctk.CTkToplevel]) -> None:
+    if modal is None:
+        return
+    try:
+        modal.grab_release()
+        modal.destroy()
+    except ctk.TclError:
+        pass
+
+
+def _calculate_modal_geometry(
+    parent: ctk.CTkBaseClass,
+    button: ctk.CTkBaseClass,
+    width: int,
+    height: int,
+    *,
+    x_offset: int = 0,
+    y_offset: int = 0,
+) -> str:
+    parent.update_idletasks()
+    parent_x = parent.winfo_rootx()
+    parent_y = parent.winfo_rooty()
+    button_x = button.winfo_rootx() - parent_x
+    button_y = button.winfo_rooty() - parent_y
+    modal_x = parent_x + button_x - width + x_offset
+    modal_y = parent_y + button_y - height + y_offset
+    return f"{width}x{height}+{modal_x}+{modal_y}"
 
 
 class FloatingWidget(ctk.CTkFrame):
@@ -80,67 +109,84 @@ class FloatingWidget(ctk.CTkFrame):
 
     def toggle_save_modal(self):
         if self.save_modal_open:
-            self._close_save_modal()
+            self._hide_modal("save_modal", "save_modal_open")
             return
-        self._close_checkbox_modal()
+        self._hide_modal("checkbox_modal", "checkbox_modal_open")
         self._open_save_modal()
 
     def toggle_checkbox_modal(self):
         if self.checkbox_modal_open:
-            self._close_checkbox_modal()
+            self._hide_modal("checkbox_modal", "checkbox_modal_open")
             return
-        self._close_save_modal()
+        self._hide_modal("save_modal", "save_modal_open")
         self._open_checkbox_modal()
 
-    def _close_save_modal(self):
-        if self.save_modal_open and self.save_modal:
-            try:
-                self.save_modal.grab_release()
-                self.save_modal.destroy()
-            except ctk.TclError:
-                pass
-            finally:
-                self.save_modal = None
-                self.save_modal_open = False
+    def _hide_modal(self, modal_attr: str, open_flag_attr: str) -> None:
+        modal: Optional[ctk.CTkToplevel] = getattr(self, modal_attr, None)
+        _destroy_modal_window(modal)
+        setattr(self, modal_attr, None)
+        setattr(self, open_flag_attr, False)
 
-    def _close_checkbox_modal(self):
-        if self.checkbox_modal_open and self.checkbox_modal:
-            try:
-                self.checkbox_modal.grab_release()
-                self.checkbox_modal.destroy()
-            except ctk.TclError:
-                pass
-            finally:
-                self.checkbox_modal = None
-                self.checkbox_modal_open = False
+    def _open_modal(
+        self,
+        *,
+        modal_attr: str,
+        open_flag_attr: str,
+        button: ctk.CTkBaseClass,
+        width: int,
+        height: int,
+        title: str,
+        builder: Callable[[ctk.CTkToplevel], None],
+        x_offset: int = 0,
+        y_offset: int = 0,
+    ) -> None:
+        self._hide_modal(modal_attr, open_flag_attr)
+
+        modal = ctk.CTkToplevel(self.master)
+        modal.title(title)
+        modal.resizable(False, False)
+        modal.configure(fg_color="#2b2b2b")
+        modal.geometry(
+            _calculate_modal_geometry(
+                self.master, button, width, height, x_offset=x_offset, y_offset=y_offset
+            )
+        )
+        modal.transient(self.master)
+        modal.grab_set()
+        modal.protocol(
+            "WM_DELETE_WINDOW",
+            lambda: self._hide_modal(modal_attr, open_flag_attr),
+        )
+
+        setattr(self, modal_attr, modal)
+        builder(modal)
+        setattr(self, open_flag_attr, True)
 
     def _open_save_modal(self):
-        if self.save_modal:
-            try:
-                self.save_modal.destroy()
-            except ctk.TclError:
-                pass
+        self._open_modal(
+            modal_attr="save_modal",
+            open_flag_attr="save_modal_open",
+            button=self.floating_button,
+            width=self.save_modal_width,
+            height=self.save_modal_height,
+            title="Opções de Salvar",
+            builder=self._build_save_modal,
+        )
 
-        self.save_modal = ctk.CTkToplevel(self.master)
-        self.save_modal.title("Opções de Salvar")
-        self.save_modal.resizable(False, False)
-        self.save_modal.configure(fg_color="#2b2b2b")
+    def _open_checkbox_modal(self):
+        self._open_modal(
+            modal_attr="checkbox_modal",
+            open_flag_attr="checkbox_modal_open",
+            button=self.checkboxes_button,
+            width=self.checkbox_modal_width,
+            height=self.checkbox_modal_height,
+            title="Opções Extras",
+            builder=self._build_checkbox_modal,
+            x_offset=self.checkboxes_button.winfo_width(),
+        )
 
-        self.master.update_idletasks()
-        parent_x = self.master.winfo_rootx()
-        parent_y = self.master.winfo_rooty()
-        button_x = self.floating_button.winfo_rootx() - parent_x
-        button_y = self.floating_button.winfo_rooty() - parent_y
-        modal_x = parent_x + button_x - self.save_modal_width
-        modal_y = parent_y + button_y - self.save_modal_height
-        geometry = f"{self.save_modal_width}x{self.save_modal_height}+{modal_x}+{modal_y}"
-        self.save_modal.geometry(geometry)
-
-        self.save_modal.transient(self.master)
-        self.save_modal.grab_set()
-        self.save_modal.protocol("WM_DELETE_WINDOW", self._close_save_modal)
-
-        btn_frame = ctk.CTkFrame(self.save_modal, fg_color="#2b2b2b")
+    def _build_save_modal(self, modal: ctk.CTkToplevel) -> None:
+        btn_frame = ctk.CTkFrame(modal, fg_color="#2b2b2b")
         btn_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         self.button1 = ctk.CTkButton(
@@ -168,40 +214,8 @@ class FloatingWidget(ctk.CTkFrame):
         self.button1.pack(side="left", padx=(0, 10))
         self.button2.pack(side="left")
 
-        self.save_modal_open = True
-
-    def _open_checkbox_modal(self):
-        if self.checkbox_modal:
-            try:
-                self.checkbox_modal.destroy()
-            except ctk.TclError:
-                pass
-
-        self.checkbox_modal = ctk.CTkToplevel(self.master)
-        self.checkbox_modal.title("Opções Extras")
-        self.checkbox_modal.resizable(False, False)
-        self.checkbox_modal.configure(fg_color="#2b2b2b")
-
-        self.master.update_idletasks()
-        parent_x = self.master.winfo_rootx()
-        parent_y = self.master.winfo_rooty()
-        button_x = self.checkboxes_button.winfo_rootx() - parent_x
-        button_y = self.checkboxes_button.winfo_rooty() - parent_y
-        modal_x = (
-            parent_x
-            + button_x
-            - self.checkbox_modal_width
-            + self.checkboxes_button.winfo_width()
-        )
-        modal_y = parent_y + button_y - self.checkbox_modal_height
-        geometry = f"{self.checkbox_modal_width}x{self.checkbox_modal_height}+{modal_x}+{modal_y}"
-        self.checkbox_modal.geometry(geometry)
-
-        self.checkbox_modal.transient(self.master)
-        self.checkbox_modal.grab_set()
-        self.checkbox_modal.protocol("WM_DELETE_WINDOW", self._close_checkbox_modal)
-
-        content = ctk.CTkFrame(self.checkbox_modal, fg_color="#2b2b2b")
+    def _build_checkbox_modal(self, modal: ctk.CTkToplevel) -> None:
+        content = ctk.CTkFrame(modal, fg_color="#2b2b2b")
         content.pack(fill="both", expand=True, padx=12, pady=15)
 
         CheckboxSection(
@@ -213,19 +227,17 @@ class FloatingWidget(ctk.CTkFrame):
             columns=3,
         ).pack(fill="both", expand=True)
 
-        self.checkbox_modal_open = True
-
     def button_1_action(self):
         refresh_json(self.tk_controls, self.DEFAULTS_FILE, only_existing_keys=True)
-        self._close_save_modal()
+        self._hide_modal("save_modal", "save_modal_open")
 
     def button_2_action(self):
         self.master.restore_defaults()
-        self._close_save_modal()
+        self._hide_modal("save_modal", "save_modal_open")
 
     def close_modal(self):
-        self._close_save_modal()
-        self._close_checkbox_modal()
+        self._hide_modal("save_modal", "save_modal_open")
+        self._hide_modal("checkbox_modal", "checkbox_modal_open")
 
 
 @dataclass(frozen=True)
@@ -287,45 +299,29 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         self._open_settings_modal()
 
     def _close_settings_modal(self):
-        if self.settings_modal_open and self.settings_modal:
-            try:
-                self.settings_modal.grab_release()
-                self.settings_modal.destroy()
-            except ctk.TclError:
-                pass
-            finally:
-                self.settings_modal = None
-                self.settings_modal_open = False
+        if self.settings_modal_open:
+            _destroy_modal_window(self.settings_modal)
+            self.settings_modal = None
+            self.settings_modal_open = False
 
     def _open_settings_modal(self):
-        if self.settings_modal:
-            try:
-                self.settings_modal.destroy()
-            except ctk.TclError:
-                pass
+        _destroy_modal_window(self.settings_modal)
 
+        modal_width = 320
+        modal_height = 120
         self.settings_modal = ctk.CTkToplevel(self.master)
         self.settings_modal.title("Configurações")
         self.settings_modal.resizable(False, False)
         self.settings_modal.configure(fg_color="#2b2b2b")
-
-        self.master.update_idletasks()
-        parent_x = self.master.winfo_rootx()
-        parent_y = self.master.winfo_rooty()
-        button_x = self.settings_button.winfo_rootx() - parent_x
-        button_y = self.settings_button.winfo_rooty() - parent_y
-
-        modal_width = 320
-        modal_height = 120
-        modal_x = (
-            parent_x
-            + button_x
-            - modal_width
-            + self.settings_button.winfo_width()
+        self.settings_modal.geometry(
+            _calculate_modal_geometry(
+                self.master,
+                self.settings_button,
+                modal_width,
+                modal_height,
+                x_offset=self.settings_button.winfo_width(),
+            )
         )
-        modal_y = parent_y + button_y - modal_height
-        geometry = f"{modal_width}x{modal_height}+{modal_x}+{modal_y}"
-        self.settings_modal.geometry(geometry)
 
         self.settings_modal.transient(self.master)
         self.settings_modal.grab_set()

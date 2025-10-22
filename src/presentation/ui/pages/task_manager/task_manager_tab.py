@@ -1,8 +1,21 @@
+from dataclasses import dataclass
+
 import customtkinter as ctk
-from src.infrastructure.services.python_process_service import get_active_python_processes
 from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+from src.infrastructure.services.python_process_service import (
+    get_active_python_processes,
+)
+
+
+@dataclass
+class ProcessMetrics:
+    labels: list[str]
+    memory: list[float]
+    cpu: list[float]
+    io: list[float]
 
 class TaskManagerTab(ctk.CTkFrame):
     """Aba de gerenciamento de processos Python com estatísticas de CPU, memória e I/O."""
@@ -151,51 +164,64 @@ class TaskManagerTab(ctk.CTkFrame):
         )
 
     def update_table(self):
-        # Se a aba não estiver visível, apenas reagenda sem atualizar
         if not self.winfo_ismapped():
             self.after(2000, self.update_table)
             return
 
         data = get_active_python_processes()
+        processes = data.get("processes", [])
+        metrics = self._populate_table(processes)
+        self._update_summary(data, len(processes))
+        self._update_chart(metrics)
+        self.after(2000, self.update_table)
 
+    def _populate_table(self, processes: list[dict]) -> ProcessMetrics:
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        labels, mems, cpus, ios = [], [], [], []
-        for proc in data["processes"]:
-            pid = proc["pid"]
-            prio = proc["priority"]
-            mem = proc["memory_mb"]
-            cpu = proc["cpu_percent"]
-            io_sum = proc["io_mb"]
+        metrics = ProcessMetrics(labels=[], memory=[], cpu=[], io=[])
 
-            labels.append(str(pid))
-            mems.append(mem)
-            cpus.append(cpu)
-            ios.append(io_sum)
+        for proc in processes:
+            pid = proc.get("pid")
+            prio = proc.get("priority")
+            mem = proc.get("memory_mb", 0.0)
+            cpu = proc.get("cpu_percent", 0.0)
+            io_sum = proc.get("io_mb", 0.0)
 
-            values = (proc["name"], pid, prio, f"{mem:.2f}")
+            metrics.labels.append(str(pid))
+            metrics.memory.append(mem)
+            metrics.cpu.append(cpu)
+            metrics.io.append(io_sum)
+
+            values = (proc.get("name"), pid, prio, f"{mem:.2f}")
             tags = [prio]
-            row_tag = "evenrow" if len(labels) % 2 == 0 else "oddrow"
+            row_tag = "evenrow" if len(metrics.labels) % 2 == 0 else "oddrow"
             tags.append(row_tag)
             self.tree.insert("", "end", values=values, tags=tags)
 
+        return metrics
+
+    def _update_summary(self, data: dict, process_count: int) -> None:
+        total_ram = data.get("total_ram_mb", 0.0)
+        system_cpu = data.get("system_cpu", 0.0)
+        process_total = data.get("process_count", process_count)
         self.summary_label.configure(
             text=(
-                f"Python processes: {data['process_count']} | Total RAM: {data['total_ram_mb']:.2f} MB | "
-                f"System CPU: {data['system_cpu']:.1f}%"
+                f"Python processes: {process_total} | Total RAM: {total_ram:.2f} MB | "
+                f"System CPU: {system_cpu:.1f}%"
             ),
         )
 
+    def _update_chart(self, metrics: ProcessMetrics) -> None:
         metric = self.metric_var.get()
         if metric == "Memory":
-            x_vals, y_vals = mems, labels
+            x_vals, y_vals = metrics.memory, metrics.labels
             xlabel, title = "MB", "Memória (MB) por Processo"
         elif metric == "CPU":
-            x_vals, y_vals = cpus, labels
+            x_vals, y_vals = metrics.cpu, metrics.labels
             xlabel, title = "% CPU (total)", "Uso de CPU (%) por Processo"
         else:
-            x_vals, y_vals = ios, labels
+            x_vals, y_vals = metrics.io, metrics.labels
             xlabel, title = "I/O (MB)", "I/O (MB) por Processo"
 
         self.ax.clear()
@@ -208,7 +234,4 @@ class TaskManagerTab(ctk.CTkFrame):
         self.ax.tick_params(axis="y", colors="#f5f5f5")
         self.fig.tight_layout()
         self.canvas.draw()
-
-        # Agenda próxima atualização
-        self.after(2000, self.update_table)
 
