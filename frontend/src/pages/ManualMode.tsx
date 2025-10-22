@@ -12,7 +12,6 @@ const ManualMode = () => {
     const [controlData, setControlData] = useState<ManualControlData>({ x: 0, y: 0 });
     const [fps, setFps] = useState(0);
     const [frameTime, setFrameTime] = useState(0);
-    const [isRunning, setIsRunning] = useState(true);
 
     const [isExitModalOpen, setIsExitModalOpen] = useState(false);
 
@@ -53,14 +52,10 @@ const ManualMode = () => {
                         setFps(data.time_info.fps);
                         setFrameTime(data.time_info.total_processing_time);
                     }
-                    if (typeof data.running === 'boolean') {
-                        setIsRunning(data.running);
-                    }
                 })
                 .catch(() => {
                     setFps(0);
                     setFrameTime(0);
-                    setIsRunning(false);
                 });
         }, 500);
 
@@ -85,14 +80,7 @@ const ManualMode = () => {
                             </Button>
                         </div>
 
-                        <div className="flex items-center space-x-4">
-                            <div className="bg-orange-500/20 border border-orange-500/30 px-4 py-2 rounded-md">
-                                <span className={isRunning ? 'text-orange-300' : 'text-red-400'}>
-                                    ● {isRunning ? 'Modo Manual Ativo' : 'Sistema Inativo'}
-                                </span>
-                            </div>
-                            <PerformanceMonitor fps={fps} frameTime={frameTime} />
-                        </div>
+                        <PerformanceMonitor fps={fps} frameTime={frameTime} />
                     </div>
                 </header>
 
@@ -112,7 +100,7 @@ const ManualMode = () => {
                                     </div>
                                     <div>
                                         <div className="font-semibold text-white">Velocidade</div>
-                                        <div>{controlData.y > 0.1 ? 'Frente' : controlData.y < -0.1 ? 'Ré' : 'Parado'}</div>
+                                        <div>{controlData.y > 0.1 ? 'Frente' : 'Parado'}</div>
                                     </div>
                                 </div>
                             </div>
@@ -131,17 +119,12 @@ const ManualMode = () => {
 
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-400">Velocidade:</span>
-                                    <span className="text-white">{Math.abs(controlData.y * 100).toFixed(0)}%</span>
+                                    <span className="text-white">{(controlData.y * 100).toFixed(0)}%</span>
                                 </div>
 
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-400">Direção:</span>
                                     <span className="text-white">{(controlData.x * 45).toFixed(0)}°</span>
-                                </div>
-
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-400">Sistema:</span>
-                                    <span className={isRunning ? 'text-green-400' : 'text-red-400'}>{isRunning ? 'Operacional' : 'Inativo'}</span>
                                 </div>
                             </div>
                         </div>

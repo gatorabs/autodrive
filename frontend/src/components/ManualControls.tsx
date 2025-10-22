@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 export interface ManualControlData {
   x: number; // steering -1 to 1
-  y: number; // throttle -1 to 1
+  y: number; // throttle 0 to 1
 }
 
 interface ManualControlsProps {
@@ -47,20 +47,19 @@ const ManualControls: React.FC<ManualControlsProps> = ({ onControlChange }) => {
           </button>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-xs text-gray-400 w-8 text-left">Ré</span>
+          <span className="text-xs text-gray-400 w-10 text-left">0%</span>
           <input
             type="range"
-            min={-100}
+            min={0}
             max={100}
             value={throttle}
             onChange={handleThrottleChange}
             className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
           />
-          <span className="text-xs text-gray-400 w-12 text-right">Frente</span>
+          <span className="text-xs text-gray-400 w-12 text-right">100%</span>
         </div>
         <div className="mt-2 text-xs text-gray-400 text-center">
           {throttle > 0 && `Avançando (${throttle}%)`}
-          {throttle < 0 && `Recuando (${Math.abs(throttle)}%)`}
           {throttle === 0 && 'Parado'}
         </div>
       </div>
