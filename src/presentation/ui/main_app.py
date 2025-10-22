@@ -124,6 +124,7 @@ class MainApp(ctk.CTk):
         )
 
         self.floating_widget = self.home_frame.floating_widget
+        self.settings_widget = self.home_frame.settings_widget
         self.normal_frame = self.home_frame.normal_frame
         self.edges_frame = self.home_frame.edges_frame
         self.object_frame = self.home_frame.object_frame
@@ -236,6 +237,7 @@ class MainApp(ctk.CTk):
     def on_tab_change(self, previous, current):
         if previous == "Home" and current != "Home":
             self.floating_widget.close_modal()
+            self.settings_widget.close_modal()
 
     def on_home_selected(self, tab_name):
         if self.tk_controls.get("MANUAL_MD", False):

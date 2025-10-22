@@ -9,7 +9,6 @@ class ObjectRoiSection(SliderSection):
             SliderConfig("PLACA_PARE", "Placa Pare", 0, 240),
             SliderConfig("PLACA_DESVIO", "Placa Desvio", 0, 240),
             SliderConfig("PLACA_LOMBADA", "Placa Lombada", 0, 240),
-            SliderConfig("BaseConf", "YOLO Confidence", 0, 10),
             SliderConfig("PeopleRegion", "People Region", 10, 100),
         ]
         super().__init__(master, "ROI de Objetos", tk_controls, calibration_data, sliders, **kwargs)

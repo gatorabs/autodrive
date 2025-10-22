@@ -10,8 +10,9 @@ from .sections.source_serial_section import SourceAndSerialControls
 from src.infrastructure.constants.ui_constants.component_constants import (
     FRAME_WIDTH_T,
     FRAME_HEIGHT_T,
+    OBJECT_ROI_SECTION_HEIGHT,
 )
-from ...components.floating_widget import FloatingWidget
+from ...components.floating_widget import FloatingWidget, SettingsFloatingWidget
 
 class HomeTab(ctk.CTkFrame):
     def __init__(self, master, tk_controls, calibration_data, shared_controls, init_data, **kwargs):
@@ -24,8 +25,9 @@ class HomeTab(ctk.CTkFrame):
         self.grid_rowconfigure((0, 1), weight=0)
         self.grid_columnconfigure((0, 1, 2), weight=1, uniform="col")
 
-        # Floating widget lives on the main window
+        # Floating widgets live on the main window
         self.floating_widget = FloatingWidget(master, tk_controls, shared_controls)
+        self.settings_widget = SettingsFloatingWidget(master, tk_controls, calibration_data)
 
         VIDEO_WIDTH, VIDEO_HEIGHT = FRAME_WIDTH_T, FRAME_HEIGHT_T
 
@@ -69,6 +71,12 @@ class HomeTab(ctk.CTkFrame):
 
         col2 = ctk.CTkFrame(self, fg_color="transparent")
         col2.grid(row=1, column=2, sticky="nsew")
-        self.object_roi_controls = _make_section(col2, 260, ObjectRoiSection, tk_controls, calibration_data)
+        self.object_roi_controls = _make_section(
+            col2,
+            OBJECT_ROI_SECTION_HEIGHT,
+            ObjectRoiSection,
+            tk_controls,
+            calibration_data,
+        )
         self.extras_controls = _make_section(col2, 210, ExtrasControls, tk_controls, shared_controls, shared_controls)
 

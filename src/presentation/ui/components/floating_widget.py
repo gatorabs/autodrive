@@ -5,7 +5,10 @@ from src.infrastructure.data.repository.calibration_repository import (
     refresh_json,
     save_data,
 )
-from src.infrastructure.constants.ui_constants.file_constants import DEFAULTS_FILE
+from src.infrastructure.constants.ui_constants.file_constants import (
+    CALIBRATION_FILE,
+    DEFAULTS_FILE,
+)
 from src.presentation.ui.components.checkbox import CheckboxSection
 
 
@@ -220,3 +223,184 @@ class FloatingWidget(ctk.CTkFrame):
     def close_modal(self):
         self._close_save_modal()
         self._close_checkbox_modal()
+
+
+class SettingsFloatingWidget(ctk.CTkFrame):
+    """Floating widget dedicated to quick access configuration controls."""
+
+    def __init__(
+        self,
+        master,
+        tk_controls,
+        calibration_data,
+        *,
+        slider_name="BaseConf",
+        slider_label="YOLO Confidence",
+        slider_min=0,
+        slider_max=10,
+        slider_step=1,
+        **kwargs,
+    ):
+        super().__init__(master, fg_color="#2b2b2b", **kwargs)
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-590, y=-27)
+
+        self.tk_controls = tk_controls
+        self.calibration_data = calibration_data
+        self.slider_name = slider_name
+        self.slider_label = slider_label
+        self.slider_min = slider_min
+        self.slider_max = slider_max
+        self.slider_step = slider_step
+
+        self.settings_modal = None
+        self.settings_modal_open = False
+
+        self._setup_button()
+
+    def _setup_button(self) -> None:
+        button_row = ctk.CTkFrame(self, fg_color="transparent")
+        button_row.pack(anchor="e")
+
+        self.settings_button = ctk.CTkButton(
+            button_row,
+            text="⚙️",
+            width=40,
+            height=40,
+            corner_radius=10,
+            font=ctk.CTkFont(size=15),
+            command=self.toggle_settings_modal,
+        )
+        self.settings_button.pack(side="right")
+
+    def toggle_settings_modal(self):
+        if self.settings_modal_open:
+            self._close_settings_modal()
+            return
+        self._open_settings_modal()
+
+    def _close_settings_modal(self):
+        if self.settings_modal_open and self.settings_modal:
+            try:
+                self.settings_modal.grab_release()
+                self.settings_modal.destroy()
+            except ctk.TclError:
+                pass
+            finally:
+                self.settings_modal = None
+                self.settings_modal_open = False
+
+    def _open_settings_modal(self):
+        if self.settings_modal:
+            try:
+                self.settings_modal.destroy()
+            except ctk.TclError:
+                pass
+
+        self.settings_modal = ctk.CTkToplevel(self.master)
+        self.settings_modal.title("Configurações")
+        self.settings_modal.resizable(False, False)
+        self.settings_modal.configure(fg_color="#2b2b2b")
+
+        self.master.update_idletasks()
+        parent_x = self.master.winfo_rootx()
+        parent_y = self.master.winfo_rooty()
+        button_x = self.settings_button.winfo_rootx() - parent_x
+        button_y = self.settings_button.winfo_rooty() - parent_y
+
+        modal_width = 320
+        modal_height = 120
+        modal_x = (
+            parent_x
+            + button_x
+            - modal_width
+            + self.settings_button.winfo_width()
+        )
+        modal_y = parent_y + button_y - modal_height
+        geometry = f"{modal_width}x{modal_height}+{modal_x}+{modal_y}"
+        self.settings_modal.geometry(geometry)
+
+        self.settings_modal.transient(self.master)
+        self.settings_modal.grab_set()
+        self.settings_modal.protocol("WM_DELETE_WINDOW", self._close_settings_modal)
+
+        content = ctk.CTkFrame(self.settings_modal, fg_color="#2b2b2b")
+        content.pack(fill="both", expand=True, padx=12, pady=12)
+
+        self._build_slider(content)
+        self.settings_modal_open = True
+
+    def _build_slider(self, parent: ctk.CTkFrame) -> None:
+        row = ctk.CTkFrame(parent, fg_color="transparent")
+        row.pack(fill="x")
+        row.columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(row, text=self.slider_label).grid(row=0, column=0, padx=(10, 5))
+
+        num_steps = int(round((self.slider_max - self.slider_min) / self.slider_step))
+        self.slider = ctk.CTkSlider(
+            row,
+            from_=self.slider_min,
+            to=self.slider_max,
+            number_of_steps=num_steps,
+            command=lambda value: self._on_slider_change(value),
+        )
+
+        default_value = self._get_current_value()
+        self.slider.set(default_value)
+        self.slider.grid(row=0, column=1, padx=5, sticky="ew")
+
+        self.value_entry = ctk.CTkEntry(row, width=45)
+        self.value_entry.insert(0, self._format_value(default_value))
+        self.value_entry.grid(row=0, column=2, padx=(5, 10))
+        self.value_entry.bind("<Return>", self._on_value_submit)
+        self.value_entry.bind("<FocusOut>", self._on_value_focus_out)
+
+    def _get_current_value(self) -> float:
+        if self.slider_name in self.calibration_data:
+            return self.calibration_data[self.slider_name]
+        return self.tk_controls.get(self.slider_name, self.slider_min)
+
+    def _format_value(self, value: float) -> str:
+        if self.slider_step < 1:
+            return f"{value:.3f}"
+        return str(int(round(value)))
+
+    def _on_slider_change(self, value: float) -> None:
+        stepped_value = self._apply_step(value)
+        self.value_entry.delete(0, "end")
+        self.value_entry.insert(0, self._format_value(stepped_value))
+        self._persist_value(stepped_value)
+
+    def _on_value_submit(self, event):
+        self._apply_entry_value()
+        event.widget.winfo_toplevel().focus()
+
+    def _on_value_focus_out(self, _event):
+        self._apply_entry_value()
+
+    def _apply_entry_value(self) -> None:
+        try:
+            value = float(self.value_entry.get())
+        except ValueError:
+            value = self.slider.get()
+
+        value = max(min(value, self.slider_max), self.slider_min)
+        stepped_value = self._apply_step(value)
+        self.slider.set(stepped_value)
+        self.value_entry.delete(0, "end")
+        self.value_entry.insert(0, self._format_value(stepped_value))
+        self._persist_value(stepped_value)
+
+    def _apply_step(self, value: float) -> float:
+        stepped = round((value - self.slider_min) / self.slider_step) * self.slider_step + self.slider_min
+        if self.slider_step >= 1:
+            return int(round(stepped))
+        return stepped
+
+    def _persist_value(self, value: float) -> None:
+        self.tk_controls[self.slider_name] = value
+        self.calibration_data[self.slider_name] = value
+        refresh_json({self.slider_name: value}, CALIBRATION_FILE)
+
+    def close_modal(self):
+        self._close_settings_modal()
