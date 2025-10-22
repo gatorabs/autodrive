@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import PerformanceMonitor from '@/components/PerformanceMonitor';
-import VirtualJoystick from '@/components/VirtualJoystick';
+import ManualControls, { ManualControlData } from '@/components/ManualControls';
 import DisableManualModeModal from '@/components/DisableManualModeModal';
 import { endpoints } from '@/config/api';
 
 const ManualMode = () => {
     const navigate = useNavigate();
-    const [joystickData, setJoystickData] = useState({ x: 0, y: 0 });
+    const [controlData, setControlData] = useState<ManualControlData>({ x: 0, y: 0 });
     const [fps, setFps] = useState(0);
     const [frameTime, setFrameTime] = useState(0);
     const [isRunning, setIsRunning] = useState(true);
@@ -31,14 +31,14 @@ const ManualMode = () => {
     };
     const handleBack = () => setIsExitModalOpen(true);
 
-    const handleJoystickMove = (data: { x: number; y: number }) => {
-        setJoystickData(data);
+    const handleControlChange = useCallback((data: ManualControlData) => {
+        setControlData(data);
         fetch(endpoints.manualControls, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
-        }).catch(err => console.error('Erro ao enviar joystick:', err));
-    };
+        }).catch(err => console.error('Erro ao enviar controles manuais:', err));
+    }, []);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -102,17 +102,17 @@ const ManualMode = () => {
                         <h3 className="text-lg font-semibold mb-4 text-center">Controles</h3>
 
                         <div className="flex flex-col items-center space-y-4">
-                            <VirtualJoystick onJoystickMove={handleJoystickMove} />
+                            <ManualControls onControlChange={handleControlChange} />
 
                             <div className="text-sm text-gray-400 text-center w-full">
                                 <div className="grid grid-cols-2 gap-4 mt-4">
                                     <div>
                                         <div className="font-semibold text-white">Direção</div>
-                                        <div>{joystickData.x > 0.1 ? 'Direita' : joystickData.x < -0.1 ? 'Esquerda' : 'Centro'}</div>
+                                        <div>{controlData.x > 0.1 ? 'Direita' : controlData.x < -0.1 ? 'Esquerda' : 'Centro'}</div>
                                     </div>
                                     <div>
                                         <div className="font-semibold text-white">Velocidade</div>
-                                        <div>{joystickData.y > 0.1 ? 'Frente' : joystickData.y < -0.1 ? 'Ré' : 'Parado'}</div>
+                                        <div>{controlData.y > 0.1 ? 'Frente' : controlData.y < -0.1 ? 'Ré' : 'Parado'}</div>
                                     </div>
                                 </div>
                             </div>
@@ -131,12 +131,12 @@ const ManualMode = () => {
 
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-400">Velocidade:</span>
-                                    <span className="text-white">{Math.abs(joystickData.y * 100).toFixed(0)}%</span>
+                                    <span className="text-white">{Math.abs(controlData.y * 100).toFixed(0)}%</span>
                                 </div>
 
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-400">Direção:</span>
-                                    <span className="text-white">{(joystickData.x * 45).toFixed(0)}°</span>
+                                    <span className="text-white">{(controlData.x * 45).toFixed(0)}°</span>
                                 </div>
 
                                 <div className="flex justify-between items-center">
