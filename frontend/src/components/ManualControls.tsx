@@ -31,10 +31,13 @@ const ManualControls: React.FC<ManualControlsProps> = ({ onControlChange }) => {
   const resetSteering = () => setSteering(0);
 
   const steeringButtonClass = (active: boolean) =>
-    `w-16 ${active ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}`;
+    `${active ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}`;
 
   return (
-    <div className="flex flex-col items-center space-y-6 w-full">
+    <div
+      className="flex w-full max-w-xl flex-col items-center space-y-6"
+      style={{ touchAction: 'manipulation' }}
+    >
       <div className="w-full">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold text-white">Acelerador</span>
@@ -47,16 +50,16 @@ const ManualControls: React.FC<ManualControlsProps> = ({ onControlChange }) => {
           </button>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-xs text-gray-400 w-10 text-left">0%</span>
+          <span className="w-10 text-left text-xs text-gray-400">0%</span>
           <input
             type="range"
             min={0}
             max={100}
             value={throttle}
             onChange={handleThrottleChange}
-            className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+            className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-gray-700"
           />
-          <span className="text-xs text-gray-400 w-12 text-right">100%</span>
+          <span className="w-12 text-right text-xs text-gray-400">100%</span>
         </div>
         <div className="mt-2 text-xs text-gray-400 text-center">
           {throttle > 0 && `Avançando (${throttle}%)`}
@@ -76,11 +79,11 @@ const ManualControls: React.FC<ManualControlsProps> = ({ onControlChange }) => {
           </button>
         </div>
 
-        <div className="flex items-center justify-center space-x-4">
+        <div className="flex w-full flex-wrap items-center justify-center gap-4">
           <Button
             variant="outline"
             size="lg"
-            className={steeringButtonClass(steering === -1)}
+            className={`${steeringButtonClass(steering === -1)} min-w-[4.5rem] flex-1 sm:flex-none`}
             onClick={() => handleSteeringChange(-1)}
           >
             <ChevronLeft className="w-5 h-5" />
@@ -89,7 +92,7 @@ const ManualControls: React.FC<ManualControlsProps> = ({ onControlChange }) => {
           <Button
             variant="outline"
             size="lg"
-            className={steeringButtonClass(steering === 0)}
+            className={`${steeringButtonClass(steering === 0)} min-w-[4.5rem] flex-1 sm:flex-none`}
             onClick={() => handleSteeringChange(0)}
           >
             <Square className="w-4 h-4" />
@@ -98,7 +101,7 @@ const ManualControls: React.FC<ManualControlsProps> = ({ onControlChange }) => {
           <Button
             variant="outline"
             size="lg"
-            className={steeringButtonClass(steering === 1)}
+            className={`${steeringButtonClass(steering === 1)} min-w-[4.5rem] flex-1 sm:flex-none`}
             onClick={() => handleSteeringChange(1)}
           >
             <ChevronRight className="w-5 h-5" />
