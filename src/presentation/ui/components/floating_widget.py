@@ -250,7 +250,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         **kwargs,
     ):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-590, y=-27)
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-600, y=-27)
 
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
