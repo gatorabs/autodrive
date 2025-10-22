@@ -4,7 +4,9 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 import torch
-from src.infrastructure.services.object_detection_service import process_traffic_light_roi
+from src.infrastructure.services.object_detection_service import (
+    process_traffic_light_roi,
+)
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.constants.video_constants import (
     FRAME_WIDTH,
@@ -19,13 +21,17 @@ DEFAULT_CUSTOM_MODEL_PATH = Path("runs/detect/train/weights/best.pt")
 DEFAULT_CUSTOM_LABEL = "Custom Object"
 DEFAULT_CUSTOM_CONFIDENCE = 0.35
 DEFAULT_BASE_CONFIDENCE = 0.35
-CUSTOM_MIN_SIZE_KEY = "Ex1"
-CUSTOM_CONF_KEY = "Ex2"
 BASE_CONF_KEY = "BaseConf"
 CUSTOM_BOX_COLOR = (255, 140, 0)
 PERSON_REGION_WIDTH_KEY = "PeopleRegion"
 DEFAULT_PERSON_REGION_PERCENT = 33
 CUSTOM_NMS_IOU_THRESHOLD = 0.45
+
+CUSTOM_CLASS_SLIDER_KEYS = {
+    "PLACA_PARE": "PLACA_PARE",
+    "PLACA_DESVIO": "PLACA_DESVIO",
+    "PLACA_LOMBADA": "PLACA_LOMBADA",
+}
 
 class ObjectDetector:
     def __init__(self,
@@ -235,13 +241,17 @@ class ObjectDetector:
         return self.custom_default_label
 
     def _get_custom_confidence(self):
-        slider_value = self.tk_controls.get(CUSTOM_CONF_KEY)
-        if slider_value is None:
-            return self.custom_default_conf
-        try:
-            return max(0.05, min(0.99, float(slider_value) / 10.0))
-        except (TypeError, ValueError):
-            return self.custom_default_conf
+        return self.custom_default_conf
+
+    def _get_custom_size_thresholds(self):
+        thresholds = {}
+        for label, slider_key in CUSTOM_CLASS_SLIDER_KEYS.items():
+            slider_value = self.tk_controls.get(slider_key)
+            try:
+                thresholds[label] = max(0.0, float(slider_value))
+            except (TypeError, ValueError):
+                thresholds[label] = 0.0
+        return thresholds
 
     def process_frame(self, frame):
         try:
@@ -267,11 +277,11 @@ class ObjectDetector:
 
             person_detected = False
             traffic_light_state = 2
-            custom_object_detected = False
+            detected_custom_labels = set()
 
             min_person_size = self.tk_controls["Person"]
             min_traffic_size = self.tk_controls["Traffic"]
-            min_custom_size = self.tk_controls.get(CUSTOM_MIN_SIZE_KEY, 0)
+            custom_size_thresholds = self._get_custom_size_thresholds()
 
             frame_height, frame_width = frame.shape[:2]
             person_region_percent = self.tk_controls.get(
@@ -354,10 +364,10 @@ class ObjectDetector:
                             box_height = y2 - y1
                             box_width = x2 - x1
 
-                            if max(box_height, box_width) < min_custom_size:
-                                continue
-
                             label = self._get_custom_label(cls, names)
+                            min_threshold = custom_size_thresholds.get(label, 0.0)
+                            if max(box_height, box_width) < min_threshold:
+                                continue
                             raw_detections.append(
                                 {
                                     "cls": cls,
@@ -372,9 +382,14 @@ class ObjectDetector:
                 )
 
                 for detection in merged_detections:
-                    custom_object_detected = True
                     x1, y1, x2, y2 = map(int, detection["box"])
                     label = detection["label"]
+                    min_size_threshold = custom_size_thresholds.get(label, 0.0)
+                    box_height = y2 - y1
+                    box_width = x2 - x1
+                    if max(box_height, box_width) < min_size_threshold:
+                        continue
+                    detected_custom_labels.add(label)
                     cv2.rectangle(frame, (x1, y1), (x2, y2), CUSTOM_BOX_COLOR, 2)
                     cv2.putText(
                         frame,
@@ -386,7 +401,7 @@ class ObjectDetector:
                         2,
                     )
 
-            return person_detected, traffic_light_state, custom_object_detected
+            return person_detected, traffic_light_state, detected_custom_labels
 
         except Exception as e:
             self.logger.error(f"Erro ao processar frame: {e}")
