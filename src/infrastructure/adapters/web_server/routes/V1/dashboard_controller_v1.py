@@ -46,6 +46,8 @@ def video_api_info(app, shared_frames, logger):
     def video_feed(key):
         if getattr(app_settings, "shutdown_pending", False):
             return 'Server is shutting down', 503
+        if key == 'TAB2_FRAME':
+            return 'Camera feed disabled for manual mode', 404
         return Response(
             generate_feed(shared_frames, key, logger),
             mimetype='multipart/x-mixed-replace; boundary=frame'

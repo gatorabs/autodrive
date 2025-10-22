@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { endpoints } from "@/config/api";
 
 interface CameraFeedProps {
   label: string;
@@ -17,10 +18,14 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ label }) => {
   const [imgKey, setImgKey] = useState(0); // forçar reload do <img>
 
   const key = keyMap[label];
-  const streamUrl = `http://192.40.226.220:5000/video_feed/${key}`;
+  const streamUrl = key ? endpoints.videoFeed(key) : null;
 
   // Verificação periódica da disponibilidade do stream
   useEffect(() => {
+    if (!streamUrl) {
+      return () => undefined;
+    }
+
     const interval = setInterval(() => {
       const testImg = new Image();
       testImg.src = streamUrl + `?check=${Date.now()}`; // Bypass cache
@@ -90,7 +95,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ label }) => {
         ) : (
           <img
             key={imgKey}
-            src={`${streamUrl}?refresh=${imgKey}`} 
+            src={`${streamUrl}?refresh=${imgKey}`}
             alt={`Feed da câmera - ${label}`}
             className="w-full h-full object-contain"
             onLoad={() => setIsLoading(false)}
