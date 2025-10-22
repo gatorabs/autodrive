@@ -2,96 +2,28 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  >
   <title>Controle de Velocidade</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f9;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 80px;
-    }
-    h2 { color: #333; }
-    input[type="range"] {
-      width: 300px;
-      margin-top: 20px;
-    }
-    .value {
-      font-size: 20px;
-      margin-top: 10px;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      border: none;
-      background: #007bff;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='speed_control.css') }}">
 </head>
 <body>
-  <h2>Controle de Velocidade</h2>
-  <input id="speedSlider" type="range" min="0" max="255" value="0">
-  <div class="value">Velocidade: <span id="speedValue">0</span></div>
-  <button onclick="sendSpeed()">Enviar</button>
+  <main>
+    <header>
+      <h1>Controle de Velocidade</h1>
+    </header>
+    <section class="slider-group">
+      <label for="speedSlider">
+        Nível atual
+        <span class="value"><span id="speedValue">0</span>/255</span>
+      </label>
+      <input id="speedSlider" type="range" min="0" max="255" value="0" step="1">
+    </section>
+    <button type="button" id="sendSpeedButton">Enviar velocidade</button>
+  </main>
 
-  <script>
-    const slider = document.getElementById("speedSlider");
-    const valueDisplay = document.getElementById("speedValue");
-    const MAX_SPEED = 255;
-
-    const updateDisplay = (value) => {
-      valueDisplay.textContent = value;
-    };
-
-    slider.oninput = () => {
-      updateDisplay(slider.value);
-    };
-
-    async function syncSpeedFromCar() {
-      try {
-        const response = await fetch("/api/car-info");
-        if (!response.ok) return;
-
-        const data = await response.json();
-        const carSpeed = data?.car_info?.CAR_SPEED_DATA;
-
-        if (typeof carSpeed === "number" && !Number.isNaN(carSpeed)) {
-          const clamped = Math.max(0, Math.min(Math.round(carSpeed), MAX_SPEED));
-          slider.value = clamped;
-          updateDisplay(clamped);
-        }
-      } catch (error) {
-        console.warn("Não foi possível sincronizar a velocidade:", error);
-      }
-    }
-
-    function sendSpeed() {
-      const speed = parseInt(slider.value, 10);
-      fetch("/api/set-speed", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ speed })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.message) {
-          alert(data.message);
-          syncSpeedFromCar();
-        } else if (data.error) {
-          alert(data.error);
-        }
-      })
-      .catch(err => alert("Erro ao enviar velocidade: " + err));
-    }
-
-    syncSpeedFromCar();
-  </script>
+  <script src="{{ url_for('static', filename='speed_control.js') }}" defer></script>
 </body>
 </html>
