@@ -12,7 +12,7 @@ from src.infrastructure.constants.ui_constants.component_constants import (
     FRAME_HEIGHT_T,
     OBJECT_ROI_SECTION_HEIGHT,
 )
-from ...components.floating_widget import FloatingWidget, SettingsFloatingWidget
+from ...components.floating_widget import FloatingWidget, SettingsSliderConfig
 
 class HomeTab(ctk.CTkFrame):
     def __init__(self, master, tk_controls, calibration_data, shared_controls, init_data, **kwargs):
@@ -26,8 +26,18 @@ class HomeTab(ctk.CTkFrame):
         self.grid_columnconfigure((0, 1, 2), weight=1, uniform="col")
 
         # Floating widgets live on the main window
-        self.floating_widget = FloatingWidget(master, tk_controls, shared_controls)
-        self.settings_widget = SettingsFloatingWidget(master, tk_controls, calibration_data)
+        settings_slider_configs = [
+            SettingsSliderConfig("BaseConf", "YOLO Confidence", 0, 10, 1),
+            SettingsSliderConfig("Timestamp", "Timestamp", 0, 10, 1),
+        ]
+
+        self.floating_widget = FloatingWidget(
+            master,
+            tk_controls,
+            shared_controls,
+            calibration_data,
+            slider_configs=settings_slider_configs,
+        )
 
         VIDEO_WIDTH, VIDEO_HEIGHT = FRAME_WIDTH_T, FRAME_HEIGHT_T
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Optional, Sequence
 
 import customtkinter as ctk
 
@@ -15,15 +15,27 @@ from src.infrastructure.constants.ui_constants.file_constants import (
 from src.presentation.ui.components.checkbox import CheckboxSection
 
 
+@dataclass(frozen=True)
+class SettingsSliderConfig:
+    name: str
+    label: str
+    min_val: float
+    max_val: float
+    step: float = 1.0
+
+
 class FloatingWidget(ctk.CTkFrame):
-    """Small widget with buttons for saving/restoring defaults and toggles."""
+    """Widget with quick actions for saving, toggles and optional settings."""
 
     def __init__(
         self,
         master,
         tk_controls,
         shared_controls,
-        checkbox_labels=None,
+        calibration_data: Optional[dict] = None,
+        *,
+        checkbox_labels: Optional[Sequence[str]] = None,
+        slider_configs: Optional[Sequence[SettingsSliderConfig]] = None,
         **kwargs,
     ):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
@@ -33,25 +45,36 @@ class FloatingWidget(ctk.CTkFrame):
         self.load_data = load_data
         self.tk_controls = tk_controls
         self.shared_controls = shared_controls
+        self.calibration_data = calibration_data
         self.DEFAULTS_FILE = DEFAULTS_FILE
         self.button_colors = "#2b2b2b"
-        self.checkbox_labels = checkbox_labels or [
-            "WEBVIEW",
-            "SHOW_ROI",
-            "SHOW_INFO",
-            "SEND_LOGS",
-            "NEW_PID",
-            "SHOW_LINES",
-        ]
+        self.checkbox_labels = list(
+            checkbox_labels
+            or [
+                "WEBVIEW",
+                "SHOW_ROI",
+                "SHOW_INFO",
+                "SEND_LOGS",
+                "NEW_PID",
+                "SHOW_LINES",
+            ]
+        )
+        self.slider_configs = list(slider_configs or [])
+        self.slider_controls: Dict[str, dict] = {}
 
         self.save_modal = None
         self.save_modal_open = False
         self.checkbox_modal = None
         self.checkbox_modal_open = False
+        self.settings_modal = None
+        self.settings_modal_open = False
+
         self.save_modal_width = 267
         self.save_modal_height = 70
         self.checkbox_modal_width = 460
         self.checkbox_modal_height = 170
+        self.settings_modal_width = 320
+        self.settings_modal_height = 120
 
         buttons_row = ctk.CTkFrame(self, fg_color="transparent")
         buttons_row.pack(anchor="e")
@@ -66,6 +89,19 @@ class FloatingWidget(ctk.CTkFrame):
             command=self.toggle_checkbox_modal,
         )
         self.checkboxes_button.pack(side="right")
+
+        self.settings_button = None
+        if self.slider_configs:
+            self.settings_button = ctk.CTkButton(
+                buttons_row,
+                text="⚙️",
+                width=40,
+                height=40,
+                corner_radius=10,
+                font=ctk.CTkFont(size=15),
+                command=self.toggle_settings_modal,
+            )
+            self.settings_button.pack(side="right", padx=(0, 8))
 
         self.floating_button = ctk.CTkButton(
             buttons_row,
@@ -83,6 +119,7 @@ class FloatingWidget(ctk.CTkFrame):
             self._close_save_modal()
             return
         self._close_checkbox_modal()
+        self._close_settings_modal()
         self._open_save_modal()
 
     def toggle_checkbox_modal(self):
@@ -90,7 +127,18 @@ class FloatingWidget(ctk.CTkFrame):
             self._close_checkbox_modal()
             return
         self._close_save_modal()
+        self._close_settings_modal()
         self._open_checkbox_modal()
+
+    def toggle_settings_modal(self):
+        if not self.slider_configs:
+            return
+        if self.settings_modal_open:
+            self._close_settings_modal()
+            return
+        self._close_save_modal()
+        self._close_checkbox_modal()
+        self._open_settings_modal()
 
     def _close_save_modal(self):
         if self.save_modal_open and self.save_modal:
@@ -113,6 +161,17 @@ class FloatingWidget(ctk.CTkFrame):
             finally:
                 self.checkbox_modal = None
                 self.checkbox_modal_open = False
+
+    def _close_settings_modal(self):
+        if self.settings_modal_open and self.settings_modal:
+            try:
+                self.settings_modal.grab_release()
+                self.settings_modal.destroy()
+            except ctk.TclError:
+                pass
+            finally:
+                self.settings_modal = None
+                self.settings_modal_open = False
 
     def _open_save_modal(self):
         if self.save_modal:
@@ -215,89 +274,10 @@ class FloatingWidget(ctk.CTkFrame):
 
         self.checkbox_modal_open = True
 
-    def button_1_action(self):
-        refresh_json(self.tk_controls, self.DEFAULTS_FILE, only_existing_keys=True)
-        self._close_save_modal()
-
-    def button_2_action(self):
-        self.master.restore_defaults()
-        self._close_save_modal()
-
-    def close_modal(self):
-        self._close_save_modal()
-        self._close_checkbox_modal()
-
-
-@dataclass(frozen=True)
-class SettingsSliderConfig:
-    name: str
-    label: str
-    min_val: float
-    max_val: float
-    step: float = 1.0
-
-
-class SettingsFloatingWidget(ctk.CTkFrame):
-    """Floating widget dedicated to quick access configuration controls."""
-
-    def __init__(
-        self,
-        master,
-        tk_controls,
-        calibration_data,
-        *,
-        slider_configs=None,
-        **kwargs,
-    ):
-        super().__init__(master, fg_color="#2b2b2b", **kwargs)
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-590, y=-27)
-
-        self.tk_controls = tk_controls
-        self.calibration_data = calibration_data
-        self.slider_configs = slider_configs or [
-            SettingsSliderConfig("BaseConf", "YOLO Confidence", 0, 10, 1),
-            SettingsSliderConfig("Timestamp", "Timestamp", 0, 10, 1),
-        ]
-        self.slider_controls: Dict[str, dict] = {}
-
-        self.settings_modal = None
-        self.settings_modal_open = False
-
-        self._setup_button()
-
-    def _setup_button(self) -> None:
-        button_row = ctk.CTkFrame(self, fg_color="transparent")
-        button_row.pack(anchor="e")
-
-        self.settings_button = ctk.CTkButton(
-            button_row,
-            text="⚙️",
-            width=40,
-            height=40,
-            corner_radius=10,
-            font=ctk.CTkFont(size=15),
-            command=self.toggle_settings_modal,
-        )
-        self.settings_button.pack(side="right")
-
-    def toggle_settings_modal(self):
-        if self.settings_modal_open:
-            self._close_settings_modal()
-            return
-        self._open_settings_modal()
-
-    def _close_settings_modal(self):
-        if self.settings_modal_open and self.settings_modal:
-            try:
-                self.settings_modal.grab_release()
-                self.settings_modal.destroy()
-            except ctk.TclError:
-                pass
-            finally:
-                self.settings_modal = None
-                self.settings_modal_open = False
-
     def _open_settings_modal(self):
+        if not self.slider_configs or not self.settings_button:
+            return
+
         if self.settings_modal:
             try:
                 self.settings_modal.destroy()
@@ -315,8 +295,8 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         button_x = self.settings_button.winfo_rootx() - parent_x
         button_y = self.settings_button.winfo_rooty() - parent_y
 
-        modal_width = 320
-        modal_height = 120
+        modal_width = self.settings_modal_width
+        modal_height = self.settings_modal_height
         modal_x = (
             parent_x
             + button_x
@@ -381,7 +361,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         return max(1, int(round(span / config.step)))
 
     def _get_current_value(self, config: SettingsSliderConfig) -> float:
-        if config.name in self.calibration_data:
+        if self.calibration_data and config.name in self.calibration_data:
             return self.calibration_data[config.name]
         return self.tk_controls.get(config.name, config.min_val)
 
@@ -439,8 +419,19 @@ class SettingsFloatingWidget(ctk.CTkFrame):
 
     def _persist_value(self, name: str, value: float) -> None:
         self.tk_controls[name] = value
-        self.calibration_data[name] = value
+        if self.calibration_data is not None:
+            self.calibration_data[name] = value
         refresh_json({name: value}, CALIBRATION_FILE)
 
+    def button_1_action(self):
+        refresh_json(self.tk_controls, self.DEFAULTS_FILE, only_existing_keys=True)
+        self._close_save_modal()
+
+    def button_2_action(self):
+        self.master.restore_defaults()
+        self._close_save_modal()
+
     def close_modal(self):
+        self._close_save_modal()
+        self._close_checkbox_modal()
         self._close_settings_modal()
