@@ -130,8 +130,10 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         if current_speed > target_speed or shared_controls.get("BUMP_ACTIVE", False):
             bump_hold = True
 
+    person_detected = obj_data.object_person_data == 1
+
     should_stop = (
-        obj_data.object_person_data == 1
+        person_detected
         or shared_controls.get("EMERGENCY_STOP", 0) == 1
         or shared_controls.get("SAFE_STOP")
         or shared_controls.get("OBJ_SAFE_STOP")
@@ -147,6 +149,27 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
     if should_stop:
         shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
         shared_controls.pop("BUMP_ACCEL_STATE", None)
+        shared_controls.pop("PERSON_ACCEL_STATE", None)
+
+        if person_detected:
+            if shared_controls.get("PERSON_PREV_SPEED") is None:
+                _record_stop_sign_requested_speed(
+                    shared_controls, lane_data, prefix="PERSON"
+                )
+                prev_speed = shared_controls.get("PERSON_PREV_SPEED")
+                if prev_speed in (None, 0):
+                    fallback_speed = shared_controls.get("PERSON_LAST_SPEED")
+                    if fallback_speed is None:
+                        fallback_speed = shared_controls.get("STOP_SIGN_LAST_SPEED")
+                    try:
+                        inferred_speed = int(fallback_speed)
+                    except (TypeError, ValueError):
+                        inferred_speed = 0
+                    inferred_speed = max(0, min(255, inferred_speed))
+                    if inferred_speed > 0:
+                        shared_controls["PERSON_PREV_SPEED"] = inferred_speed
+            shared_controls["PERSON_STOP_ACTIVE"] = True
+
         target_candidates = []
         if stop_sign_hold and shared_controls.get("STOP_SIGN_DECEL_STATE"):
             target_candidates.append(
@@ -230,6 +253,48 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         else:
             _clear_stop_sign_state(shared_controls, prefix="BUMP")
 
+        person_prev_speed = shared_controls.get("PERSON_PREV_SPEED")
+        if (
+            person_prev_speed is not None
+            and shared_controls.get("PERSON_STOP_ACTIVE", False)
+            and not person_detected
+        ):
+            person_accel_state = shared_controls.get("PERSON_ACCEL_STATE")
+            if not person_accel_state:
+                _start_stop_sign_acceleration(
+                    shared_controls,
+                    lane_data.car_speed_data,
+                    person_prev_speed,
+                    tk_controls,
+                    current_time,
+                    prefix="PERSON",
+                )
+
+            result = _apply_stop_sign_acceleration(
+                shared_controls, tk_controls, current_time, prefix="PERSON"
+            )
+            if result is not None:
+                speed, finished = result
+                _update_car_speed(shared_controls, lane_data, speed)
+                if finished:
+                    shared_controls.pop("PERSON_PREV_SPEED", None)
+                    shared_controls["PERSON_STOP_ACTIVE"] = False
+                    _clear_stop_sign_state(shared_controls, prefix="PERSON")
+            else:
+                try:
+                    fallback_speed = int(person_prev_speed)
+                except (TypeError, ValueError):
+                    fallback_speed = 0
+                fallback_speed = max(0, fallback_speed)
+                _update_car_speed(shared_controls, lane_data, fallback_speed)
+                shared_controls.pop("PERSON_PREV_SPEED", None)
+                shared_controls["PERSON_STOP_ACTIVE"] = False
+                _clear_stop_sign_state(shared_controls, prefix="PERSON")
+        elif not person_detected:
+            shared_controls.pop("PERSON_PREV_SPEED", None)
+            shared_controls.pop("PERSON_STOP_ACTIVE", None)
+            _clear_stop_sign_state(shared_controls, prefix="PERSON")
+
 
 def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
     if manual_md:
@@ -293,6 +358,7 @@ def _update_car_speed(shared_controls, lane_data, speed):
     shared_controls["CAR_INFO"] = car_info
     shared_controls["STOP_SIGN_LAST_SPEED"] = speed
     shared_controls["BUMP_LAST_SPEED"] = speed
+    shared_controls["PERSON_LAST_SPEED"] = speed
 
 
 def _resolve_custom_label(obj_data):
