@@ -18,6 +18,7 @@ def _update_car_speed(shared_controls, lane_data, speed):
     car_info = shared_controls.get("CAR_INFO", {})
     car_info["CAR_SPEED_DATA"] = speed
     shared_controls["CAR_INFO"] = car_info
+    shared_controls["STOP_SIGN_LAST_SPEED"] = speed
 
 
 def _resolve_custom_label(obj_data):
@@ -149,23 +150,25 @@ def _start_stop_sign_acceleration(
     interval = _get_stop_sign_deceleration_interval(tk_controls)
 
     try:
-        starting_speed = int(current_speed)
-    except (TypeError, ValueError):
-        starting_speed = 0
-
-    car_info = shared_controls.get("CAR_INFO", {})
-    try:
-        commanded_speed = int(car_info.get("CAR_SPEED_DATA", starting_speed))
-    except (TypeError, ValueError):
-        commanded_speed = starting_speed
-
-    try:
         desired_speed = int(target_speed)
     except (TypeError, ValueError):
         desired_speed = 0
 
     desired_speed = max(0, min(255, desired_speed))
-    starting_speed = max(0, min(desired_speed, commanded_speed))
+
+    last_output = shared_controls.get("STOP_SIGN_LAST_SPEED")
+    if last_output is None:
+        last_output = current_speed
+
+    try:
+        starting_speed = int(last_output)
+    except (TypeError, ValueError):
+        try:
+            starting_speed = int(current_speed)
+        except (TypeError, ValueError):
+            starting_speed = 0
+
+    starting_speed = max(0, min(desired_speed, starting_speed))
 
     if desired_speed <= 0:
         shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
