@@ -42,29 +42,9 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
         avg_left, avg_right = distances
 
         if has_ref:
-            # posição central fixa para o volante
             center_x = (tl_x + tr_x) // 2
             mid_y = (tl_y + tr_y) // 2 + 50
-
-            # 1) volante (círculo externo)
             radius = 40
-            wheel_color = (200, 200, 200)
-            cv.circle(frame, (center_x, mid_y), radius, wheel_color, wheel_thickness)
-
-            # 2) volante giratório: spokes mais grossos
-            num_spokes = 3
-            length = int(radius * 0.9)
-            for i in range(num_spokes):
-                offset = i * (360 / num_spokes)
-                spoke_angle = (mapped_direction - 90.0) + offset
-                rad = math.radians(spoke_angle)
-                end_x = int(center_x + length * math.sin(rad))
-                end_y = int(mid_y - length * math.cos(rad))
-                cv.line(frame,
-                        (center_x, mid_y),
-                        (end_x, end_y),
-                        wheel_color,
-                        wheel_thickness)
 
             # 3) opcional: texto com os valores de L e R
             cv.putText(frame,
