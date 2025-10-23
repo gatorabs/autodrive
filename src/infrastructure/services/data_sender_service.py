@@ -47,11 +47,25 @@ def _get_stop_sign_deceleration_step(tk_controls):
 
 def _get_stop_sign_deceleration_interval(tk_controls):
     tk_controls = tk_controls or {}
+
+    if "StopDecelerationInterval" in tk_controls:
+        raw_value = tk_controls.get("StopDecelerationInterval")
+    else:
+        raw_value = tk_controls.get("StopAccelerationInterval", 0.2)
+
     try:
-        interval = float(tk_controls.get("StopDecelerationInterval", 0.2))
+        interval = float(raw_value)
     except (TypeError, ValueError):
         interval = 0.2
-    return max(0.0, interval)
+
+    interval = max(0.0, interval)
+
+    if tk_controls.get("StopDecelerationInterval") != interval:
+        tk_controls["StopDecelerationInterval"] = interval
+    if tk_controls.get("StopAccelerationInterval") != interval:
+        tk_controls["StopAccelerationInterval"] = interval
+
+    return interval
 
 
 def _record_stop_sign_requested_speed(shared_controls, lane_data, *, force=False):

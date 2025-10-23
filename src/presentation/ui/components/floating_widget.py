@@ -271,7 +271,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
             SettingsSliderConfig("Timestamp", "Timestamp", 0, 10, 1),
             SettingsSliderConfig(
                 "StopDecelerationInterval",
-                "Intervalo de desaceleração (s)",
+                "Intervalo de desaceleração/aceleração (s)",
                 0.0,
                 1.0,
                 0.05,
@@ -386,7 +386,21 @@ class SettingsFloatingWidget(ctk.CTkFrame):
     def _get_current_value(self, config: SettingsSliderConfig) -> float:
         if config.name in self.calibration_data:
             return self.calibration_data[config.name]
-        return self.tk_controls.get(config.name, config.min_val)
+        if (
+            config.name == "StopDecelerationInterval"
+            and "StopAccelerationInterval" in self.calibration_data
+        ):
+            return self.calibration_data["StopAccelerationInterval"]
+
+        if config.name in self.tk_controls:
+            return self.tk_controls[config.name]
+        if (
+            config.name == "StopDecelerationInterval"
+            and "StopAccelerationInterval" in self.tk_controls
+        ):
+            return self.tk_controls["StopAccelerationInterval"]
+
+        return config.min_val
 
     def _format_value(self, value: float, step: float) -> str:
         if step < 1:
@@ -441,9 +455,15 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         return stepped
 
     def _persist_value(self, name: str, value: float) -> None:
-        self.tk_controls[name] = value
-        self.calibration_data[name] = value
-        refresh_json({name: value}, CALIBRATION_FILE)
+        updates = {name: value}
+        if name == "StopDecelerationInterval":
+            updates["StopAccelerationInterval"] = value
+
+        for key, stored_value in updates.items():
+            self.tk_controls[key] = stored_value
+            self.calibration_data[key] = stored_value
+
+        refresh_json(updates, CALIBRATION_FILE)
 
     def close_modal(self):
         self._close_settings_modal()
