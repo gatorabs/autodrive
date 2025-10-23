@@ -7,15 +7,9 @@ from src.infrastructure.services.object_detection_service import (
     CUSTOM_OBJECT_LABEL_BY_CODE,
 )
 
-
 STOP_SIGN_LABEL = "PLACA_PARE"
 DETOUR_LABEL = "PLACA_DESVIO"
 LOMBADA_LABEL = "PLACA_LOMBADA"
-
-
-def _prefixed(prefix: str, suffix: str) -> str:
-    return f"{prefix}_{suffix}"
-
 
 def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *, now=None):
     current_time = time.monotonic() if now is None else now
@@ -29,6 +23,7 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
     bump_active = shared_controls.get("BUMP_ACTIVE", False)
     bump_hold = False
 
+    # --- STOP SIGN: checagem de expiração de hold já ativo
     if stop_sign_active:
         resume_time = shared_controls.get("STOP_SIGN_RESUME_TIME")
         if resume_time is not None and current_time >= resume_time:
@@ -39,6 +34,7 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
             stop_sign_hold = True
             _record_stop_sign_requested_speed(shared_controls, lane_data)
 
+    # --- BUMP: checagem de expiração de hold já ativo
     if bump_active:
         resume_time = shared_controls.get("BUMP_RESUME_TIME")
         if resume_time is not None and current_time >= resume_time:
@@ -49,6 +45,7 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
             bump_hold = True
             _record_stop_sign_requested_speed(shared_controls, lane_data, prefix="BUMP")
 
+    # --- Novo STOP SIGN detectado
     if (
         not shared_controls.get("STOP_SIGN_ACTIVE", False)
         and custom_label == STOP_SIGN_LABEL
@@ -65,6 +62,7 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         )
         stop_sign_hold = True
 
+    # --- Nova LOMBADA detectada
     if (
         not shared_controls.get("BUMP_ACTIVE", False)
         and custom_label == LOMBADA_LABEL
@@ -75,13 +73,12 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         shared_controls["BUMP_RESUME_TIME"] = None
         shared_controls["BUMP_HOLD_SECONDS"] = hold_seconds
         _record_stop_sign_requested_speed(shared_controls, lane_data, force=True, prefix="BUMP")
+
         shared_controls["BUMP_IGNORE"] = True
-        try:
-            starting_speed = int(lane_data.car_speed_data)
-        except (TypeError, ValueError):
-            starting_speed = 0
-        starting_speed = max(0, starting_speed)
+
+        starting_speed = _clamp_speed(lane_data.car_speed_data)
         target_speed = max(0, starting_speed // 2)
+
         _start_stop_sign_deceleration(
             shared_controls,
             lane_data.car_speed_data,
@@ -92,41 +89,27 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         )
         bump_hold = True
 
+    # --- Reset de IGNORE quando não detectado
     if custom_label != STOP_SIGN_LABEL and not shared_controls.get("STOP_SIGN_ACTIVE", False):
         shared_controls["STOP_SIGN_IGNORE"] = False
 
     if custom_label != LOMBADA_LABEL and not shared_controls.get("BUMP_ACTIVE", False):
         shared_controls["BUMP_IGNORE"] = False
 
+    # --- Estados de desaceleração em andamento mantêm hold
     decel_state = shared_controls.get("STOP_SIGN_DECEL_STATE")
     if decel_state:
         _record_stop_sign_requested_speed(shared_controls, lane_data)
-        try:
-            current_speed = int(decel_state.get("current_speed", 0))
-        except (TypeError, ValueError):
-            current_speed = 0
-        try:
-            target_speed = int(decel_state.get("target_speed", 0))
-        except (TypeError, ValueError):
-            target_speed = 0
-        current_speed = max(0, current_speed)
-        target_speed = max(0, target_speed)
+        current_speed = _clamp_speed(decel_state.get("current_speed", 0))
+        target_speed = _clamp_speed(decel_state.get("target_speed", 0))
         if current_speed > target_speed or shared_controls.get("STOP_SIGN_ACTIVE", False):
             stop_sign_hold = True
 
     bump_decel_state = shared_controls.get("BUMP_DECEL_STATE")
     if bump_decel_state:
         _record_stop_sign_requested_speed(shared_controls, lane_data, prefix="BUMP")
-        try:
-            current_speed = int(bump_decel_state.get("current_speed", 0))
-        except (TypeError, ValueError):
-            current_speed = 0
-        try:
-            target_speed = int(bump_decel_state.get("target_speed", 0))
-        except (TypeError, ValueError):
-            target_speed = 0
-        current_speed = max(0, current_speed)
-        target_speed = max(0, target_speed)
+        current_speed = _clamp_speed(bump_decel_state.get("current_speed", 0))
+        target_speed = _clamp_speed(bump_decel_state.get("target_speed", 0))
         if current_speed > target_speed or shared_controls.get("BUMP_ACTIVE", False):
             bump_hold = True
 
@@ -140,36 +123,30 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         or obj_data.traffic_light_data == 0
     )
 
-    should_stop = emergency_stop
+    should_stop = emergency_stop or stop_sign_hold or bump_hold
 
     if custom_label == DETOUR_LABEL:
-        pass  # Placeholder for future detour handling
-
-    if stop_sign_hold or bump_hold:
-        should_stop = True
+        pass  # Placeholder para lógica futura de desvio
 
     if should_stop:
+        # Cancelar rampas de aceleração em curso
         shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
         shared_controls.pop("BUMP_ACCEL_STATE", None)
         shared_controls.pop("PERSON_ACCEL_STATE", None)
 
+        # Preparar retomada após pessoa
         if person_detected:
             if shared_controls.get("PERSON_PREV_SPEED") is None:
-                _record_stop_sign_requested_speed(
-                    shared_controls, lane_data, prefix="PERSON"
-                )
+                _record_stop_sign_requested_speed(shared_controls, lane_data, prefix="PERSON")
                 prev_speed = shared_controls.get("PERSON_PREV_SPEED")
                 if prev_speed in (None, 0):
-                    fallback_speed = shared_controls.get("PERSON_LAST_SPEED")
-                    if fallback_speed is None:
-                        fallback_speed = shared_controls.get("STOP_SIGN_LAST_SPEED")
-                    try:
-                        inferred_speed = int(fallback_speed)
-                    except (TypeError, ValueError):
-                        inferred_speed = 0
-                    inferred_speed = max(0, min(255, inferred_speed))
-                    if inferred_speed > 0:
-                        shared_controls["PERSON_PREV_SPEED"] = inferred_speed
+                    fallback_speed = (
+                        shared_controls.get("PERSON_LAST_SPEED")
+                        or shared_controls.get("STOP_SIGN_LAST_SPEED")
+                    )
+                    inferred = _clamp_speed(fallback_speed)
+                    if inferred > 0:
+                        shared_controls["PERSON_PREV_SPEED"] = inferred
             shared_controls["PERSON_STOP_ACTIVE"] = True
 
         target_candidates = []
@@ -184,13 +161,11 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
                 )
             )
 
-        speeds = [speed for speed in target_candidates if speed is not None]
-        if emergency_stop:
-            target_speed = 0
-        else:
-            target_speed = min(speeds) if speeds else 0
+        speeds = [s for s in target_candidates if s is not None]
+        target_speed = 0 if emergency_stop else (min(speeds) if speeds else 0)
         _update_car_speed(shared_controls, lane_data, target_speed)
     else:
+        # --- STOP SIGN retomada
         shared_controls.pop("STOP_SIGN_DECEL_STATE", None)
         prev_speed = shared_controls.get("STOP_SIGN_PREV_SPEED")
         if prev_speed is not None:
@@ -212,17 +187,14 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
                     shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
                     _clear_stop_sign_state(shared_controls)
             else:
-                try:
-                    fallback_speed = int(prev_speed)
-                except (TypeError, ValueError):
-                    fallback_speed = 0
-                fallback_speed = max(0, fallback_speed)
+                fallback_speed = _clamp_speed(prev_speed)
                 _update_car_speed(shared_controls, lane_data, fallback_speed)
                 shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
                 _clear_stop_sign_state(shared_controls)
         else:
             _clear_stop_sign_state(shared_controls)
 
+        # --- BUMP retomada
         shared_controls.pop("BUMP_DECEL_STATE", None)
         bump_prev_speed = shared_controls.get("BUMP_PREV_SPEED")
         if bump_prev_speed is not None:
@@ -247,17 +219,14 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
                     shared_controls.pop("BUMP_PREV_SPEED", None)
                     _clear_stop_sign_state(shared_controls, prefix="BUMP")
             else:
-                try:
-                    fallback_speed = int(bump_prev_speed)
-                except (TypeError, ValueError):
-                    fallback_speed = 0
-                fallback_speed = max(0, fallback_speed)
+                fallback_speed = _clamp_speed(bump_prev_speed)
                 _update_car_speed(shared_controls, lane_data, fallback_speed)
                 shared_controls.pop("BUMP_PREV_SPEED", None)
                 _clear_stop_sign_state(shared_controls, prefix="BUMP")
         else:
             _clear_stop_sign_state(shared_controls, prefix="BUMP")
 
+        # --- PERSON retomada
         person_prev_speed = shared_controls.get("PERSON_PREV_SPEED")
         if (
             person_prev_speed is not None
@@ -286,11 +255,7 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
                     shared_controls["PERSON_STOP_ACTIVE"] = False
                     _clear_stop_sign_state(shared_controls, prefix="PERSON")
             else:
-                try:
-                    fallback_speed = int(person_prev_speed)
-                except (TypeError, ValueError):
-                    fallback_speed = 0
-                fallback_speed = max(0, fallback_speed)
+                fallback_speed = _clamp_speed(person_prev_speed)
                 _update_car_speed(shared_controls, lane_data, fallback_speed)
                 shared_controls.pop("PERSON_PREV_SPEED", None)
                 shared_controls["PERSON_STOP_ACTIVE"] = False
@@ -319,12 +284,11 @@ def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
         except Empty:
             pass
 
-
 def publish(lane_data: LaneData, obj_data: ObjectData, serial_comm, logger, verbose):
     payload = [
         lane_data.car_direction_data,
         lane_data.car_speed_data,
-        obj_data.traffic_light_data,
+        obj_data.traffic_light_data
     ]
 
     if not serial_comm.ensure_connection():
@@ -335,6 +299,7 @@ def publish(lane_data: LaneData, obj_data: ObjectData, serial_comm, logger, verb
     except Exception as e:
         logger.error(f"Falha ao enviar dados: {e}")
         serial_comm.close()
+
 
 def change_serial_port(
     new_com,
@@ -356,29 +321,39 @@ def change_serial_port(
         logger.info(f"Porta serial alterada: {current_com} -> {new_com}")
     return new_com
 
+
+# -----------------------
+# Internos (estado/ramps)
+# -----------------------
+
 def _update_car_speed(shared_controls, lane_data, speed):
+    speed = _clamp_speed(speed)
     lane_data.car_speed_data = speed
-    car_info = shared_controls.get("CAR_INFO", {})
+
+    car_info = dict(shared_controls.get("CAR_INFO", {}))
     car_info["CAR_SPEED_DATA"] = speed
     shared_controls["CAR_INFO"] = car_info
+
+    # Telemetria (mantida): últimos outputs
     shared_controls["STOP_SIGN_LAST_SPEED"] = speed
     shared_controls["BUMP_LAST_SPEED"] = speed
     shared_controls["PERSON_LAST_SPEED"] = speed
 
 
 def _resolve_custom_label(obj_data):
-    if getattr(obj_data, "custom_object_label", ""):
-        return obj_data.custom_object_label
+    label = getattr(obj_data, "custom_object_label", "") or ""
+    if label:
+        return label
     return CUSTOM_OBJECT_LABEL_BY_CODE.get(obj_data.custom_object_data, "")
 
 
 def _get_stop_hold_seconds(tk_controls):
     tk_controls = tk_controls or {}
+    raw = tk_controls.get("StopHoldSeconds", tk_controls.get("Timestamp", 5))
     try:
-        hold_seconds = float(tk_controls.get("Timestamp", 5))
+        return max(0.0, float(raw))
     except (TypeError, ValueError):
-        hold_seconds = 5.0
-    return max(0.0, hold_seconds)
+        return 5.0
 
 
 def _get_stop_sign_deceleration_step(tk_controls):
@@ -391,15 +366,16 @@ def _get_stop_sign_deceleration_step(tk_controls):
 
 
 def _get_stop_sign_ramp_interval(tk_controls):
+    """
+    Lê intervalo sem mutar tk_controls; suporta chaves legadas.
+    """
     tk_controls = tk_controls or {}
+    raw_value = tk_controls.get("StopRampInterval")
 
-    raw_value = None
-    if "StopRampInterval" in tk_controls:
-        raw_value = tk_controls.get("StopRampInterval")
-    else:
+    if raw_value is None:
         for legacy_key in ("StopDecelerationInterval", "StopAccelerationInterval"):
             if legacy_key in tk_controls:
-                raw_value = tk_controls.get(legacy_key)
+                raw_value = tk_controls[legacy_key]
                 break
 
     if raw_value is None:
@@ -410,26 +386,16 @@ def _get_stop_sign_ramp_interval(tk_controls):
     except (TypeError, ValueError):
         interval = 0.2
 
-    interval = max(0.0, interval)
-
-    if tk_controls.get("StopRampInterval") != interval:
-        tk_controls["StopRampInterval"] = interval
-
-    return interval
+    return max(0.0, interval)
 
 
 def _record_stop_sign_requested_speed(shared_controls, lane_data, *, force=False, prefix="STOP_SIGN"):
-    try:
-        requested_speed = int(lane_data.car_speed_data)
-    except (TypeError, ValueError):
-        return
-
-    requested_speed = max(0, min(255, requested_speed))
+    requested_speed = _clamp_speed(lane_data.car_speed_data)
 
     if not force:
         decel_state = shared_controls.get(_prefixed(prefix, "DECEL_STATE"))
         if decel_state:
-            current_speed = max(0, int(decel_state.get("current_speed", 0)))
+            current_speed = _clamp_speed(decel_state.get("current_speed", 0))
             if requested_speed == current_speed:
                 return
 
@@ -447,15 +413,9 @@ def _start_stop_sign_deceleration(
 ):
     step = _get_stop_sign_deceleration_step(tk_controls)
     interval = _get_stop_sign_ramp_interval(tk_controls)
-    try:
-        starting_speed = int(initial_speed)
-    except (TypeError, ValueError):
-        starting_speed = 0
-    starting_speed = max(0, starting_speed)
-    try:
-        desired_target = int(target_speed)
-    except (TypeError, ValueError):
-        desired_target = 0
+
+    starting_speed = _clamp_speed(initial_speed)
+    desired_target = _clamp_speed(target_speed)
     desired_target = max(0, min(starting_speed, desired_target))
 
     shared_controls[_prefixed(prefix, "DECEL_STATE")] = {
@@ -463,35 +423,39 @@ def _start_stop_sign_deceleration(
         "target_speed": desired_target,
         "step": step,
         "interval": interval,
-        "last_update": current_time - interval,
+        "last_update": current_time - interval,  # aplica primeiro passo imediatamente
     }
 
 
 def _ensure_stop_sign_hold_timer(shared_controls, current_time, prefix="STOP_SIGN"):
-    hold_seconds = shared_controls.get(_prefixed(prefix, "HOLD_SECONDS"), 0.0)
-    if hold_seconds > 0:
-        resume_time = shared_controls.get(_prefixed(prefix, "RESUME_TIME"))
-        if resume_time is None or current_time > resume_time:
-            shared_controls[_prefixed(prefix, "RESUME_TIME")] = current_time + hold_seconds
-        shared_controls[_prefixed(prefix, "ACTIVE")] = True
-    else:
-        shared_controls[_prefixed(prefix, "ACTIVE")] = False
-        shared_controls[_prefixed(prefix, "RESUME_TIME")] = current_time
+    key_hold = _prefixed(prefix, "HOLD_SECONDS")
+    key_resume = _prefixed(prefix, "RESUME_TIME")
+    key_active = _prefixed(prefix, "ACTIVE")
+
+    hold_seconds = float(shared_controls.get(key_hold, 0.0) or 0.0)
+    resume_time = shared_controls.get(key_resume)
+
+    if hold_seconds <= 0.0:
+        shared_controls[key_active] = False
+        shared_controls[key_resume] = current_time  # já pode retomar
+        return
+
+    if resume_time is None:
+        shared_controls[key_resume] = current_time + hold_seconds
+        shared_controls[key_active] = True
+        return
+
+    # Já havia prazo: não renovar. Apenas atualizar flag.
+    shared_controls[key_active] = current_time < resume_time
 
 
-def _apply_stop_sign_deceleration(
-    shared_controls, tk_controls, current_time, *, prefix="STOP_SIGN"
-):
+def _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time, *, prefix="STOP_SIGN"):
     state = shared_controls.get(_prefixed(prefix, "DECEL_STATE"))
     if not state:
         return 0
 
-    current_speed = max(0, int(state.get("current_speed", 0)))
-    try:
-        target_speed = int(state.get("target_speed", 0))
-    except (TypeError, ValueError):
-        target_speed = 0
-    target_speed = max(0, target_speed)
+    current_speed = _clamp_speed(state.get("current_speed", 0))
+    target_speed = _clamp_speed(state.get("target_speed", 0))
 
     slider_step = _get_stop_sign_deceleration_step(tk_controls)
     step = state.get("step")
@@ -546,25 +510,13 @@ def _start_stop_sign_acceleration(
     step = _get_stop_sign_deceleration_step(tk_controls)
     interval = _get_stop_sign_ramp_interval(tk_controls)
 
-    try:
-        desired_speed = int(target_speed)
-    except (TypeError, ValueError):
-        desired_speed = 0
-
-    desired_speed = max(0, min(255, desired_speed))
+    desired_speed = _clamp_speed(target_speed)
 
     last_output = shared_controls.get(_prefixed(prefix, "LAST_SPEED"))
     if last_output is None:
         last_output = current_speed
 
-    try:
-        starting_speed = int(last_output)
-    except (TypeError, ValueError):
-        try:
-            starting_speed = int(current_speed)
-        except (TypeError, ValueError):
-            starting_speed = 0
-
+    starting_speed = _clamp_speed(last_output)
     starting_speed = max(0, min(desired_speed, starting_speed))
 
     if desired_speed <= 0:
@@ -580,37 +532,21 @@ def _start_stop_sign_acceleration(
     }
 
 
-def _apply_stop_sign_acceleration(
-    shared_controls, tk_controls, current_time, *, prefix="STOP_SIGN"
-):
+def _apply_stop_sign_acceleration(shared_controls, tk_controls, current_time, *, prefix="STOP_SIGN"):
     state = shared_controls.get(_prefixed(prefix, "ACCEL_STATE"))
     if not state:
         return None
 
-    try:
-        target_speed = int(state.get("target_speed", 0))
-    except (TypeError, ValueError):
-        target_speed = 0
+    target_speed = _clamp_speed(state.get("target_speed", 0))
 
     latest_target = shared_controls.get(_prefixed(prefix, "PREV_SPEED"))
     if latest_target is not None:
-        try:
-            latest_target_int = int(latest_target)
-        except (TypeError, ValueError):
-            latest_target_int = target_speed
-        latest_target_int = max(0, min(255, latest_target_int))
+        latest_target_int = _clamp_speed(latest_target)
         if latest_target_int != target_speed:
             target_speed = latest_target_int
             state["target_speed"] = target_speed
 
-    target_speed = max(0, target_speed)
-
-    try:
-        current_speed = int(state.get("current_speed", 0))
-    except (TypeError, ValueError):
-        current_speed = 0
-
-    current_speed = max(0, current_speed)
+    current_speed = _clamp_speed(state.get("current_speed", 0))
 
     slider_step = _get_stop_sign_deceleration_step(tk_controls)
     step = state.get("step")
@@ -655,3 +591,21 @@ def _clear_stop_sign_state(shared_controls, prefix="STOP_SIGN"):
     shared_controls.pop(_prefixed(prefix, "RESUME_TIME"), None)
     shared_controls.pop(_prefixed(prefix, "ACTIVE"), None)
     shared_controls.pop(_prefixed(prefix, "ACCEL_STATE"), None)
+
+# -----------------------
+# Helpers utilitários
+# -----------------------
+
+def _prefixed(prefix: str, suffix: str) -> str:
+    return f"{prefix}_{suffix}"
+
+
+def _safe_int(x, default=0):
+    try:
+        return int(x)
+    except (TypeError, ValueError):
+        return default
+
+
+def _clamp_speed(x, lo=0, hi=255):
+    return max(lo, min(hi, _safe_int(x, lo)))
