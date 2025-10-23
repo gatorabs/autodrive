@@ -13,6 +13,162 @@ DETOUR_LABEL = "PLACA_DESVIO"
 LOMBADA_LABEL = "PLACA_LOMBADA"
 
 
+def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *, now=None):
+    current_time = time.monotonic() if now is None else now
+
+    custom_label = _resolve_custom_label(obj_data)
+    hold_seconds = _get_stop_hold_seconds(tk_controls) if custom_label == STOP_SIGN_LABEL else 0.0
+
+    stop_sign_ignore = shared_controls.get("STOP_SIGN_IGNORE", False)
+    stop_sign_active = shared_controls.get("STOP_SIGN_ACTIVE", False)
+    stop_sign_hold = False
+
+    if stop_sign_active:
+        resume_time = shared_controls.get("STOP_SIGN_RESUME_TIME")
+        if resume_time is not None and current_time >= resume_time:
+            shared_controls["STOP_SIGN_ACTIVE"] = False
+            shared_controls.pop("STOP_SIGN_RESUME_TIME", None)
+            shared_controls.pop("STOP_SIGN_HOLD_SECONDS", None)
+        else:
+            stop_sign_hold = True
+            _record_stop_sign_requested_speed(shared_controls, lane_data)
+
+    if (
+        not shared_controls.get("STOP_SIGN_ACTIVE", False)
+        and custom_label == STOP_SIGN_LABEL
+        and not stop_sign_ignore
+    ):
+        shared_controls["STOP_SIGN_ACTIVE"] = hold_seconds > 0
+        shared_controls["STOP_SIGN_RESUME_TIME"] = None
+        shared_controls["STOP_SIGN_HOLD_SECONDS"] = hold_seconds
+        _record_stop_sign_requested_speed(shared_controls, lane_data, force=True)
+        shared_controls["STOP_SIGN_IGNORE"] = True
+        _start_stop_sign_deceleration(
+            shared_controls, lane_data.car_speed_data, tk_controls, current_time
+        )
+        stop_sign_hold = True
+
+    if custom_label != STOP_SIGN_LABEL and not shared_controls.get("STOP_SIGN_ACTIVE", False):
+        shared_controls["STOP_SIGN_IGNORE"] = False
+
+    decel_state = shared_controls.get("STOP_SIGN_DECEL_STATE")
+    if decel_state:
+        _record_stop_sign_requested_speed(shared_controls, lane_data)
+        if decel_state.get("current_speed", 0) > 0:
+            stop_sign_hold = True
+
+    should_stop = (
+        obj_data.object_person_data == 1
+        or shared_controls.get("EMERGENCY_STOP", 0) == 1
+        or shared_controls.get("SAFE_STOP")
+        or shared_controls.get("OBJ_SAFE_STOP")
+        or obj_data.traffic_light_data == 0
+    )
+
+    if custom_label == DETOUR_LABEL:
+        pass  # Placeholder for future detour handling
+    elif custom_label == LOMBADA_LABEL:
+        pass  # Placeholder for future bump/light handling
+
+    if stop_sign_hold:
+        should_stop = True
+
+    if should_stop:
+        shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
+        if stop_sign_hold and shared_controls.get("STOP_SIGN_DECEL_STATE"):
+            target_speed = _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time)
+            _update_car_speed(shared_controls, lane_data, target_speed)
+        else:
+            _update_car_speed(shared_controls, lane_data, 0)
+    else:
+        shared_controls.pop("STOP_SIGN_DECEL_STATE", None)
+        prev_speed = shared_controls.get("STOP_SIGN_PREV_SPEED")
+        if prev_speed is not None:
+            accel_state = shared_controls.get("STOP_SIGN_ACCEL_STATE")
+            if not accel_state:
+                _start_stop_sign_acceleration(
+                    shared_controls,
+                    lane_data.car_speed_data,
+                    prev_speed,
+                    tk_controls,
+                    current_time,
+                )
+
+            result = _apply_stop_sign_acceleration(shared_controls, tk_controls, current_time)
+            if result is not None:
+                speed, finished = result
+                _update_car_speed(shared_controls, lane_data, speed)
+                if finished:
+                    shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
+                    _clear_stop_sign_state(shared_controls)
+            else:
+                try:
+                    fallback_speed = int(prev_speed)
+                except (TypeError, ValueError):
+                    fallback_speed = 0
+                fallback_speed = max(0, fallback_speed)
+                _update_car_speed(shared_controls, lane_data, fallback_speed)
+                shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
+                _clear_stop_sign_state(shared_controls)
+        else:
+            _clear_stop_sign_state(shared_controls)
+
+
+def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
+    if manual_md:
+        obj_data.custom_object_data = 0
+        obj_data.custom_object_label = ""
+        obj_data.object_person_data = 0
+        obj_data.traffic_light_data = 2
+        while not object_queue.empty():
+            try:
+                object_queue.get_nowait()
+            except Empty:
+                break
+    else:
+        try:
+            new_obj = object_queue.get_nowait()
+            obj_data.update(new_obj)
+        except Empty:
+            pass
+
+
+def publish(lane_data: LaneData, obj_data: ObjectData, serial_comm, logger, verbose):
+    payload = [
+        lane_data.car_direction_data,
+        lane_data.car_speed_data,
+        obj_data.traffic_light_data,
+    ]
+
+    if not serial_comm.ensure_connection():
+        return
+
+    try:
+        serial_comm.send(payload, verbose)
+    except Exception as e:
+        logger.error(f"Falha ao enviar dados: {e}")
+        serial_comm.close()
+
+def change_serial_port(
+    new_com,
+    current_com,
+    serial_comm,
+    shared_controls,
+    logger=None,
+    open_for_receive=False,
+):
+    if not new_com or new_com == current_com:
+        return current_com
+
+    serial_comm.change_port(
+        new_port=new_com,
+        send_data=shared_controls.get("SEND_DATA", False),
+        open_for_receive=open_for_receive,
+    )
+    if logger:
+        logger.info(f"Porta serial alterada: {current_com} -> {new_com}")
+    return new_com
+
 def _update_car_speed(shared_controls, lane_data, speed):
     lane_data.car_speed_data = speed
     car_info = shared_controls.get("CAR_INFO", {})
@@ -275,161 +431,3 @@ def _clear_stop_sign_state(shared_controls):
     shared_controls.pop("STOP_SIGN_RESUME_TIME", None)
     shared_controls.pop("STOP_SIGN_ACTIVE", None)
     shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
-
-
-def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *, now=None):
-    current_time = time.monotonic() if now is None else now
-
-    custom_label = _resolve_custom_label(obj_data)
-    hold_seconds = _get_stop_hold_seconds(tk_controls) if custom_label == STOP_SIGN_LABEL else 0.0
-
-    stop_sign_ignore = shared_controls.get("STOP_SIGN_IGNORE", False)
-    stop_sign_active = shared_controls.get("STOP_SIGN_ACTIVE", False)
-    stop_sign_hold = False
-
-    if stop_sign_active:
-        resume_time = shared_controls.get("STOP_SIGN_RESUME_TIME")
-        if resume_time is not None and current_time >= resume_time:
-            shared_controls["STOP_SIGN_ACTIVE"] = False
-            shared_controls.pop("STOP_SIGN_RESUME_TIME", None)
-            shared_controls.pop("STOP_SIGN_HOLD_SECONDS", None)
-        else:
-            stop_sign_hold = True
-            _record_stop_sign_requested_speed(shared_controls, lane_data)
-
-    if (
-        not shared_controls.get("STOP_SIGN_ACTIVE", False)
-        and custom_label == STOP_SIGN_LABEL
-        and not stop_sign_ignore
-    ):
-        shared_controls["STOP_SIGN_ACTIVE"] = hold_seconds > 0
-        shared_controls["STOP_SIGN_RESUME_TIME"] = None
-        shared_controls["STOP_SIGN_HOLD_SECONDS"] = hold_seconds
-        _record_stop_sign_requested_speed(shared_controls, lane_data, force=True)
-        shared_controls["STOP_SIGN_IGNORE"] = True
-        _start_stop_sign_deceleration(
-            shared_controls, lane_data.car_speed_data, tk_controls, current_time
-        )
-        stop_sign_hold = True
-
-    if custom_label != STOP_SIGN_LABEL and not shared_controls.get("STOP_SIGN_ACTIVE", False):
-        shared_controls["STOP_SIGN_IGNORE"] = False
-
-    decel_state = shared_controls.get("STOP_SIGN_DECEL_STATE")
-    if decel_state:
-        _record_stop_sign_requested_speed(shared_controls, lane_data)
-        if decel_state.get("current_speed", 0) > 0:
-            stop_sign_hold = True
-
-    should_stop = (
-        obj_data.object_person_data == 1
-        or shared_controls.get("EMERGENCY_STOP", 0) == 1
-        or shared_controls.get("SAFE_STOP")
-        or shared_controls.get("OBJ_SAFE_STOP")
-        or obj_data.traffic_light_data == 0
-    )
-
-    if custom_label == DETOUR_LABEL:
-        pass  # Placeholder for future detour handling
-    elif custom_label == LOMBADA_LABEL:
-        pass  # Placeholder for future bump/light handling
-
-    if stop_sign_hold:
-        should_stop = True
-
-    if should_stop:
-        shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
-        if stop_sign_hold and shared_controls.get("STOP_SIGN_DECEL_STATE"):
-            target_speed = _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time)
-            _update_car_speed(shared_controls, lane_data, target_speed)
-        else:
-            _update_car_speed(shared_controls, lane_data, 0)
-    else:
-        shared_controls.pop("STOP_SIGN_DECEL_STATE", None)
-        prev_speed = shared_controls.get("STOP_SIGN_PREV_SPEED")
-        if prev_speed is not None:
-            accel_state = shared_controls.get("STOP_SIGN_ACCEL_STATE")
-            if not accel_state:
-                _start_stop_sign_acceleration(
-                    shared_controls,
-                    lane_data.car_speed_data,
-                    prev_speed,
-                    tk_controls,
-                    current_time,
-                )
-
-            result = _apply_stop_sign_acceleration(shared_controls, tk_controls, current_time)
-            if result is not None:
-                speed, finished = result
-                _update_car_speed(shared_controls, lane_data, speed)
-                if finished:
-                    shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
-                    _clear_stop_sign_state(shared_controls)
-            else:
-                try:
-                    fallback_speed = int(prev_speed)
-                except (TypeError, ValueError):
-                    fallback_speed = 0
-                fallback_speed = max(0, fallback_speed)
-                _update_car_speed(shared_controls, lane_data, fallback_speed)
-                shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
-                _clear_stop_sign_state(shared_controls)
-        else:
-            _clear_stop_sign_state(shared_controls)
-
-
-def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
-    if manual_md:
-        obj_data.custom_object_data = 0
-        obj_data.custom_object_label = ""
-        obj_data.object_person_data = 0
-        obj_data.traffic_light_data = 2
-        while not object_queue.empty():
-            try:
-                object_queue.get_nowait()
-            except Empty:
-                break
-    else:
-        try:
-            new_obj = object_queue.get_nowait()
-            obj_data.update(new_obj)
-        except Empty:
-            pass
-
-
-def publish(lane_data: LaneData, obj_data: ObjectData, serial_comm, logger, verbose):
-    payload = [
-        lane_data.car_direction_data,
-        lane_data.car_speed_data,
-        obj_data.traffic_light_data,
-    ]
-
-    if not serial_comm.ensure_connection():
-        return
-
-    try:
-        serial_comm.send(payload, verbose)
-    except Exception as e:
-        logger.error(f"Falha ao enviar dados: {e}")
-        serial_comm.close()
-
-def change_serial_port(
-    new_com,
-    current_com,
-    serial_comm,
-    shared_controls,
-    logger=None,
-    open_for_receive=False,
-):
-    if not new_com or new_com == current_com:
-        return current_com
-
-    serial_comm.change_port(
-        new_port=new_com,
-        send_data=shared_controls.get("SEND_DATA", False),
-        open_for_receive=open_for_receive,
-    )
-    if logger:
-        logger.info(f"Porta serial alterada: {current_com} -> {new_com}")
-    return new_com
-

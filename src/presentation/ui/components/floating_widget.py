@@ -271,7 +271,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
             SettingsSliderConfig("Timestamp", "Timestamp", 0, 10, 1),
             SettingsSliderConfig(
                 "StopRampInterval",
-                "Intervalo de desaceleração/aceleração (s)",
+                "StopRampInterval",
                 0.0,
                 1.0,
                 0.05,
