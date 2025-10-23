@@ -153,13 +153,19 @@ def _start_stop_sign_acceleration(
     except (TypeError, ValueError):
         starting_speed = 0
 
+    car_info = shared_controls.get("CAR_INFO", {})
+    try:
+        commanded_speed = int(car_info.get("CAR_SPEED_DATA", starting_speed))
+    except (TypeError, ValueError):
+        commanded_speed = starting_speed
+
     try:
         desired_speed = int(target_speed)
     except (TypeError, ValueError):
         desired_speed = 0
 
     desired_speed = max(0, min(255, desired_speed))
-    starting_speed = max(0, min(desired_speed, starting_speed))
+    starting_speed = max(0, min(desired_speed, commanded_speed))
 
     if desired_speed <= 0:
         shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
