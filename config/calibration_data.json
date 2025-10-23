@@ -26,8 +26,7 @@
     "br_y": 270,
     "Distance": 160,
     "Timestamp": 5,
-    "StopDecelerationInterval": 0.2,
-    "StopAccelerationInterval": 0.2,
+    "StopRampInterval": 0.2,
     "Lines": 10,
     "SHOW_LINES": false
 }

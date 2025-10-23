@@ -45,13 +45,20 @@ def _get_stop_sign_deceleration_step(tk_controls):
     return max(1, step)
 
 
-def _get_stop_sign_deceleration_interval(tk_controls):
+def _get_stop_sign_ramp_interval(tk_controls):
     tk_controls = tk_controls or {}
 
-    if "StopDecelerationInterval" in tk_controls:
-        raw_value = tk_controls.get("StopDecelerationInterval")
+    raw_value = None
+    if "StopRampInterval" in tk_controls:
+        raw_value = tk_controls.get("StopRampInterval")
     else:
-        raw_value = tk_controls.get("StopAccelerationInterval", 0.2)
+        for legacy_key in ("StopDecelerationInterval", "StopAccelerationInterval"):
+            if legacy_key in tk_controls:
+                raw_value = tk_controls.get(legacy_key)
+                break
+
+    if raw_value is None:
+        raw_value = 0.2
 
     try:
         interval = float(raw_value)
@@ -60,10 +67,8 @@ def _get_stop_sign_deceleration_interval(tk_controls):
 
     interval = max(0.0, interval)
 
-    if tk_controls.get("StopDecelerationInterval") != interval:
-        tk_controls["StopDecelerationInterval"] = interval
-    if tk_controls.get("StopAccelerationInterval") != interval:
-        tk_controls["StopAccelerationInterval"] = interval
+    if tk_controls.get("StopRampInterval") != interval:
+        tk_controls["StopRampInterval"] = interval
 
     return interval
 
@@ -88,7 +93,7 @@ def _record_stop_sign_requested_speed(shared_controls, lane_data, *, force=False
 
 def _start_stop_sign_deceleration(shared_controls, initial_speed, tk_controls, current_time):
     step = _get_stop_sign_deceleration_step(tk_controls)
-    interval = _get_stop_sign_deceleration_interval(tk_controls)
+    interval = _get_stop_sign_ramp_interval(tk_controls)
     try:
         starting_speed = int(initial_speed)
     except (TypeError, ValueError):
@@ -125,7 +130,7 @@ def _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time):
         step = slider_step
         state["step"] = step
 
-    slider_interval = _get_stop_sign_deceleration_interval(tk_controls)
+    slider_interval = _get_stop_sign_ramp_interval(tk_controls)
     interval = state.get("interval")
     if not isinstance(interval, (int, float)) or interval != slider_interval:
         interval = slider_interval
@@ -161,7 +166,7 @@ def _start_stop_sign_acceleration(
     shared_controls, current_speed, target_speed, tk_controls, current_time
 ):
     step = _get_stop_sign_deceleration_step(tk_controls)
-    interval = _get_stop_sign_deceleration_interval(tk_controls)
+    interval = _get_stop_sign_ramp_interval(tk_controls)
 
     try:
         desired_speed = int(target_speed)
@@ -233,7 +238,7 @@ def _apply_stop_sign_acceleration(shared_controls, tk_controls, current_time):
         step = slider_step
         state["step"] = step
 
-    slider_interval = _get_stop_sign_deceleration_interval(tk_controls)
+    slider_interval = _get_stop_sign_ramp_interval(tk_controls)
     interval = state.get("interval")
     if not isinstance(interval, (int, float)) or interval != slider_interval:
         interval = slider_interval

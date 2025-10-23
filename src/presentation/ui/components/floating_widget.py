@@ -270,7 +270,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
             SettingsSliderConfig("BaseConf", "YOLO Confidence", 0, 10, 1),
             SettingsSliderConfig("Timestamp", "Timestamp", 0, 10, 1),
             SettingsSliderConfig(
-                "StopDecelerationInterval",
+                "StopRampInterval",
                 "Intervalo de desaceleração/aceleração (s)",
                 0.0,
                 1.0,
@@ -386,19 +386,17 @@ class SettingsFloatingWidget(ctk.CTkFrame):
     def _get_current_value(self, config: SettingsSliderConfig) -> float:
         if config.name in self.calibration_data:
             return self.calibration_data[config.name]
-        if (
-            config.name == "StopDecelerationInterval"
-            and "StopAccelerationInterval" in self.calibration_data
-        ):
-            return self.calibration_data["StopAccelerationInterval"]
+        if config.name == "StopRampInterval":
+            for legacy_key in ("StopDecelerationInterval", "StopAccelerationInterval"):
+                if legacy_key in self.calibration_data:
+                    return self.calibration_data[legacy_key]
 
         if config.name in self.tk_controls:
             return self.tk_controls[config.name]
-        if (
-            config.name == "StopDecelerationInterval"
-            and "StopAccelerationInterval" in self.tk_controls
-        ):
-            return self.tk_controls["StopAccelerationInterval"]
+        if config.name == "StopRampInterval":
+            for legacy_key in ("StopDecelerationInterval", "StopAccelerationInterval"):
+                if legacy_key in self.tk_controls:
+                    return self.tk_controls[legacy_key]
 
         return config.min_val
 
@@ -456,8 +454,10 @@ class SettingsFloatingWidget(ctk.CTkFrame):
 
     def _persist_value(self, name: str, value: float) -> None:
         updates = {name: value}
-        if name == "StopDecelerationInterval":
-            updates["StopAccelerationInterval"] = value
+        if name == "StopRampInterval":
+            for legacy_key in ("StopDecelerationInterval", "StopAccelerationInterval"):
+                self.tk_controls.pop(legacy_key, None)
+                self.calibration_data.pop(legacy_key, None)
 
         for key, stored_value in updates.items():
             self.tk_controls[key] = stored_value
