@@ -132,13 +132,15 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
 
     person_detected = obj_data.object_person_data == 1
 
-    should_stop = (
+    emergency_stop = (
         person_detected
         or shared_controls.get("EMERGENCY_STOP", 0) == 1
         or shared_controls.get("SAFE_STOP")
         or shared_controls.get("OBJ_SAFE_STOP")
         or obj_data.traffic_light_data == 0
     )
+
+    should_stop = emergency_stop
 
     if custom_label == DETOUR_LABEL:
         pass  # Placeholder for future detour handling
@@ -183,7 +185,10 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
             )
 
         speeds = [speed for speed in target_candidates if speed is not None]
-        target_speed = min(speeds) if speeds else 0
+        if emergency_stop:
+            target_speed = 0
+        else:
+            target_speed = min(speeds) if speeds else 0
         _update_car_speed(shared_controls, lane_data, target_speed)
     else:
         shared_controls.pop("STOP_SIGN_DECEL_STATE", None)
