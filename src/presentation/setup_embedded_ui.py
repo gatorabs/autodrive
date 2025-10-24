@@ -7,7 +7,8 @@ from src.infrastructure.utils.lane_utils import bird_eye_full
 
 def draw_overlays(frame, distances, warp_points=None, edges=None,
                   has_ref=False, show_info=None, fps=0, ms=0, mapped_direction=90,
-                  roi=None, left_lines=None, right_lines=None, show_roi_lines=False):
+                  roi=None, left_lines=None, right_lines=None, show_roi_lines=False,
+                  distance_value=None):
     if not hasattr(draw_overlays, "font_props"):
         draw_overlays.font_props = {
             "font": cv.QT_FONT_NORMAL,
@@ -73,7 +74,8 @@ def draw_overlays(frame, distances, warp_points=None, edges=None,
                 f"Mapped Dir: {mapped_direction}",
                 f"FPS: {fps:.1f}",
                 f"MS: {ms:.1f}",
-                f"Ref Detected: {has_ref}"
+                f"Distance: {distance_value:.1f}" if isinstance(distance_value, (int, float))
+                else f"Distance: {distance_value if distance_value is not None else 'N/A'}"
             ]
 
             # Propriedades da caixa

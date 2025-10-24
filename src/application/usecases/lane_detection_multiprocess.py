@@ -116,7 +116,8 @@ def lane_detection_process(lane_queue,
                 ms=avg_time,
                 roi=warped_roi,
                 left_lines=left_lines,
-                right_lines=right_lines
+                right_lines=right_lines,
+                distance_value=tk_controls.get("Distance")
             )
 
             toggle_named_window(is_enabled=tk_controls.get("SHOW_ROI"),
