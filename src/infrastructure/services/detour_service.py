@@ -3,10 +3,10 @@ from typing import Any
 from src.domain.constants.detour_constants import (
     DETOUR_ACTIVE_KEY,
     DETOUR_COUNT_KEY,
+    DETOUR_DISTANCE_OFFSET,
     DETOUR_IGNORE_KEY,
     DETOUR_PREV_SETTINGS_KEY,
     DETOUR_TARGET_BR_X,
-    DETOUR_TARGET_DISTANCE,
     DETOUR_TARGET_TR_X,
     DETOUR_FORCED_SIDE,
 )
@@ -28,8 +28,11 @@ def activate_detour_mode(shared_controls: Any, tk_controls: Any) -> None:
         }
         shared_controls[DETOUR_PREV_SETTINGS_KEY] = previous_values
 
+    current_distance = tk_controls.get("Distance") if hasattr(tk_controls, "get") else None
+    forced_distance = _calculate_forced_distance(current_distance)
+
     _set_control_value(tk_controls, "Side", DETOUR_FORCED_SIDE)
-    _set_control_value(tk_controls, "Distance", DETOUR_TARGET_DISTANCE)
+    _set_control_value(tk_controls, "Distance", forced_distance)
     _set_control_value(tk_controls, "tr_x", DETOUR_TARGET_TR_X)
     _set_control_value(tk_controls, "br_x", DETOUR_TARGET_BR_X)
 
@@ -87,3 +90,21 @@ def _set_control_value(tk_controls: Any, key: str, value: Any) -> None:
     if current == value:
         return
     tk_controls[key] = value
+
+
+def _calculate_forced_distance(current_distance: Any) -> Any:
+    if isinstance(current_distance, (int, float)):
+        return current_distance - DETOUR_DISTANCE_OFFSET
+
+    if isinstance(current_distance, str):
+        try:
+            numeric_value = float(current_distance)
+        except ValueError:
+            return None
+        forced_distance = numeric_value - DETOUR_DISTANCE_OFFSET
+        # Preserve integer-looking strings as ints when possible
+        if forced_distance.is_integer():
+            return int(forced_distance)
+        return forced_distance
+
+    return None
