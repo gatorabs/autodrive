@@ -5,7 +5,7 @@ from dataclasses import dataclass
 class ObjectData:
     custom_object_data: int = 0
     object_person_data: int = 0
-    traffic_light_data: int = 0
+    traffic_light_data: int = 2
     custom_object_label: str = ""
 
     def update(self, data: dict) -> None:
