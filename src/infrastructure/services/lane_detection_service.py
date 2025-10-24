@@ -9,12 +9,7 @@ from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.mappers.direction_mapper import map_direction
 from src.infrastructure.utils.frame_utils import encode_frame
 from src.domain.constants.pid_constants import FALLBACK_PID_INPUT, FALLBACK_PID_OUTPUT
-from src.domain.constants.detour_constants import (
-    DETOUR_ACTIVE_KEY,
-    DETOUR_COUNT_KEY,
-    DETOUR_IGNORE_KEY,
-    DETOUR_PREV_SETTINGS_KEY,
-)
+from src.infrastructure.services.detour_service import reset_detour_mode
 
 _encoder_pool = ThreadPoolExecutor(max_workers=2)
 
@@ -179,34 +174,4 @@ def apply_speed_override(
 def _restore_detour_settings_if_needed(shared_controls, tk_controls, previous_side, new_side):
     if previous_side != 1 or new_side != 2:
         return
-
-    if (
-        shared_controls is None
-        or tk_controls is None
-        or not hasattr(shared_controls, "get")
-        or not hasattr(shared_controls, "__setitem__")
-        or not hasattr(tk_controls, "__setitem__")
-    ):
-        return
-
-    if not shared_controls.get(DETOUR_ACTIVE_KEY):
-        return
-
-    if hasattr(shared_controls, "pop"):
-        previous_values = shared_controls.pop(DETOUR_PREV_SETTINGS_KEY, None)
-    else:
-        previous_values = shared_controls.get(DETOUR_PREV_SETTINGS_KEY)
-        if hasattr(shared_controls, "__delitem__"):
-            try:
-                del shared_controls[DETOUR_PREV_SETTINGS_KEY]
-            except KeyError:
-                pass
-    if isinstance(previous_values, dict):
-        for key in ("Distance", "tr_x", "br_x"):
-            if key in previous_values and previous_values[key] is not None:
-                tk_controls[key] = previous_values[key]
-
-    shared_controls[DETOUR_ACTIVE_KEY] = False
-    if hasattr(shared_controls, "pop"):
-        shared_controls.pop(DETOUR_COUNT_KEY, None)
-    shared_controls[DETOUR_IGNORE_KEY] = False
+    reset_detour_mode(shared_controls, tk_controls)
