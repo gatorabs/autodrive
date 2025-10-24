@@ -12,6 +12,7 @@
     "Person": 0,
     "Traffic": 0,
     "BaseConf": 5,
+    "CustomConf": 4,
     "StopRampInterval": 0.2,
     "PeopleRegion": 33,
     "tl_x": 120,

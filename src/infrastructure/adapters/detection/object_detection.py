@@ -22,6 +22,7 @@ DEFAULT_CUSTOM_LABEL = "Custom Object"
 DEFAULT_CUSTOM_CONFIDENCE = 0.35
 DEFAULT_BASE_CONFIDENCE = 0.35
 BASE_CONF_KEY = "BaseConf"
+CUSTOM_CONF_KEY = "CustomConf"
 CUSTOM_BOX_COLOR = (255, 140, 0)
 PERSON_REGION_WIDTH_KEY = "PeopleRegion"
 DEFAULT_PERSON_REGION_PERCENT = 33
@@ -100,6 +101,8 @@ class ObjectDetector:
             self.tk_controls[PERSON_REGION_WIDTH_KEY] = DEFAULT_PERSON_REGION_PERCENT
         if BASE_CONF_KEY not in self.tk_controls:
             self.tk_controls[BASE_CONF_KEY] = int(round(self.base_default_conf * 10))
+        if CUSTOM_CONF_KEY not in self.tk_controls:
+            self.tk_controls[CUSTOM_CONF_KEY] = int(round(self.custom_default_conf * 10))
 
     def _get_base_confidence(self):
         slider_value = self.tk_controls.get(BASE_CONF_KEY)
@@ -241,7 +244,13 @@ class ObjectDetector:
         return self.custom_default_label
 
     def _get_custom_confidence(self):
-        return self.custom_default_conf
+        slider_value = self.tk_controls.get(CUSTOM_CONF_KEY)
+        if slider_value is None:
+            return self.custom_default_conf
+        try:
+            return max(0.05, min(0.99, float(slider_value) / 10.0))
+        except (TypeError, ValueError):
+            return self.custom_default_conf
 
     def _get_custom_size_thresholds(self):
         thresholds = {}
