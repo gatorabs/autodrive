@@ -6,6 +6,17 @@ from src.domain.models.object_data.object_data import ObjectData
 from src.infrastructure.services.object_detection_service import (
     CUSTOM_OBJECT_LABEL_BY_CODE,
 )
+from src.domain.constants.detour_constants import (
+    DEVIATION_COUNTER_CONTROL,
+    DETOUR_ACTIVE_KEY,
+    DETOUR_COUNT_KEY,
+    DETOUR_FORCED_SIDE,
+    DETOUR_IGNORE_KEY,
+    DETOUR_PREV_SETTINGS_KEY,
+    DETOUR_TARGET_BR_X,
+    DETOUR_TARGET_DISTANCE,
+    DETOUR_TARGET_TR_X,
+)
 
 STOP_SIGN_LABEL = "PLACA_PARE"
 DETOUR_LABEL = "PLACA_DESVIO"
@@ -125,8 +136,7 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
 
     should_stop = emergency_stop or stop_sign_hold or bump_hold
 
-    if custom_label == DETOUR_LABEL:
-        pass  # Placeholder para lógica futura de desvio
+    _handle_detour_detection(custom_label, shared_controls, tk_controls)
 
     if should_stop:
         # Cancelar rampas de aceleração em curso
@@ -264,6 +274,84 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
             shared_controls.pop("PERSON_PREV_SPEED", None)
             shared_controls.pop("PERSON_STOP_ACTIVE", None)
             _clear_stop_sign_state(shared_controls, prefix="PERSON")
+
+
+def _handle_detour_detection(custom_label, shared_controls, tk_controls):
+    if tk_controls is None or not hasattr(tk_controls, "get"):
+        return
+
+    if (
+        shared_controls is None
+        or not hasattr(shared_controls, "get")
+        or not hasattr(shared_controls, "__setitem__")
+    ):
+        return
+
+    threshold = tk_controls.get(DEVIATION_COUNTER_CONTROL)
+    try:
+        threshold = int(round(float(threshold)))
+    except (TypeError, ValueError):
+        threshold = 0
+
+    if threshold <= 0:
+        if hasattr(shared_controls, "pop"):
+            shared_controls.pop(DETOUR_COUNT_KEY, None)
+            shared_controls.pop(DETOUR_IGNORE_KEY, None)
+        return
+
+    if custom_label == DETOUR_LABEL:
+        if shared_controls.get(DETOUR_IGNORE_KEY):
+            return
+
+        count = int(shared_controls.get(DETOUR_COUNT_KEY, 0)) + 1
+        shared_controls[DETOUR_COUNT_KEY] = count
+        shared_controls[DETOUR_IGNORE_KEY] = True
+
+        if count >= threshold:
+            _activate_detour_mode(shared_controls, tk_controls)
+            shared_controls[DETOUR_COUNT_KEY] = 0
+        return
+
+    shared_controls[DETOUR_IGNORE_KEY] = False
+
+
+def _activate_detour_mode(shared_controls, tk_controls):
+    if (
+        shared_controls is None
+        or not hasattr(shared_controls, "get")
+        or not hasattr(shared_controls, "__setitem__")
+    ):
+        return
+
+    if shared_controls.get(DETOUR_ACTIVE_KEY):
+        return
+
+    previous_values = shared_controls.get(DETOUR_PREV_SETTINGS_KEY)
+    if not isinstance(previous_values, dict):
+        previous_values = {
+            "Distance": tk_controls.get("Distance"),
+            "tr_x": tk_controls.get("tr_x"),
+            "br_x": tk_controls.get("br_x"),
+        }
+        shared_controls[DETOUR_PREV_SETTINGS_KEY] = previous_values
+
+    _set_control_value(tk_controls, "Side", DETOUR_FORCED_SIDE)
+    _set_control_value(tk_controls, "Distance", DETOUR_TARGET_DISTANCE)
+    _set_control_value(tk_controls, "tr_x", DETOUR_TARGET_TR_X)
+    _set_control_value(tk_controls, "br_x", DETOUR_TARGET_BR_X)
+
+    shared_controls[DETOUR_ACTIVE_KEY] = True
+
+
+def _set_control_value(tk_controls, key, value):
+    if value is None:
+        return
+    if tk_controls is None or not hasattr(tk_controls, "__setitem__"):
+        return
+    current = tk_controls.get(key)
+    if current == value:
+        return
+    tk_controls[key] = value
 
 
 def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):

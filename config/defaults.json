@@ -23,5 +23,6 @@
     "br_x": 440,
     "br_y": 220,
     "Distance": 80,
-    "Lines": 10
+    "Lines": 10,
+    "DeviationCounter": 2
 }

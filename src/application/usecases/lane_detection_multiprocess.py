@@ -93,7 +93,8 @@ def lane_detection_process(lane_queue,
                 side=side,
                 has_ref=has_ref,
                 tk_controls=tk_controls,
-                direction=direction
+                direction=direction,
+                shared_controls=shared_controls,
             )
 
             speed = apply_speed_override(shared_controls=shared_controls,

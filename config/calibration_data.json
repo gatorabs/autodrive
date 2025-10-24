@@ -25,6 +25,7 @@
     "br_x": 430,
     "br_y": 270,
     "Distance": 160,
+    "DeviationCounter": 2,
     "Timestamp": 5,
     "StopRampInterval": 0.2,
     "Lines": 10,

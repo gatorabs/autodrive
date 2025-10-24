@@ -276,6 +276,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
                 1.0,
                 0.05,
             ),
+            SettingsSliderConfig("DeviationCounter", "Deviation Counter", 1, 5, 1),
         ]
         self.slider_controls: Dict[str, dict] = {}
 
@@ -315,7 +316,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         _destroy_modal_window(self.settings_modal)
 
         modal_width = 320
-        modal_height = 120
+        modal_height = 160
         self.settings_modal = ctk.CTkToplevel(self.master)
         self.settings_modal.title("Configurações")
         self.settings_modal.resizable(False, False)
