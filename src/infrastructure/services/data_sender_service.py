@@ -286,6 +286,12 @@ def _handle_detour_detection(custom_label, shared_controls, tk_controls):
     ):
         return
 
+    if custom_label == STOP_SIGN_LABEL:
+        activate_detour_mode(shared_controls, tk_controls)
+        shared_controls[DETOUR_COUNT_KEY] = 0
+        shared_controls[DETOUR_IGNORE_KEY] = False
+        return
+
     threshold = tk_controls.get(DEVIATION_COUNTER_CONTROL)
     try:
         threshold = int(round(float(threshold)))
@@ -296,6 +302,9 @@ def _handle_detour_detection(custom_label, shared_controls, tk_controls):
         if hasattr(shared_controls, "pop"):
             shared_controls.pop(DETOUR_COUNT_KEY, None)
             shared_controls.pop(DETOUR_IGNORE_KEY, None)
+        else:
+            shared_controls[DETOUR_COUNT_KEY] = 0
+            shared_controls[DETOUR_IGNORE_KEY] = False
         return
 
     if custom_label == DETOUR_LABEL:
