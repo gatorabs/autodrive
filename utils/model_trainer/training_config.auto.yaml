@@ -29,11 +29,11 @@ models:
     val_ratio: 0.2
     train: {}
   - name: SEMAFORO
-    dataset: dataset
+    dataset: dataset/SEMAFORO
     classes:
-      - yolo_runs/SEMAFORO
+      - SEMAFORO
     class_ids:
-      - 3
+      - 0
     output: yolo_runs/SEMAFORO
     val_ratio: 0.2
     train: {}
@@ -52,7 +52,7 @@ models:
       - 0
       - 1
       - 2
-      - 3
+      - 0
     output: yolo_runs/todos_objetos
     val_ratio: 0.2
     train: {}
