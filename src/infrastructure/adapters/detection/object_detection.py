@@ -34,6 +34,8 @@ CUSTOM_CLASS_SLIDER_KEYS = {
     "PLACA_LOMBADA": "PLACA_LOMBADA",
 }
 
+CUSTOM_TRAFFIC_LIGHT_LABELS = {"SEMAFORO", "TRAFFIC_LIGHT", "TRAFFIC LIGHT"}
+
 class ObjectDetector:
     def __init__(self,
                  shared_serial_data,
@@ -398,6 +400,49 @@ class ObjectDetector:
                     box_width = x2 - x1
                     if max(box_height, box_width) < min_size_threshold:
                         continue
+
+                    label_upper = str(label).strip().upper()
+                    if label_upper in CUSTOM_TRAFFIC_LIGHT_LABELS:
+                        x1_clamped = max(0, min(frame_width - 1, x1))
+                        y1_clamped = max(0, min(frame_height - 1, y1))
+                        x2_clamped = max(0, min(frame_width - 1, x2))
+                        y2_clamped = max(0, min(frame_height - 1, y2))
+
+                        if x2_clamped <= x1_clamped or y2_clamped <= y1_clamped:
+                            continue
+
+                        roi = frame[
+                            y1_clamped : y2_clamped + 1,
+                            x1_clamped : x2_clamped + 1,
+                        ]
+                        if roi.size == 0:
+                            continue
+
+                        (
+                            active_color,
+                            color_bgr,
+                            detected_state,
+                        ) = process_traffic_light_roi(roi)
+                        traffic_light_state = min(traffic_light_state, detected_state)
+
+                        box_height_clamped = y2_clamped - y1_clamped
+                        y_div1 = y1_clamped + box_height_clamped // 3
+                        y_div2 = y1_clamped + 2 * (box_height_clamped // 3)
+
+                        cv2.line(frame, (x1_clamped, y_div1), (x2_clamped, y_div1), (255, 255, 255), 1)
+                        cv2.line(frame, (x1_clamped, y_div2), (x2_clamped, y_div2), (255, 255, 255), 1)
+                        cv2.rectangle(frame, (x1_clamped, y1_clamped), (x2_clamped, y2_clamped), color_bgr, 2)
+                        cv2.putText(
+                            frame,
+                            f"TL: {active_color}",
+                            (x1_clamped, y1_clamped - 20),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            color_bgr,
+                            2,
+                        )
+                        continue
+
                     detected_custom_labels.add(label)
                     cv2.rectangle(frame, (x1, y1), (x2, y2), CUSTOM_BOX_COLOR, 2)
                     cv2.putText(

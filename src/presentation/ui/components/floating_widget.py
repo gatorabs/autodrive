@@ -317,7 +317,13 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         _destroy_modal_window(self.settings_modal)
 
         modal_width = 320
-        modal_height = 160
+        base_modal_height = 160
+        slider_rows = max(1, len(self.slider_configs))
+        slider_row_height = 44
+        modal_height = max(
+            base_modal_height,
+            60 + slider_rows * slider_row_height,
+        )
         self.settings_modal = ctk.CTkToplevel(self.master)
         self.settings_modal.title("Configurações")
         self.settings_modal.resizable(False, False)
