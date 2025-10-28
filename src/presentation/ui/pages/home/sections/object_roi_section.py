@@ -5,7 +5,7 @@ class ObjectRoiSection(SliderSection):
     def __init__(self, master, tk_controls, calibration_data, **kwargs):
         sliders = [
             SliderConfig("Person", "Person", 0, 240),
-            SliderConfig("Traffic", "Traffic Sign", 0, 240),
+            SliderConfig("SEMAFORO", "Semáforo", 0, 240),
             SliderConfig("PeopleRegion", "People Region", 10, 100),
             SliderConfig("PLACA_PARE", "Placa Pare", 0, 240),
             SliderConfig("PLACA_DESVIO", "Placa Desvio", 0, 240),

@@ -32,6 +32,7 @@ CUSTOM_CLASS_SLIDER_KEYS = {
     "PLACA_PARE": "PLACA_PARE",
     "PLACA_DESVIO": "PLACA_DESVIO",
     "PLACA_LOMBADA": "PLACA_LOMBADA",
+    "SEMAFORO": "SEMAFORO",
 }
 
 class ObjectDetector:
@@ -289,7 +290,6 @@ class ObjectDetector:
             detected_custom_labels = set()
 
             min_person_size = self.tk_controls["Person"]
-            min_traffic_size = self.tk_controls["Traffic"]
             custom_size_thresholds = self._get_custom_size_thresholds()
 
             frame_height, frame_width = frame.shape[:2]
@@ -345,19 +345,6 @@ class ObjectDetector:
                         cv2.putText(frame, "Person", (x1, y1 - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-                    elif cls == 9 and (box_height >= min_traffic_size or box_width >= min_traffic_size):
-                        roi = frame[y1:y2, x1:x2]
-                        active_color, color_bgr, traffic_light_state = process_traffic_light_roi(roi)
-
-                        y_div1 = y1 + box_height // 3
-                        y_div2 = y1 + 2 * (box_height // 3)
-
-                        cv2.line(frame, (x1, y_div1), (x2, y_div1), (255, 255, 255), 1)
-                        cv2.line(frame, (x1, y_div2), (x2, y_div2), (255, 255, 255), 1)
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), color_bgr, 2)
-                        cv2.putText(frame, f"TL: {active_color}", (x1, y1 - 20),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
-
             if custom_results:
                 custom_conf_threshold = custom_conf or self.custom_default_conf
                 raw_detections = []
@@ -398,6 +385,28 @@ class ObjectDetector:
                     box_width = x2 - x1
                     if max(box_height, box_width) < min_size_threshold:
                         continue
+                    if label == "SEMAFORO":
+                        roi = frame[y1:y2, x1:x2]
+                        active_color, color_bgr, traffic_light_state = process_traffic_light_roi(roi)
+
+                        y_div1 = y1 + box_height // 3
+                        y_div2 = y1 + 2 * (box_height // 3)
+
+                        cv2.line(frame, (x1, y_div1), (x2, y_div1), (255, 255, 255), 1)
+                        cv2.line(frame, (x1, y_div2), (x2, y_div2), (255, 255, 255), 1)
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), color_bgr, 2)
+                        cv2.putText(
+                            frame,
+                            f"TL: {active_color}",
+                            (x1, y1 - 20),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            color_bgr,
+                            2,
+                        )
+                        detected_custom_labels.add(label)
+                        continue
+
                     detected_custom_labels.add(label)
                     cv2.rectangle(frame, (x1, y1), (x2, y2), CUSTOM_BOX_COLOR, 2)
                     cv2.putText(

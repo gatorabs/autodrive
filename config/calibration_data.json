@@ -10,7 +10,7 @@
     "KI": 0.003,
     "KD": 0.015,
     "Person": 240,
-    "Traffic": 0,
+    "SEMAFORO": 0,
     "PLACA_PARE": 0,
     "PLACA_DESVIO": 0,
     "PLACA_LOMBADA": 0,
