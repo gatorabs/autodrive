@@ -1,0 +1,8 @@
+path: C:\Users\gabri\Documents\Github\autonomous-car_2025\utils\model_trainer\yolo_runs\todos_objetos
+train: images/train
+val: images/val
+names:
+  0: PLACA_PARE
+  1: PLACA_LOMBADA
+  2: PLACA_DESVIO
+  3: SEMAFORO
