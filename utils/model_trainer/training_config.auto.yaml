@@ -1,12 +1,58 @@
 auto_generated: true
 base_dataset: dataset
 models:
-- name: SEMAFORO
-  dataset: dataset
-  classes:
-  - SEMAFORO
-  class_ids:
-  - 0
-  output: yolo_runs/SEMAFORO
-  val_ratio: 0.2
-  train: {}
+  - name: placa_pare
+    dataset: dataset/PLACA_PARE
+    classes:
+      - PLACA_PARE
+    class_ids:
+      - 0
+    output: yolo_runs/placa_pare
+    val_ratio: 0.2
+    train: {}
+  - name: placa_lombada
+    dataset: dataset/PLACA_LOMBADA
+    classes:
+      - PLACA_LOMBADA
+    class_ids:
+      - 1
+    output: yolo_runs/placa_lombada
+    val_ratio: 0.2
+    train: {}
+  - name: placa_desvio
+    dataset: dataset/PLACA_DESVIO
+    classes:
+      - PLACA_DESVIO
+    class_ids:
+      - 2
+    output: yolo_runs/placa_desvio
+    val_ratio: 0.2
+    train: {}
+  - name: SEMAFORO
+    dataset: dataset
+    classes:
+      - yolo_runs/SEMAFORO
+    class_ids:
+      - 3
+    output: yolo_runs/SEMAFORO
+    val_ratio: 0.2
+    train: {}
+  - name: todos_objetos
+    dataset:
+      - dataset/PLACA_PARE
+      - dataset/PLACA_LOMBADA
+      - dataset/PLACA_DESVIO
+      - dataset/SEMAFORO
+    classes:
+      - PLACA_PARE
+      - PLACA_LOMBADA
+      - PLACA_DESVIO
+      - SEMAFORO
+    class_ids:
+      - 0
+      - 1
+      - 2
+      - 3
+    output: yolo_runs/todos_objetos
+    val_ratio: 0.2
+    train: {}

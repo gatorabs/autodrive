@@ -1,5 +1,0 @@
-path: C:\Users\Gabriel\Documents\GitHub\autonomous-car_2025\utils\model_trainer\dataset
-train: images
-val: images
-names:
-- SEMAFORO
