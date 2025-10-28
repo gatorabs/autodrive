@@ -6,6 +6,7 @@ from src.domain.models.object_data.object_data import ObjectData
 from src.infrastructure.services.object_detection_service import (
     CUSTOM_OBJECT_LABEL_BY_CODE,
 )
+from src.infrastructure.services.shared_controls_service import SharedControlsService
 from src.domain.constants.detour_constants import (
     DEVIATION_COUNTER_CONTROL,
     DETOUR_COUNT_KEY,
@@ -32,6 +33,12 @@ TRAFFIC_LIGHT_YELLOW_TARGET_KEY = "TRAFFIC_LIGHT_YELLOW_TARGET"
 TRAFFIC_LIGHT_DECEL_STATE_KEY = "TRAFFIC_LIGHT_DECEL_STATE"
 
 def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *, now=None):
+    if shared_controls is None:
+        return
+
+    shared_controls_service = SharedControlsService(shared_controls)
+    shared_controls = shared_controls_service
+
     current_time = time.monotonic() if now is None else now
 
     custom_label = _resolve_custom_label(obj_data)
@@ -322,6 +329,8 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
             if updated_speed is None or desired_speed != updated_speed:
                 _update_car_speed(shared_controls, lane_data, desired_speed)
                 updated_speed = desired_speed
+
+    shared_controls_buffer.apply()
 
 
 def _handle_detour_detection(custom_label, shared_controls, tk_controls):
