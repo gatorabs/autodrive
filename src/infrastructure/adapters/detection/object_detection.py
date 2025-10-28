@@ -395,14 +395,14 @@ class ObjectDetector:
                 for detection in merged_detections:
                     x1, y1, x2, y2 = map(int, detection["box"])
                     label = detection["label"]
-                    min_size_threshold = custom_size_thresholds.get(label, 0.0)
                     box_height = y2 - y1
                     box_width = x2 - x1
-                    if max(box_height, box_width) < min_size_threshold:
-                        continue
 
                     label_upper = str(label).strip().upper()
                     if label_upper in CUSTOM_TRAFFIC_LIGHT_LABELS:
+                        if box_height < min_traffic_size and box_width < min_traffic_size:
+                            continue
+
                         x1_clamped = max(0, min(frame_width - 1, x1))
                         y1_clamped = max(0, min(frame_height - 1, y1))
                         x2_clamped = max(0, min(frame_width - 1, x2))
@@ -441,6 +441,10 @@ class ObjectDetector:
                             color_bgr,
                             2,
                         )
+                        continue
+
+                    min_size_threshold = custom_size_thresholds.get(label, 0.0)
+                    if max(box_height, box_width) < min_size_threshold:
                         continue
 
                     detected_custom_labels.add(label)
