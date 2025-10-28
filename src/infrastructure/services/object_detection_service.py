@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
+from src.infrastructure.utils.frame_utils import encode_frame
 
 
 CUSTOM_OBJECT_PRIORITY = [
@@ -96,8 +97,14 @@ def publish_results(
     if len(shared_serial_data) > 0:
         shared_serial_data[0] = custom_serial_value
 
-    # mantém o frame bruto; consumidores decidem como codificar
-    shared_frames["OBJECT_FRAME"] = frame.copy()
+    # evite enviar arrays grandes via Manager: compartilhe apenas JPEG codificado
+    if frame is not None:
+        try:
+            shared_frames["OBJECT_FRAME"] = encode_frame(frame)
+        except Exception:
+            shared_frames["OBJECT_FRAME"] = None
+    else:
+        shared_frames["OBJECT_FRAME"] = None
 
     object_data = {
         "OBJECT_PERSON_DATA": shared_serial_data[2],
