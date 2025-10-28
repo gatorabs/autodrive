@@ -29,6 +29,7 @@ TRAFFIC_LIGHT_PREV_SPEED_KEY = "TRAFFIC_LIGHT_PREV_SPEED"
 TRAFFIC_LIGHT_LAST_STATE_KEY = "TRAFFIC_LIGHT_LAST_STATE"
 TRAFFIC_LIGHT_STOP_KEY = "TRAFFIC_LIGHT_STOP_ACTIVE"
 TRAFFIC_LIGHT_YELLOW_TARGET_KEY = "TRAFFIC_LIGHT_YELLOW_TARGET"
+TRAFFIC_LIGHT_DECEL_STATE_KEY = "TRAFFIC_LIGHT_DECEL_STATE"
 
 def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *, now=None):
     current_time = time.monotonic() if now is None else now
@@ -186,8 +187,24 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
                 )
             )
         if traffic_light_stop:
-            stop_speed = 0 if traffic_light_target_speed is None else traffic_light_target_speed
-            target_candidates.append(_clamp_speed(stop_speed))
+            if not shared_controls.get(TRAFFIC_LIGHT_DECEL_STATE_KEY):
+                current_speed = lane_data.car_speed_data
+                if current_speed > 0:
+                    _start_traffic_light_deceleration(
+                        shared_controls,
+                        current_speed,
+                        tk_controls,
+                        current_time,
+                    )
+            traffic_speed = _apply_traffic_light_deceleration(
+                shared_controls,
+                tk_controls,
+                current_time,
+            )
+            if traffic_speed is None:
+                stop_speed = 0 if traffic_light_target_speed is None else traffic_light_target_speed
+                traffic_speed = _clamp_speed(stop_speed)
+            target_candidates.append(traffic_speed)
 
         speeds = [s for s in target_candidates if s is not None]
         target_speed = 0 if emergency_stop else (min(speeds) if speeds else 0)
@@ -405,6 +422,7 @@ def _evaluate_traffic_light_state(shared_controls, lane_data, traffic_light_stat
         was_stop = bool(shared_controls.pop(TRAFFIC_LIGHT_STOP_KEY, False))
         base_speed = shared_controls.pop(TRAFFIC_LIGHT_PREV_SPEED_KEY, None)
         shared_controls.pop(TRAFFIC_LIGHT_YELLOW_TARGET_KEY, None)
+        shared_controls.pop(TRAFFIC_LIGHT_DECEL_STATE_KEY, None)
 
         if base_speed is not None:
             base_speed = _clamp_speed(base_speed)
@@ -746,6 +764,59 @@ def _clear_stop_sign_state(shared_controls, prefix="STOP_SIGN"):
     shared_controls.pop(_prefixed(prefix, "RESUME_TIME"), None)
     shared_controls.pop(_prefixed(prefix, "ACTIVE"), None)
     shared_controls.pop(_prefixed(prefix, "ACCEL_STATE"), None)
+
+
+def _start_traffic_light_deceleration(shared_controls, initial_speed, tk_controls, current_time):
+    step = _get_stop_sign_deceleration_step(tk_controls)
+    interval = _get_stop_sign_ramp_interval(tk_controls)
+
+    starting_speed = _clamp_speed(initial_speed)
+    shared_controls[TRAFFIC_LIGHT_DECEL_STATE_KEY] = {
+        "current_speed": starting_speed,
+        "target_speed": 0,
+        "step": step,
+        "interval": interval,
+        "last_update": current_time - interval,
+    }
+
+
+def _apply_traffic_light_deceleration(shared_controls, tk_controls, current_time):
+    state = shared_controls.get(TRAFFIC_LIGHT_DECEL_STATE_KEY)
+    if not state:
+        return None
+
+    current_speed = _clamp_speed(state.get("current_speed", 0))
+    target_speed = 0
+
+    slider_step = _get_stop_sign_deceleration_step(tk_controls)
+    if state.get("step") != slider_step:
+        state["step"] = slider_step
+
+    slider_interval = _get_stop_sign_ramp_interval(tk_controls)
+    interval = state.get("interval")
+    if not isinstance(interval, (int, float)) or interval != slider_interval:
+        interval = slider_interval
+        state["interval"] = interval
+
+    if current_speed <= target_speed:
+        state["current_speed"] = target_speed
+        shared_controls[TRAFFIC_LIGHT_DECEL_STATE_KEY] = state
+        return target_speed
+
+    last_update = state.get("last_update")
+    if not isinstance(last_update, (int, float)):
+        last_update = current_time - interval
+
+    if interval > 0 and current_time - last_update < interval:
+        state["last_update"] = last_update
+        shared_controls[TRAFFIC_LIGHT_DECEL_STATE_KEY] = state
+        return current_speed
+
+    next_speed = max(target_speed, current_speed - slider_step)
+    state["current_speed"] = next_speed
+    state["last_update"] = current_time
+    shared_controls[TRAFFIC_LIGHT_DECEL_STATE_KEY] = state
+    return next_speed
 
 # -----------------------
 # Helpers utilitários
