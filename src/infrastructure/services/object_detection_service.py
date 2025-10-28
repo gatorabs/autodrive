@@ -26,21 +26,32 @@ def process_traffic_light_roi(roi):
         h = gray.shape[0]
         h_third = h // 3
 
+        # Quando a bounding box fica muito baixa (semáforo distante ou ruído),
+        # dividir em três regiões pode resultar em slices vazios. Nesse cenário
+        # não há dados suficientes para classificar a cor do semáforo e as
+        # médias produziriam NaN, forçando "Red" por padrão. Ao detectar essa
+        # condição, retornamos o estado padrão (verde) e mantemos "Unknown".
+        if h_third == 0:
+            return active_color, color_bgr, traffic_light_state
+
         # 3) extrai as 3 regiões
         red_roi = gray[0:h_third, :]
         yellow_roi = gray[h_third:2 * h_third, :]
         green_roi = gray[2 * h_third:h, :]
 
         # 4) calcula a média de intensidade em cada região
-        mean_red = np.mean(red_roi)
-        mean_yellow = np.mean(yellow_roi)
-        mean_green = np.mean(green_roi)
+        mean_red = np.nanmean(red_roi)
+        mean_yellow = np.nanmean(yellow_roi)
+        mean_green = np.nanmean(green_roi)
 
         means = {
             "Red": mean_red,
             "Yellow": mean_yellow,
             "Green": mean_green
         }
+
+        if any(np.isnan(value) for value in means.values()):
+            return active_color, color_bgr, traffic_light_state
 
         active_color = max(means, key=means.get)
 
