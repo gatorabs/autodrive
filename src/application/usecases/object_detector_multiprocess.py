@@ -79,6 +79,7 @@ def object_detection_process(object_queue,
                 traffic_light_state=traffic_light_state,
                 object_queue=object_queue,
                 frame=frame,
+                logger=logger,
                 detected_custom_objects=detected_custom_objects,
             )
 

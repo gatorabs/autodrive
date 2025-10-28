@@ -76,6 +76,7 @@ def publish_results(
     traffic_light_state,
     object_queue,
     frame,
+    logger,
     detected_custom_objects=None,
 ):
     shared_serial_data[2] = 1 if person_detected else 0
@@ -97,14 +98,10 @@ def publish_results(
     if len(shared_serial_data) > 0:
         shared_serial_data[0] = custom_serial_value
 
-    # evite enviar arrays grandes via Manager: compartilhe apenas JPEG codificado
-    if frame is not None:
-        try:
-            shared_frames["OBJECT_FRAME"] = encode_frame(frame)
-        except Exception:
-            shared_frames["OBJECT_FRAME"] = None
-    else:
-        shared_frames["OBJECT_FRAME"] = None
+    try:
+        shared_frames["OBJECT_FRAME"] = encode_frame(frame)
+    except Exception as e:
+        logger.error(f"Erro ao codificar frames: {e}")
 
     object_data = {
         "OBJECT_PERSON_DATA": shared_serial_data[2],
