@@ -36,301 +36,326 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
     if shared_controls is None:
         return
 
-    shared_controls_service = SharedControlsService(shared_controls)
-    shared_controls = shared_controls_service
+    with SharedControlsService(shared_controls) as shared_controls:
+        current_time = time.monotonic() if now is None else now
 
-    current_time = time.monotonic() if now is None else now
+        custom_label = _resolve_custom_label(obj_data)
+        stop_sign_ignore = shared_controls.get("STOP_SIGN_IGNORE", False)
+        stop_sign_active = shared_controls.get("STOP_SIGN_ACTIVE", False)
+        stop_sign_hold = False
 
-    custom_label = _resolve_custom_label(obj_data)
-    stop_sign_ignore = shared_controls.get("STOP_SIGN_IGNORE", False)
-    stop_sign_active = shared_controls.get("STOP_SIGN_ACTIVE", False)
-    stop_sign_hold = False
+        bump_ignore = shared_controls.get("BUMP_IGNORE", False)
+        bump_active = shared_controls.get("BUMP_ACTIVE", False)
+        bump_hold = False
 
-    bump_ignore = shared_controls.get("BUMP_IGNORE", False)
-    bump_active = shared_controls.get("BUMP_ACTIVE", False)
-    bump_hold = False
-
-    traffic_light_state = getattr(obj_data, "traffic_light_data", TRAFFIC_LIGHT_GREEN)
-    (
-        traffic_light_stop,
-        traffic_light_target_speed,
-    ) = _evaluate_traffic_light_state(shared_controls, lane_data, traffic_light_state)
-    updated_speed = None
-
-    # --- STOP SIGN: checagem de expiração de hold já ativo
-    if stop_sign_active:
-        resume_time = shared_controls.get("STOP_SIGN_RESUME_TIME")
-        if resume_time is not None and current_time >= resume_time:
-            shared_controls["STOP_SIGN_ACTIVE"] = False
-            shared_controls.pop("STOP_SIGN_RESUME_TIME", None)
-            shared_controls.pop("STOP_SIGN_HOLD_SECONDS", None)
-        else:
-            stop_sign_hold = True
-            _record_stop_sign_requested_speed(shared_controls, lane_data)
-
-    # --- BUMP: checagem de expiração de hold já ativo
-    if bump_active:
-        resume_time = shared_controls.get("BUMP_RESUME_TIME")
-        if resume_time is not None and current_time >= resume_time:
-            shared_controls["BUMP_ACTIVE"] = False
-            shared_controls.pop("BUMP_RESUME_TIME", None)
-            shared_controls.pop("BUMP_HOLD_SECONDS", None)
-        else:
-            bump_hold = True
-            _record_stop_sign_requested_speed(shared_controls, lane_data, prefix="BUMP")
-
-    # --- Novo STOP SIGN detectado
-    if (
-        not shared_controls.get("STOP_SIGN_ACTIVE", False)
-        and custom_label == STOP_SIGN_LABEL
-        and not stop_sign_ignore
-    ):
-        hold_seconds = _get_stop_hold_seconds(tk_controls)
-        shared_controls["STOP_SIGN_ACTIVE"] = hold_seconds > 0
-        shared_controls["STOP_SIGN_RESUME_TIME"] = None
-        shared_controls["STOP_SIGN_HOLD_SECONDS"] = hold_seconds
-        _record_stop_sign_requested_speed(shared_controls, lane_data, force=True)
-        shared_controls["STOP_SIGN_IGNORE"] = True
-        _start_stop_sign_deceleration(
-            shared_controls, lane_data.car_speed_data, tk_controls, current_time
+        traffic_light_state = getattr(
+            obj_data, "traffic_light_data", TRAFFIC_LIGHT_GREEN
         )
-        stop_sign_hold = True
-
-    # --- Nova LOMBADA detectada
-    if (
-        not shared_controls.get("BUMP_ACTIVE", False)
-        and custom_label == LOMBADA_LABEL
-        and not bump_ignore
-    ):
-        reset_detour_mode(shared_controls, tk_controls)
-        hold_seconds = _get_stop_hold_seconds(tk_controls)
-        shared_controls["BUMP_ACTIVE"] = hold_seconds > 0
-        shared_controls["BUMP_RESUME_TIME"] = None
-        shared_controls["BUMP_HOLD_SECONDS"] = hold_seconds
-        _record_stop_sign_requested_speed(shared_controls, lane_data, force=True, prefix="BUMP")
-
-        shared_controls["BUMP_IGNORE"] = True
-
-        starting_speed = _clamp_speed(lane_data.car_speed_data)
-        target_speed = max(0, starting_speed // 2)
-
-        _start_stop_sign_deceleration(
-            shared_controls,
-            lane_data.car_speed_data,
-            tk_controls,
-            current_time,
-            prefix="BUMP",
-            target_speed=target_speed,
+        (
+            traffic_light_stop,
+            traffic_light_target_speed,
+        ) = _evaluate_traffic_light_state(
+            shared_controls, lane_data, traffic_light_state
         )
-        bump_hold = True
+        updated_speed = None
 
-    # --- Reset de IGNORE quando não detectado
-    if custom_label != STOP_SIGN_LABEL and not shared_controls.get("STOP_SIGN_ACTIVE", False):
-        shared_controls["STOP_SIGN_IGNORE"] = False
+        # --- STOP SIGN: checagem de expiração de hold já ativo
+        if stop_sign_active:
+            resume_time = shared_controls.get("STOP_SIGN_RESUME_TIME")
+            if resume_time is not None and current_time >= resume_time:
+                shared_controls["STOP_SIGN_ACTIVE"] = False
+                shared_controls.pop("STOP_SIGN_RESUME_TIME", None)
+                shared_controls.pop("STOP_SIGN_HOLD_SECONDS", None)
+            else:
+                stop_sign_hold = True
+                _record_stop_sign_requested_speed(shared_controls, lane_data)
 
-    if custom_label != LOMBADA_LABEL and not shared_controls.get("BUMP_ACTIVE", False):
-        shared_controls["BUMP_IGNORE"] = False
-
-    # --- Estados de desaceleração em andamento mantêm hold
-    decel_state = shared_controls.get("STOP_SIGN_DECEL_STATE")
-    if decel_state:
-        _record_stop_sign_requested_speed(shared_controls, lane_data)
-        current_speed = _clamp_speed(decel_state.get("current_speed", 0))
-        target_speed = _clamp_speed(decel_state.get("target_speed", 0))
-        if current_speed > target_speed or shared_controls.get("STOP_SIGN_ACTIVE", False):
-            stop_sign_hold = True
-
-    bump_decel_state = shared_controls.get("BUMP_DECEL_STATE")
-    if bump_decel_state:
-        _record_stop_sign_requested_speed(shared_controls, lane_data, prefix="BUMP")
-        current_speed = _clamp_speed(bump_decel_state.get("current_speed", 0))
-        target_speed = _clamp_speed(bump_decel_state.get("target_speed", 0))
-        if current_speed > target_speed or shared_controls.get("BUMP_ACTIVE", False):
-            bump_hold = True
-
-    person_detected = obj_data.object_person_data == 1
-
-    emergency_stop = (
-        person_detected
-        or shared_controls.get("EMERGENCY_STOP", 0) == 1
-        or shared_controls.get("SAFE_STOP")
-        or shared_controls.get("OBJ_SAFE_STOP")
-    )
-
-    should_stop = emergency_stop or stop_sign_hold or bump_hold or traffic_light_stop
-
-    _handle_detour_detection(custom_label, shared_controls, tk_controls)
-
-    if should_stop:
-        # Cancelar rampas de aceleração em curso
-        shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
-        shared_controls.pop("BUMP_ACCEL_STATE", None)
-        shared_controls.pop("PERSON_ACCEL_STATE", None)
-
-        # Preparar retomada após pessoa
-        if person_detected:
-            if shared_controls.get("PERSON_PREV_SPEED") is None:
-                _record_stop_sign_requested_speed(shared_controls, lane_data, prefix="PERSON")
-                prev_speed = shared_controls.get("PERSON_PREV_SPEED")
-                if prev_speed in (None, 0):
-                    fallback_speed = (
-                        shared_controls.get("PERSON_LAST_SPEED")
-                        or shared_controls.get("STOP_SIGN_LAST_SPEED")
-                    )
-                    inferred = _clamp_speed(fallback_speed)
-                    if inferred > 0:
-                        shared_controls["PERSON_PREV_SPEED"] = inferred
-            shared_controls["PERSON_STOP_ACTIVE"] = True
-
-        target_candidates = []
-        if stop_sign_hold and shared_controls.get("STOP_SIGN_DECEL_STATE"):
-            target_candidates.append(
-                _apply_stop_sign_deceleration(shared_controls, tk_controls, current_time)
-            )
-        if bump_hold and shared_controls.get("BUMP_DECEL_STATE"):
-            target_candidates.append(
-                _apply_stop_sign_deceleration(
-                    shared_controls, tk_controls, current_time, prefix="BUMP"
+        # --- BUMP: checagem de expiração de hold já ativo
+        if bump_active:
+            resume_time = shared_controls.get("BUMP_RESUME_TIME")
+            if resume_time is not None and current_time >= resume_time:
+                shared_controls["BUMP_ACTIVE"] = False
+                shared_controls.pop("BUMP_RESUME_TIME", None)
+                shared_controls.pop("BUMP_HOLD_SECONDS", None)
+            else:
+                bump_hold = True
+                _record_stop_sign_requested_speed(
+                    shared_controls, lane_data, prefix="BUMP"
                 )
+
+        # --- Novo STOP SIGN detectado
+        if (
+            not shared_controls.get("STOP_SIGN_ACTIVE", False)
+            and custom_label == STOP_SIGN_LABEL
+            and not stop_sign_ignore
+        ):
+            hold_seconds = _get_stop_hold_seconds(tk_controls)
+            shared_controls["STOP_SIGN_ACTIVE"] = hold_seconds > 0
+            shared_controls["STOP_SIGN_RESUME_TIME"] = None
+            shared_controls["STOP_SIGN_HOLD_SECONDS"] = hold_seconds
+            _record_stop_sign_requested_speed(
+                shared_controls, lane_data, force=True
             )
-        if traffic_light_stop:
-            if not shared_controls.get(TRAFFIC_LIGHT_DECEL_STATE_KEY):
-                current_speed = lane_data.car_speed_data
-                if current_speed > 0:
-                    _start_traffic_light_deceleration(
+            shared_controls["STOP_SIGN_IGNORE"] = True
+            _start_stop_sign_deceleration(
+                shared_controls, lane_data.car_speed_data, tk_controls, current_time
+            )
+            stop_sign_hold = True
+
+        # --- Nova LOMBADA detectada
+        if (
+            not shared_controls.get("BUMP_ACTIVE", False)
+            and custom_label == LOMBADA_LABEL
+            and not bump_ignore
+        ):
+            reset_detour_mode(shared_controls, tk_controls)
+            hold_seconds = _get_stop_hold_seconds(tk_controls)
+            shared_controls["BUMP_ACTIVE"] = hold_seconds > 0
+            shared_controls["BUMP_RESUME_TIME"] = None
+            shared_controls["BUMP_HOLD_SECONDS"] = hold_seconds
+            _record_stop_sign_requested_speed(
+                shared_controls, lane_data, force=True, prefix="BUMP"
+            )
+
+            shared_controls["BUMP_IGNORE"] = True
+
+            starting_speed = _clamp_speed(lane_data.car_speed_data)
+            target_speed = max(0, starting_speed // 2)
+
+            _start_stop_sign_deceleration(
+                shared_controls,
+                lane_data.car_speed_data,
+                tk_controls,
+                current_time,
+                prefix="BUMP",
+                target_speed=target_speed,
+            )
+            bump_hold = True
+
+        # --- Reset de IGNORE quando não detectado
+        if (
+            custom_label != STOP_SIGN_LABEL
+            and not shared_controls.get("STOP_SIGN_ACTIVE", False)
+        ):
+            shared_controls["STOP_SIGN_IGNORE"] = False
+
+        if custom_label != LOMBADA_LABEL and not shared_controls.get("BUMP_ACTIVE", False):
+            shared_controls["BUMP_IGNORE"] = False
+
+        # --- Estados de desaceleração em andamento mantêm hold
+        decel_state = shared_controls.get("STOP_SIGN_DECEL_STATE")
+        if decel_state:
+            _record_stop_sign_requested_speed(shared_controls, lane_data)
+            current_speed = _clamp_speed(decel_state.get("current_speed", 0))
+            target_speed = _clamp_speed(decel_state.get("target_speed", 0))
+            if current_speed > target_speed or shared_controls.get(
+                "STOP_SIGN_ACTIVE", False
+            ):
+                stop_sign_hold = True
+
+        bump_decel_state = shared_controls.get("BUMP_DECEL_STATE")
+        if bump_decel_state:
+            _record_stop_sign_requested_speed(
+                shared_controls, lane_data, prefix="BUMP"
+            )
+            current_speed = _clamp_speed(bump_decel_state.get("current_speed", 0))
+            target_speed = _clamp_speed(bump_decel_state.get("target_speed", 0))
+            if current_speed > target_speed or shared_controls.get(
+                "BUMP_ACTIVE", False
+            ):
+                bump_hold = True
+
+        person_detected = obj_data.object_person_data == 1
+
+        emergency_stop = (
+            person_detected
+            or shared_controls.get("EMERGENCY_STOP", 0) == 1
+            or shared_controls.get("SAFE_STOP")
+            or shared_controls.get("OBJ_SAFE_STOP")
+        )
+
+        should_stop = emergency_stop or stop_sign_hold or bump_hold or traffic_light_stop
+
+        _handle_detour_detection(custom_label, shared_controls, tk_controls)
+
+        if should_stop:
+            # Cancelar rampas de aceleração em curso
+            shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
+            shared_controls.pop("BUMP_ACCEL_STATE", None)
+            shared_controls.pop("PERSON_ACCEL_STATE", None)
+
+            # Preparar retomada após pessoa
+            if person_detected:
+                if shared_controls.get("PERSON_PREV_SPEED") is None:
+                    _record_stop_sign_requested_speed(
+                        shared_controls, lane_data, prefix="PERSON"
+                    )
+                    prev_speed = shared_controls.get("PERSON_PREV_SPEED")
+                    if prev_speed in (None, 0):
+                        fallback_speed = (
+                            shared_controls.get("PERSON_LAST_SPEED")
+                            or shared_controls.get("STOP_SIGN_LAST_SPEED")
+                        )
+                        inferred = _clamp_speed(fallback_speed)
+                        if inferred > 0:
+                            shared_controls["PERSON_PREV_SPEED"] = inferred
+                shared_controls["PERSON_STOP_ACTIVE"] = True
+
+            target_candidates = []
+            if stop_sign_hold and shared_controls.get("STOP_SIGN_DECEL_STATE"):
+                target_candidates.append(
+                    _apply_stop_sign_deceleration(
+                        shared_controls, tk_controls, current_time
+                    )
+                )
+            if bump_hold and shared_controls.get("BUMP_DECEL_STATE"):
+                target_candidates.append(
+                    _apply_stop_sign_deceleration(
+                        shared_controls, tk_controls, current_time, prefix="BUMP"
+                    )
+                )
+            if traffic_light_stop:
+                if not shared_controls.get(TRAFFIC_LIGHT_DECEL_STATE_KEY):
+                    current_speed = lane_data.car_speed_data
+                    if current_speed > 0:
+                        _start_traffic_light_deceleration(
+                            shared_controls,
+                            current_speed,
+                            tk_controls,
+                            current_time,
+                        )
+                traffic_speed = _apply_traffic_light_deceleration(
+                    shared_controls,
+                    tk_controls,
+                    current_time,
+                )
+                if traffic_speed is None:
+                    stop_speed = (
+                        0
+                        if traffic_light_target_speed is None
+                        else traffic_light_target_speed
+                    )
+                    traffic_speed = _clamp_speed(stop_speed)
+                target_candidates.append(traffic_speed)
+
+            speeds = [s for s in target_candidates if s is not None]
+            target_speed = 0 if emergency_stop else (min(speeds) if speeds else 0)
+            _update_car_speed(shared_controls, lane_data, target_speed)
+            updated_speed = target_speed
+        else:
+            # --- STOP SIGN retomada
+            shared_controls.pop("STOP_SIGN_DECEL_STATE", None)
+            prev_speed = shared_controls.get("STOP_SIGN_PREV_SPEED")
+            if prev_speed is not None:
+                accel_state = shared_controls.get("STOP_SIGN_ACCEL_STATE")
+                if not accel_state:
+                    _start_stop_sign_acceleration(
                         shared_controls,
-                        current_speed,
+                        lane_data.car_speed_data,
+                        prev_speed,
                         tk_controls,
                         current_time,
                     )
-            traffic_speed = _apply_traffic_light_deceleration(
-                shared_controls,
-                tk_controls,
-                current_time,
-            )
-            if traffic_speed is None:
-                stop_speed = 0 if traffic_light_target_speed is None else traffic_light_target_speed
-                traffic_speed = _clamp_speed(stop_speed)
-            target_candidates.append(traffic_speed)
 
-        speeds = [s for s in target_candidates if s is not None]
-        target_speed = 0 if emergency_stop else (min(speeds) if speeds else 0)
-        _update_car_speed(shared_controls, lane_data, target_speed)
-        updated_speed = target_speed
-    else:
-        # --- STOP SIGN retomada
-        shared_controls.pop("STOP_SIGN_DECEL_STATE", None)
-        prev_speed = shared_controls.get("STOP_SIGN_PREV_SPEED")
-        if prev_speed is not None:
-            accel_state = shared_controls.get("STOP_SIGN_ACCEL_STATE")
-            if not accel_state:
-                _start_stop_sign_acceleration(
-                    shared_controls,
-                    lane_data.car_speed_data,
-                    prev_speed,
-                    tk_controls,
-                    current_time,
+                result = _apply_stop_sign_acceleration(
+                    shared_controls, tk_controls, current_time
                 )
-
-            result = _apply_stop_sign_acceleration(shared_controls, tk_controls, current_time)
-            if result is not None:
-                speed, finished = result
-                _update_car_speed(shared_controls, lane_data, speed)
-                updated_speed = speed
-                if finished:
+                if result is not None:
+                    speed, finished = result
+                    _update_car_speed(shared_controls, lane_data, speed)
+                    updated_speed = speed
+                    if finished:
+                        shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
+                        _clear_stop_sign_state(shared_controls)
+                else:
+                    fallback_speed = _clamp_speed(prev_speed)
+                    _update_car_speed(shared_controls, lane_data, fallback_speed)
+                    updated_speed = fallback_speed
                     shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
                     _clear_stop_sign_state(shared_controls)
             else:
-                fallback_speed = _clamp_speed(prev_speed)
-                _update_car_speed(shared_controls, lane_data, fallback_speed)
-                updated_speed = fallback_speed
-                shared_controls.pop("STOP_SIGN_PREV_SPEED", None)
                 _clear_stop_sign_state(shared_controls)
-        else:
-            _clear_stop_sign_state(shared_controls)
 
-        # --- BUMP retomada
-        shared_controls.pop("BUMP_DECEL_STATE", None)
-        bump_prev_speed = shared_controls.get("BUMP_PREV_SPEED")
-        if bump_prev_speed is not None:
-            bump_accel_state = shared_controls.get("BUMP_ACCEL_STATE")
-            if not bump_accel_state:
-                _start_stop_sign_acceleration(
-                    shared_controls,
-                    lane_data.car_speed_data,
-                    bump_prev_speed,
-                    tk_controls,
-                    current_time,
-                    prefix="BUMP",
+            # --- BUMP retomada
+            shared_controls.pop("BUMP_DECEL_STATE", None)
+            bump_prev_speed = shared_controls.get("BUMP_PREV_SPEED")
+            if bump_prev_speed is not None:
+                bump_accel_state = shared_controls.get("BUMP_ACCEL_STATE")
+                if not bump_accel_state:
+                    _start_stop_sign_acceleration(
+                        shared_controls,
+                        lane_data.car_speed_data,
+                        bump_prev_speed,
+                        tk_controls,
+                        current_time,
+                        prefix="BUMP",
+                    )
+
+                result = _apply_stop_sign_acceleration(
+                    shared_controls, tk_controls, current_time, prefix="BUMP"
                 )
-
-            result = _apply_stop_sign_acceleration(
-                shared_controls, tk_controls, current_time, prefix="BUMP"
-            )
-            if result is not None:
-                speed, finished = result
-                _update_car_speed(shared_controls, lane_data, speed)
-                updated_speed = speed
-                if finished:
+                if result is not None:
+                    speed, finished = result
+                    _update_car_speed(shared_controls, lane_data, speed)
+                    updated_speed = speed
+                    if finished:
+                        shared_controls.pop("BUMP_PREV_SPEED", None)
+                        _clear_stop_sign_state(shared_controls, prefix="BUMP")
+                else:
+                    fallback_speed = _clamp_speed(bump_prev_speed)
+                    _update_car_speed(shared_controls, lane_data, fallback_speed)
+                    updated_speed = fallback_speed
                     shared_controls.pop("BUMP_PREV_SPEED", None)
                     _clear_stop_sign_state(shared_controls, prefix="BUMP")
             else:
-                fallback_speed = _clamp_speed(bump_prev_speed)
-                _update_car_speed(shared_controls, lane_data, fallback_speed)
-                updated_speed = fallback_speed
-                shared_controls.pop("BUMP_PREV_SPEED", None)
                 _clear_stop_sign_state(shared_controls, prefix="BUMP")
-        else:
-            _clear_stop_sign_state(shared_controls, prefix="BUMP")
 
-        # --- PERSON retomada
-        person_prev_speed = shared_controls.get("PERSON_PREV_SPEED")
-        if (
-            person_prev_speed is not None
-            and shared_controls.get("PERSON_STOP_ACTIVE", False)
-            and not person_detected
-        ):
-            person_accel_state = shared_controls.get("PERSON_ACCEL_STATE")
-            if not person_accel_state:
-                _start_stop_sign_acceleration(
-                    shared_controls,
-                    lane_data.car_speed_data,
-                    person_prev_speed,
-                    tk_controls,
-                    current_time,
-                    prefix="PERSON",
+            # --- PERSON retomada
+            person_prev_speed = shared_controls.get("PERSON_PREV_SPEED")
+            if (
+                person_prev_speed is not None
+                and shared_controls.get("PERSON_STOP_ACTIVE", False)
+                and not person_detected
+            ):
+                person_accel_state = shared_controls.get("PERSON_ACCEL_STATE")
+                if not person_accel_state:
+                    _start_stop_sign_acceleration(
+                        shared_controls,
+                        lane_data.car_speed_data,
+                        person_prev_speed,
+                        tk_controls,
+                        current_time,
+                        prefix="PERSON",
+                    )
+
+                result = _apply_stop_sign_acceleration(
+                    shared_controls, tk_controls, current_time, prefix="PERSON"
                 )
-
-            result = _apply_stop_sign_acceleration(
-                shared_controls, tk_controls, current_time, prefix="PERSON"
-            )
-            if result is not None:
-                speed, finished = result
-                _update_car_speed(shared_controls, lane_data, speed)
-                updated_speed = speed
-                if finished:
+                if result is not None:
+                    speed, finished = result
+                    _update_car_speed(shared_controls, lane_data, speed)
+                    updated_speed = speed
+                    if finished:
+                        shared_controls.pop("PERSON_PREV_SPEED", None)
+                        shared_controls["PERSON_STOP_ACTIVE"] = False
+                        _clear_stop_sign_state(shared_controls, prefix="PERSON")
+                else:
+                    fallback_speed = _clamp_speed(person_prev_speed)
+                    _update_car_speed(shared_controls, lane_data, fallback_speed)
+                    updated_speed = fallback_speed
                     shared_controls.pop("PERSON_PREV_SPEED", None)
                     shared_controls["PERSON_STOP_ACTIVE"] = False
                     _clear_stop_sign_state(shared_controls, prefix="PERSON")
-            else:
-                fallback_speed = _clamp_speed(person_prev_speed)
-                _update_car_speed(shared_controls, lane_data, fallback_speed)
-                updated_speed = fallback_speed
+            elif not person_detected:
                 shared_controls.pop("PERSON_PREV_SPEED", None)
-                shared_controls["PERSON_STOP_ACTIVE"] = False
+                shared_controls.pop("PERSON_STOP_ACTIVE", None)
                 _clear_stop_sign_state(shared_controls, prefix="PERSON")
-        elif not person_detected:
-            shared_controls.pop("PERSON_PREV_SPEED", None)
-            shared_controls.pop("PERSON_STOP_ACTIVE", None)
-            _clear_stop_sign_state(shared_controls, prefix="PERSON")
 
-        if traffic_light_target_speed is not None:
-            desired_speed = _clamp_speed(traffic_light_target_speed)
-            if updated_speed is None or desired_speed != updated_speed:
-                _update_car_speed(shared_controls, lane_data, desired_speed)
-                updated_speed = desired_speed
-
-    shared_controls_buffer.apply()
+            if traffic_light_target_speed is not None:
+                desired_speed = _clamp_speed(traffic_light_target_speed)
+                if updated_speed is None or desired_speed != updated_speed:
+                    _update_car_speed(shared_controls, lane_data, desired_speed)
+                    updated_speed = desired_speed
 
 
 def _handle_detour_detection(custom_label, shared_controls, tk_controls):
