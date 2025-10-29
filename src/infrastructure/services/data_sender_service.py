@@ -38,8 +38,7 @@ from src.infrastructure.services.traffic_light_service import (
 )
 from src.infrastructure.services.detour_monitor_service import handle_detour_detection
 from src.infrastructure.services import ramp_service
-from src.utils import clamp_speed, prefixed
-
+from src.infrastructure.utils import clamp_speed, prefixed
 
 def publish_emergency_stop(
     obj_data,
@@ -193,7 +192,6 @@ def publish_emergency_stop(
 
     return updated_speed
 
-
 def handle_object_queue(manual_md, object_queue, obj_data: ObjectData):
     if manual_md:
         obj_data.custom_object_data = 0
@@ -228,7 +226,6 @@ def publish(lane_data: LaneData, obj_data: ObjectData, serial_comm, logger, verb
     except Exception as exc:  # pragma: no cover - hardware interaction
         logger.error(f"Falha ao enviar dados: {exc}")
         serial_comm.close()
-
 
 def change_serial_port(
     new_com,
@@ -274,7 +271,6 @@ def _resolve_custom_label(obj_data):
     if label:
         return label
     return CUSTOM_OBJECT_LABEL_BY_CODE.get(obj_data.custom_object_data, "")
-
 
 __all__ = [
     "publish_emergency_stop",

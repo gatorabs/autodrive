@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from src.utils import clamp_speed, prefixed
+from src.infrastructure.utils import clamp_speed, prefixed
 
 from . import ramp_service
 
