@@ -25,11 +25,13 @@ TRAFFIC_LIGHT_YELLOW = 1
 TRAFFIC_LIGHT_GREEN = 2
 TRAFFIC_LIGHT_SPEED_OFFSET = 30
 
+TRAFFIC_LIGHT_PREFIX = "TRAFFIC_LIGHT"
 TRAFFIC_LIGHT_PREV_SPEED_KEY = "TRAFFIC_LIGHT_PREV_SPEED"
 TRAFFIC_LIGHT_LAST_STATE_KEY = "TRAFFIC_LIGHT_LAST_STATE"
 TRAFFIC_LIGHT_STOP_KEY = "TRAFFIC_LIGHT_STOP_ACTIVE"
 TRAFFIC_LIGHT_YELLOW_TARGET_KEY = "TRAFFIC_LIGHT_YELLOW_TARGET"
 TRAFFIC_LIGHT_DECEL_STATE_KEY = "TRAFFIC_LIGHT_DECEL_STATE"
+TRAFFIC_LIGHT_LAST_SPEED_KEY = "TRAFFIC_LIGHT_LAST_SPEED"
 
 def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *, now=None):
     current_time = time.monotonic() if now is None else now
@@ -159,6 +161,7 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
         shared_controls.pop("STOP_SIGN_ACCEL_STATE", None)
         shared_controls.pop("BUMP_ACCEL_STATE", None)
         shared_controls.pop("PERSON_ACCEL_STATE", None)
+        shared_controls.pop(_prefixed(TRAFFIC_LIGHT_PREFIX, "ACCEL_STATE"), None)
 
         # Preparar retomada após pessoa
         if person_detected:
@@ -317,11 +320,52 @@ def publish_emergency_stop(obj_data, shared_controls, lane_data, tk_controls, *,
             shared_controls.pop("PERSON_STOP_ACTIVE", None)
             _clear_stop_sign_state(shared_controls, prefix="PERSON")
 
+        desired_traffic_speed = None
         if traffic_light_target_speed is not None:
-            desired_speed = _clamp_speed(traffic_light_target_speed)
-            if updated_speed is None or desired_speed != updated_speed:
-                _update_car_speed(shared_controls, lane_data, desired_speed)
-                updated_speed = desired_speed
+            desired_traffic_speed = _clamp_speed(traffic_light_target_speed)
+            if desired_traffic_speed <= 0:
+                shared_controls.pop(_prefixed(TRAFFIC_LIGHT_PREFIX, "ACCEL_STATE"), None)
+                shared_controls.pop(TRAFFIC_LIGHT_PREV_SPEED_KEY, None)
+                if updated_speed is None or desired_traffic_speed != updated_speed:
+                    _update_car_speed(shared_controls, lane_data, desired_traffic_speed)
+                    updated_speed = desired_traffic_speed
+            else:
+                shared_controls[TRAFFIC_LIGHT_PREV_SPEED_KEY] = desired_traffic_speed
+                if not shared_controls.get(_prefixed(TRAFFIC_LIGHT_PREFIX, "ACCEL_STATE")):
+                    _start_stop_sign_acceleration(
+                        shared_controls,
+                        lane_data.car_speed_data,
+                        desired_traffic_speed,
+                        tk_controls,
+                        current_time,
+                        prefix=TRAFFIC_LIGHT_PREFIX,
+                    )
+        else:
+            if not traffic_light_stop:
+                shared_controls.pop(TRAFFIC_LIGHT_PREV_SPEED_KEY, None)
+
+        traffic_light_accel_state = shared_controls.get(
+            _prefixed(TRAFFIC_LIGHT_PREFIX, "ACCEL_STATE")
+        )
+        if traffic_light_accel_state:
+            result = _apply_stop_sign_acceleration(
+                shared_controls,
+                tk_controls,
+                current_time,
+                prefix=TRAFFIC_LIGHT_PREFIX,
+            )
+            if result is not None:
+                speed, finished = result
+                _update_car_speed(shared_controls, lane_data, speed)
+                updated_speed = speed
+                if finished:
+                    shared_controls.pop(TRAFFIC_LIGHT_PREV_SPEED_KEY, None)
+                    _clear_stop_sign_state(shared_controls, prefix=TRAFFIC_LIGHT_PREFIX)
+            elif desired_traffic_speed is not None and desired_traffic_speed > 0:
+                _update_car_speed(shared_controls, lane_data, desired_traffic_speed)
+                updated_speed = desired_traffic_speed
+                shared_controls.pop(TRAFFIC_LIGHT_PREV_SPEED_KEY, None)
+                _clear_stop_sign_state(shared_controls, prefix=TRAFFIC_LIGHT_PREFIX)
 
 
 def _handle_detour_detection(custom_label, shared_controls, tk_controls):
@@ -511,6 +555,7 @@ def _update_car_speed(shared_controls, lane_data, speed):
     shared_controls["STOP_SIGN_LAST_SPEED"] = speed
     shared_controls["BUMP_LAST_SPEED"] = speed
     shared_controls["PERSON_LAST_SPEED"] = speed
+    shared_controls[TRAFFIC_LIGHT_LAST_SPEED_KEY] = speed
 
 
 def _resolve_custom_label(obj_data):
