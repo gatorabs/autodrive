@@ -14,19 +14,28 @@ def prepare_stop(shared_controls: dict, lane_data, person_detected: bool) -> Non
     if not person_detected:
         return
 
+    current_speed = clamp_speed(getattr(lane_data, "car_speed_data", 0))
+
     if shared_controls.get(prefixed(PERSON_PREFIX, "PREV_SPEED")) is None:
-        ramp_service.record_requested_speed(
-            shared_controls, lane_data, prefix=PERSON_PREFIX
-        )
-        prev_speed = shared_controls.get(prefixed(PERSON_PREFIX, "PREV_SPEED"))
-        if prev_speed in (None, 0):
-            fallback_speed = (
-                shared_controls.get(prefixed(PERSON_PREFIX, "LAST_SPEED"))
-                or shared_controls.get("STOP_SIGN_LAST_SPEED")
+        if current_speed > 0:
+            ramp_service.record_requested_speed(
+                shared_controls, lane_data, prefix=PERSON_PREFIX
             )
-            inferred = clamp_speed(fallback_speed)
-            if inferred > 0:
-                shared_controls[prefixed(PERSON_PREFIX, "PREV_SPEED")] = inferred
+            prev_speed = shared_controls.get(prefixed(PERSON_PREFIX, "PREV_SPEED"))
+            if prev_speed in (None, 0):
+                fallback_speed = (
+                    shared_controls.get(prefixed(PERSON_PREFIX, "LAST_SPEED"))
+                    or shared_controls.get("STOP_SIGN_LAST_SPEED")
+                )
+                inferred = clamp_speed(fallback_speed)
+                if inferred > 0:
+                    shared_controls[prefixed(PERSON_PREFIX, "PREV_SPEED")] = inferred
+                else:
+                    shared_controls.pop(prefixed(PERSON_PREFIX, "PREV_SPEED"), None)
+        else:
+            # If we are already stopped, avoid keeping stale previous speeds
+            shared_controls.pop(prefixed(PERSON_PREFIX, "PREV_SPEED"), None)
+            shared_controls.pop(prefixed(PERSON_PREFIX, "ACCEL_STATE"), None)
     shared_controls[prefixed(PERSON_PREFIX, "STOP_ACTIVE")] = True
 
 

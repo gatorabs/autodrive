@@ -103,9 +103,15 @@ def apply_deceleration(
 
     slider_interval = get_ramp_interval(tk_controls)
     interval = state.get("interval")
+    previous_interval = interval if isinstance(interval, (int, float)) else None
     if not isinstance(interval, (int, float)) or interval != slider_interval:
         interval = slider_interval
         state["interval"] = interval
+        if (
+            isinstance(previous_interval, (int, float))
+            and interval < previous_interval
+        ):
+            state["last_update"] = current_time - interval
 
     if current_speed <= target_speed:
         state["current_speed"] = target_speed
@@ -199,9 +205,15 @@ def apply_acceleration(
 
     slider_interval = get_ramp_interval(tk_controls)
     interval = state.get("interval")
+    previous_interval = interval if isinstance(interval, (int, float)) else None
     if not isinstance(interval, (int, float)) or interval != slider_interval:
         interval = slider_interval
         state["interval"] = interval
+        if (
+            isinstance(previous_interval, (int, float))
+            and interval < previous_interval
+        ):
+            state["last_update"] = current_time - interval
 
     if target_speed <= 0 or current_speed >= target_speed:
         shared_controls.pop(prefixed(prefix, "ACCEL_STATE"), None)
