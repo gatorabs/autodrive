@@ -277,16 +277,20 @@ class ObjectDetector:
         return thresholds
 
     @staticmethod
-    def _model_includes_label(model_info, target_label):
+    def _normalise_label(value):
+        return str(value).strip().casefold()
+
+    @classmethod
+    def _model_includes_label(cls, model_info, target_label):
         if not target_label:
             return False
 
-        target_normalized = str(target_label).strip().casefold()
+        target_normalized = cls._normalise_label(target_label)
 
         class_names = model_info.get("class_names")
         if class_names:
             for name in class_names:
-                if str(name).strip().casefold() == target_normalized:
+                if cls._normalise_label(name) == target_normalized:
                     return True
 
         names_payload = model_info.get("names")
@@ -296,10 +300,33 @@ class ObjectDetector:
             names_iterable = names_payload or []
 
         for name in names_iterable:
-            if str(name).strip().casefold() == target_normalized:
+            if cls._normalise_label(name) == target_normalized:
                 return True
 
         return False
+
+    @classmethod
+    def _get_label_class_ids(cls, model_info, target_label):
+        names_payload = model_info.get("names")
+        if not target_label or names_payload is None:
+            return set()
+
+        target_normalized = cls._normalise_label(target_label)
+        class_ids = set()
+
+        if isinstance(names_payload, dict):
+            items = names_payload.items()
+        else:
+            items = enumerate(names_payload or [])
+
+        for cls_id, label in items:
+            if cls._normalise_label(label) == target_normalized:
+                try:
+                    class_ids.add(int(cls_id))
+                except (TypeError, ValueError):
+                    continue
+
+        return class_ids
 
     def process_frame(self, frame):
         try:
@@ -333,10 +360,16 @@ class ObjectDetector:
                         if needs_additional_traffic_light_pass and self._model_includes_label(
                             custom_model, "SEMAFORO"
                         ):
+                            traffic_light_kwargs = dict(self.custom_inference_kwargs)
+                            traffic_light_class_ids = self._get_label_class_ids(
+                                custom_model, "SEMAFORO"
+                            )
+                            if traffic_light_class_ids:
+                                traffic_light_kwargs["classes"] = sorted(traffic_light_class_ids)
                             traffic_light_results = model(
                                 frame,
                                 conf=traffic_light_conf,
-                                **self.custom_inference_kwargs,
+                                **traffic_light_kwargs,
                             )
                             traffic_light_pass_results.append(
                                 (custom_model, traffic_light_results)
@@ -528,7 +561,7 @@ class ObjectDetector:
 
         grouped = defaultdict(list)
         for det in detections:
-            grouped[det["cls"]].append(det)
+            grouped[det["label"]].append(det)
 
         merged = []
         for cls, det_list in grouped.items():
