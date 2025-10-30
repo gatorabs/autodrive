@@ -1,3 +1,4 @@
+import inspect
 import re
 import unicodedata
 from collections import defaultdict
@@ -62,11 +63,18 @@ TRAFFIC_LIGHT_LABEL_KEY = _normalise_label("SEMAFORO")
 
 
 def _coerce_to_float(value):
-    if hasattr(value, "get"):
+    getter = getattr(value, "get", None)
+    if callable(getter):
         try:
-            value = value.get()
-        except Exception:
-            return None
+            signature = inspect.signature(getter)
+        except (TypeError, ValueError):
+            signature = None
+
+        if signature is None or not signature.parameters:
+            try:
+                value = getter()
+            except Exception:
+                return None
 
     if isinstance(value, (int, float)):
         return float(value)
@@ -128,6 +136,9 @@ class ObjectDetector:
         self.custom_default_label = DEFAULT_CUSTOM_LABEL
         self.custom_default_conf = DEFAULT_CUSTOM_CONFIDENCE
         self.base_default_conf = DEFAULT_BASE_CONFIDENCE
+        self._last_base_conf = self.base_default_conf
+        self._last_custom_conf = self.custom_default_conf
+        self._last_traffic_light_conf = self.custom_default_conf
         self.custom_inference_kwargs = {
             "verbose": False,
         }
@@ -156,8 +167,11 @@ class ObjectDetector:
     def _get_base_confidence(self):
         slider_value = _coerce_to_float(self.tk_controls.get(BASE_CONF_KEY))
         if slider_value is None:
-            return self.base_default_conf
-        return max(0.05, min(0.99, slider_value / 10.0))
+            return self._last_base_conf
+
+        coerced = max(0.05, min(0.99, slider_value / 10.0))
+        self._last_base_conf = coerced
+        return coerced
 
     def _candidate_search_roots(self):
         roots = [Path.cwd()]
@@ -293,14 +307,20 @@ class ObjectDetector:
     def _get_custom_confidence(self):
         slider_value = _coerce_to_float(self.tk_controls.get(CUSTOM_CONF_KEY))
         if slider_value is None:
-            return self.custom_default_conf
-        return max(0.05, min(0.99, slider_value / 10.0))
+            return self._last_custom_conf
+
+        coerced = max(0.05, min(0.99, slider_value / 10.0))
+        self._last_custom_conf = coerced
+        return coerced
 
     def _get_traffic_light_confidence(self):
         slider_value = _coerce_to_float(self.tk_controls.get(TRAFFIC_LIGHT_CONF_KEY))
         if slider_value is None:
-            return self.custom_default_conf
-        return max(0.05, min(0.99, slider_value / 10.0))
+            return self._last_traffic_light_conf
+
+        coerced = max(0.05, min(0.99, slider_value / 10.0))
+        self._last_traffic_light_conf = coerced
+        return coerced
 
     def _get_custom_size_thresholds(self):
         thresholds = {}
