@@ -13,6 +13,7 @@
     "SEMAFORO": 0,
     "BaseConf": 5,
     "CustomConf": 4,
+    "SemaforoConf": 4,
     "StopDecelerationStep": 10,
     "StopRampInterval": 0.2,
     "SEMAFORO_StopDecelerationStep": 10,

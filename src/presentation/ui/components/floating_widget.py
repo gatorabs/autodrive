@@ -269,6 +269,13 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         self.slider_configs = slider_configs or [
             SettingsSliderConfig("BaseConf", "YOLO Confidence", 0, 10, 1),
             SettingsSliderConfig("CustomConf", "Custom YOLO Confidence", 0, 10, 1),
+            SettingsSliderConfig(
+                "SemaforoConf",
+                "Semáforo YOLO Confidence",
+                0,
+                10,
+                1,
+            ),
             SettingsSliderConfig("Timestamp", "Timestamp", 0, 10, 1),
             SettingsSliderConfig(
                 "StopDecelerationStep",

@@ -21,8 +21,10 @@ DEFAULT_CUSTOM_MODEL_PATH = Path("runs/detect/train/weights/best.pt")
 DEFAULT_CUSTOM_LABEL = "Custom Object"
 DEFAULT_CUSTOM_CONFIDENCE = 0.35
 DEFAULT_BASE_CONFIDENCE = 0.35
+DEFAULT_TRAFFIC_LIGHT_CONFIDENCE = 0.35
 BASE_CONF_KEY = "BaseConf"
 CUSTOM_CONF_KEY = "CustomConf"
+TRAFFIC_LIGHT_CONF_KEY = "SemaforoConf"
 CUSTOM_BOX_COLOR = (255, 140, 0)
 PERSON_REGION_WIDTH_KEY = "PeopleRegion"
 DEFAULT_PERSON_REGION_PERCENT = 33
@@ -81,6 +83,7 @@ class ObjectDetector:
         self.custom_models = []
         self.custom_default_label = DEFAULT_CUSTOM_LABEL
         self.custom_default_conf = DEFAULT_CUSTOM_CONFIDENCE
+        self.traffic_light_default_conf = DEFAULT_TRAFFIC_LIGHT_CONFIDENCE
         self.base_default_conf = DEFAULT_BASE_CONFIDENCE
         self.custom_inference_kwargs = {
             "verbose": False,
@@ -104,15 +107,22 @@ class ObjectDetector:
             self.tk_controls[BASE_CONF_KEY] = int(round(self.base_default_conf * 10))
         if CUSTOM_CONF_KEY not in self.tk_controls:
             self.tk_controls[CUSTOM_CONF_KEY] = int(round(self.custom_default_conf * 10))
+        if TRAFFIC_LIGHT_CONF_KEY not in self.tk_controls:
+            self.tk_controls[TRAFFIC_LIGHT_CONF_KEY] = int(
+                round(self.traffic_light_default_conf * 10)
+            )
 
-    def _get_base_confidence(self):
-        slider_value = self.tk_controls.get(BASE_CONF_KEY)
+    def _get_confidence_value(self, key: str, default: float) -> float:
+        slider_value = self.tk_controls.get(key)
         if slider_value is None:
-            return self.base_default_conf
+            return default
         try:
             return max(0.05, min(0.99, float(slider_value) / 10.0))
         except (TypeError, ValueError):
-            return self.base_default_conf
+            return default
+
+    def _get_base_confidence(self):
+        return self._get_confidence_value(BASE_CONF_KEY, self.base_default_conf)
 
     def _candidate_search_roots(self):
         roots = [Path.cwd()]
@@ -245,13 +255,12 @@ class ObjectDetector:
         return self.custom_default_label
 
     def _get_custom_confidence(self):
-        slider_value = self.tk_controls.get(CUSTOM_CONF_KEY)
-        if slider_value is None:
-            return self.custom_default_conf
-        try:
-            return max(0.05, min(0.99, float(slider_value) / 10.0))
-        except (TypeError, ValueError):
-            return self.custom_default_conf
+        return self._get_confidence_value(CUSTOM_CONF_KEY, self.custom_default_conf)
+
+    def _get_traffic_light_confidence(self):
+        return self._get_confidence_value(
+            TRAFFIC_LIGHT_CONF_KEY, self.traffic_light_default_conf
+        )
 
     def _get_custom_size_thresholds(self):
         thresholds = {}
@@ -274,13 +283,16 @@ class ObjectDetector:
                 )
                 custom_results = []
                 custom_conf = None
+                traffic_light_conf = None
                 if self.custom_models:
                     custom_conf = self._get_custom_confidence()
+                    traffic_light_conf = self._get_traffic_light_confidence()
+                    inference_confidence = min(custom_conf, traffic_light_conf)
                     for custom_model in self.custom_models:
                         model = custom_model["model"]
                         model_results = model(
                             frame,
-                            conf=custom_conf,
+                            conf=inference_confidence,
                             **self.custom_inference_kwargs,
                         )
                         custom_results.append((custom_model, model_results))
@@ -347,6 +359,9 @@ class ObjectDetector:
 
             if custom_results:
                 custom_conf_threshold = custom_conf or self.custom_default_conf
+                traffic_light_conf_threshold = (
+                    traffic_light_conf or self.traffic_light_default_conf
+                )
                 raw_detections = []
                 for model_info, result_batch in custom_results:
                     names = model_info.get("names", {})
@@ -354,13 +369,18 @@ class ObjectDetector:
                         for box in result.boxes:
                             cls = int(box.cls[0])
                             conf = float(box.conf[0]) if hasattr(box, "conf") else 0.0
-                            if conf < custom_conf_threshold:
-                                continue
                             x1, y1, x2, y2 = map(float, box.xyxy[0])
                             box_height = y2 - y1
                             box_width = x2 - x1
 
                             label = self._get_custom_label(cls, names)
+                            label_conf_threshold = (
+                                traffic_light_conf_threshold
+                                if label == "SEMAFORO"
+                                else custom_conf_threshold
+                            )
+                            if conf < label_conf_threshold:
+                                continue
                             min_threshold = custom_size_thresholds.get(label, 0.0)
                             if max(box_height, box_width) < min_threshold:
                                 continue
@@ -386,6 +406,8 @@ class ObjectDetector:
                     if max(box_height, box_width) < min_size_threshold:
                         continue
                     if label == "SEMAFORO":
+                        if detection["conf"] < traffic_light_conf_threshold:
+                            continue
                         roi = frame[y1:y2, x1:x2]
                         active_color, color_bgr, traffic_light_state = process_traffic_light_roi(roi)
 
@@ -407,6 +429,8 @@ class ObjectDetector:
                         detected_custom_labels.add(label)
                         continue
 
+                    if detection["conf"] < custom_conf_threshold:
+                        continue
                     detected_custom_labels.add(label)
                     cv2.rectangle(frame, (x1, y1), (x2, y2), CUSTOM_BOX_COLOR, 2)
                     cv2.putText(
