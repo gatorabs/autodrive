@@ -135,7 +135,15 @@ def _normalise_confidence_value(raw_value):
     except (TypeError, ValueError):
         return None
 
-    if numeric > 1.5:
+    # Sliders persist integer ticks in the 0-10 range; convert those values
+    # to the 0.0-1.0 confidence scale while leaving pre-normalised floats
+    # untouched.
+    if 0.0 <= numeric <= 10.0:
+        if abs(numeric - round(numeric)) < 1e-9:
+            numeric = round(numeric) / 10.0
+        elif numeric > 1.0:
+            numeric /= 10.0
+    elif numeric > 1.0:
         numeric /= 10.0
 
     numeric = max(0.05, min(0.99, numeric))
