@@ -271,8 +271,15 @@ class SettingsFloatingWidget(ctk.CTkFrame):
             SettingsSliderConfig("CustomConf", "Custom YOLO Confidence", 0, 10, 1),
             SettingsSliderConfig("Timestamp", "Timestamp", 0, 10, 1),
             SettingsSliderConfig(
+                "StopDecelerationStep",
+                "Stop Deceleration Step",
+                1,
+                20,
+                1,
+            ),
+            SettingsSliderConfig(
                 "StopRampInterval",
-                "StopRampInterval",
+                "Stop Ramp Interval (s)",
                 0.0,
                 1.0,
                 0.05,
