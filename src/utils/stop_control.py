@@ -1,7 +1,7 @@
 """Utilities for configuring stop/acceleration ramps."""
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping, cast
+from typing import Any, Iterable, Mapping, MutableMapping, cast
 
 
 def _as_mapping(ctrls: Any) -> Mapping[str, Any]:
@@ -25,34 +25,51 @@ def get_stop_hold_seconds(tk_controls: Any) -> float:
         return 5.0
 
 
-def get_deceleration_step(tk_controls: Any) -> int:
+def _iter_prefixed_keys(base_name: str, prefix: str) -> Iterable[str]:
+    trimmed = prefix.rstrip("_")
+    yield f"{trimmed}{base_name}"
+    yield f"{trimmed}_{base_name}"
+
+
+def get_deceleration_step(tk_controls: Any, *, key_prefix: str | None = None) -> int:
     controls = _as_mapping(tk_controls)
-    try:
-        step = int(round(float(controls.get("StopDecelerationStep", 10))))
-    except (TypeError, ValueError):
-        step = 10
-    return max(1, step)
+
+    candidate_keys = []
+    if key_prefix:
+        candidate_keys.extend(_iter_prefixed_keys("StopDecelerationStep", key_prefix))
+    candidate_keys.append("StopDecelerationStep")
+
+    for key in candidate_keys:
+        if key not in controls:
+            continue
+        try:
+            step = int(round(float(controls[key])))
+        except (TypeError, ValueError):
+            continue
+        return max(1, step)
+
+    return 10
 
 
-def get_ramp_interval(tk_controls: Any) -> float:
+def get_ramp_interval(tk_controls: Any, *, key_prefix: str | None = None) -> float:
     controls = _as_mapping(tk_controls)
-    raw_value = controls.get("StopRampInterval")
 
-    if raw_value is None:
-        for legacy_key in ("StopDecelerationInterval", "StopAccelerationInterval"):
-            if legacy_key in controls:
-                raw_value = controls[legacy_key]
-                break
+    candidate_keys = []
+    if key_prefix:
+        candidate_keys.extend(_iter_prefixed_keys("StopRampInterval", key_prefix))
+    candidate_keys.append("StopRampInterval")
+    candidate_keys.extend(("StopDecelerationInterval", "StopAccelerationInterval"))
 
-    if raw_value is None:
-        raw_value = 0.2
+    for key in candidate_keys:
+        if key not in controls:
+            continue
+        try:
+            interval = float(controls[key])
+        except (TypeError, ValueError):
+            continue
+        return max(0.0, interval)
 
-    try:
-        interval = float(raw_value)
-    except (TypeError, ValueError):
-        interval = 0.2
-
-    return max(0.0, interval)
+    return 0.2
 
 
 __all__ = [

@@ -9,6 +9,7 @@ from src.infrastructure.utils import clamp_speed, prefixed
 from . import ramp_service
 
 TRAFFIC_LIGHT_PREFIX = "TRAFFIC_LIGHT"
+TRAFFIC_LIGHT_CONTROL_PREFIX = "SEMAFORO"
 TRAFFIC_LIGHT_PREV_SPEED_KEY = prefixed(TRAFFIC_LIGHT_PREFIX, "PREV_SPEED")
 TRAFFIC_LIGHT_LAST_STATE_KEY = prefixed(TRAFFIC_LIGHT_PREFIX, "LAST_STATE")
 TRAFFIC_LIGHT_STOP_KEY = prefixed(TRAFFIC_LIGHT_PREFIX, "STOP_ACTIVE")
@@ -111,6 +112,7 @@ def start_deceleration(
         tk_controls,
         current_time,
         prefix=TRAFFIC_LIGHT_PREFIX,
+        control_key_prefix=TRAFFIC_LIGHT_CONTROL_PREFIX,
     )
 
 
@@ -125,6 +127,7 @@ def apply_deceleration(
         tk_controls,
         current_time,
         prefix=TRAFFIC_LIGHT_PREFIX,
+        control_key_prefix=TRAFFIC_LIGHT_CONTROL_PREFIX,
     )
 
 
@@ -155,6 +158,7 @@ def prepare_acceleration(
             tk_controls,
             current_time,
             prefix=TRAFFIC_LIGHT_PREFIX,
+            control_key_prefix=TRAFFIC_LIGHT_CONTROL_PREFIX,
         )
 
 
@@ -168,6 +172,7 @@ def apply_acceleration(
         tk_controls,
         current_time,
         prefix=TRAFFIC_LIGHT_PREFIX,
+        control_key_prefix=TRAFFIC_LIGHT_CONTROL_PREFIX,
     )
     if result is None:
         return None
@@ -181,6 +186,7 @@ def apply_acceleration(
 
 __all__ = [
     "TRAFFIC_LIGHT_PREFIX",
+    "TRAFFIC_LIGHT_CONTROL_PREFIX",
     "TRAFFIC_LIGHT_PREV_SPEED_KEY",
     "TRAFFIC_LIGHT_LAST_STATE_KEY",
     "TRAFFIC_LIGHT_STOP_KEY",

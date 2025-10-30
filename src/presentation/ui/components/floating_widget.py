@@ -274,12 +274,26 @@ class SettingsFloatingWidget(ctk.CTkFrame):
                 "StopDecelerationStep",
                 "Stop Deceleration Step",
                 1,
-                20,
+                100,
                 1,
             ),
             SettingsSliderConfig(
                 "StopRampInterval",
                 "Stop Ramp Interval (s)",
+                0.0,
+                1.0,
+                0.05,
+            ),
+            SettingsSliderConfig(
+                "SEMAFORO_StopDecelerationStep",
+                "Semáforo Stop Deceleration Step",
+                1,
+                100,
+                1,
+            ),
+            SettingsSliderConfig(
+                "SEMAFORO_StopRampInterval",
+                "Semáforo Stop Ramp Interval (s)",
                 0.0,
                 1.0,
                 0.05,
@@ -323,7 +337,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
     def _open_settings_modal(self):
         _destroy_modal_window(self.settings_modal)
 
-        modal_width = 320
+        modal_width = 450
         base_modal_height = 160
         slider_rows = max(1, len(self.slider_configs))
         slider_row_height = 44
