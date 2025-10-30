@@ -28,7 +28,10 @@
     "Distance": 160,
     "DeviationCounter": 2,
     "Timestamp": 5,
+    "StopDecelerationStep": 10,
     "StopRampInterval": 0.2,
+    "SEMAFORO_StopDecelerationStep": 10,
+    "SEMAFORO_StopRampInterval": 0.2,
     "Lines": 10,
     "SHOW_LINES": false
 }

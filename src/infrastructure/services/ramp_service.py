@@ -38,9 +38,10 @@ def start_deceleration(
     *,
     prefix: str = "STOP_SIGN",
     target_speed: int = 0,
+    control_key_prefix: str | None = None,
 ) -> None:
-    step = get_deceleration_step(tk_controls)
-    interval = get_ramp_interval(tk_controls)
+    step = get_deceleration_step(tk_controls, key_prefix=control_key_prefix)
+    interval = get_ramp_interval(tk_controls, key_prefix=control_key_prefix)
 
     starting_speed = clamp_speed(initial_speed)
     desired_target = clamp_speed(target_speed)
@@ -87,6 +88,7 @@ def apply_deceleration(
     current_time: float,
     *,
     prefix: str = "STOP_SIGN",
+    control_key_prefix: str | None = None,
 ) -> int:
     state = shared_controls.get(prefixed(prefix, "DECEL_STATE"))
     if not state:
@@ -95,13 +97,13 @@ def apply_deceleration(
     current_speed = clamp_speed(state.get("current_speed", 0))
     target_speed = clamp_speed(state.get("target_speed", 0))
 
-    slider_step = get_deceleration_step(tk_controls)
+    slider_step = get_deceleration_step(tk_controls, key_prefix=control_key_prefix)
     step = state.get("step")
     if not isinstance(step, int) or step != slider_step:
         step = slider_step
         state["step"] = step
 
-    slider_interval = get_ramp_interval(tk_controls)
+    slider_interval = get_ramp_interval(tk_controls, key_prefix=control_key_prefix)
     interval = state.get("interval")
     if not isinstance(interval, (int, float)) or interval != slider_interval:
         interval = slider_interval
@@ -144,9 +146,10 @@ def start_acceleration(
     current_time: float,
     *,
     prefix: str = "STOP_SIGN",
+    control_key_prefix: str | None = None,
 ) -> None:
-    step = get_deceleration_step(tk_controls)
-    interval = get_ramp_interval(tk_controls)
+    step = get_deceleration_step(tk_controls, key_prefix=control_key_prefix)
+    interval = get_ramp_interval(tk_controls, key_prefix=control_key_prefix)
 
     desired_speed = clamp_speed(target_speed)
     last_output = shared_controls.get(prefixed(prefix, "LAST_SPEED"))
@@ -175,6 +178,7 @@ def apply_acceleration(
     current_time: float,
     *,
     prefix: str = "STOP_SIGN",
+    control_key_prefix: str | None = None,
 ) -> Optional[Tuple[int, bool]]:
     state = shared_controls.get(prefixed(prefix, "ACCEL_STATE"))
     if not state:
@@ -191,13 +195,13 @@ def apply_acceleration(
 
     current_speed = clamp_speed(state.get("current_speed", 0))
 
-    slider_step = get_deceleration_step(tk_controls)
+    slider_step = get_deceleration_step(tk_controls, key_prefix=control_key_prefix)
     step = state.get("step")
     if not isinstance(step, int) or step != slider_step:
         step = slider_step
         state["step"] = step
 
-    slider_interval = get_ramp_interval(tk_controls)
+    slider_interval = get_ramp_interval(tk_controls, key_prefix=control_key_prefix)
     interval = state.get("interval")
     if not isinstance(interval, (int, float)) or interval != slider_interval:
         interval = slider_interval
