@@ -1,3 +1,5 @@
+import re
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
@@ -37,11 +39,47 @@ CUSTOM_CLASS_SLIDER_KEYS = {
 }
 
 
+_NON_ALNUM_RE = re.compile(r"[^0-9a-z_]+")
+_SEPARATOR_RE = re.compile(r"[\s\-/:]+")
+
+
 def _normalise_label(value):
-    return str(value).strip().casefold()
+    text = str(value or "").strip()
+    if not text:
+        return ""
+
+    normalized = unicodedata.normalize("NFKD", text)
+    without_diacritics = "".join(
+        ch for ch in normalized if not unicodedata.combining(ch)
+    )
+    lowered = without_diacritics.casefold()
+    collapsed = _SEPARATOR_RE.sub("_", lowered)
+    cleaned = _NON_ALNUM_RE.sub("", collapsed)
+    return cleaned.strip("_")
 
 
 TRAFFIC_LIGHT_LABEL_KEY = _normalise_label("SEMAFORO")
+
+
+def _coerce_to_float(value):
+    if hasattr(value, "get"):
+        try:
+            value = value.get()
+        except Exception:
+            return None
+
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return None
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 class ObjectDetector:
     def __init__(self,
@@ -116,13 +154,10 @@ class ObjectDetector:
             self.tk_controls[TRAFFIC_LIGHT_CONF_KEY] = int(round(self.custom_default_conf * 10))
 
     def _get_base_confidence(self):
-        slider_value = self.tk_controls.get(BASE_CONF_KEY)
+        slider_value = _coerce_to_float(self.tk_controls.get(BASE_CONF_KEY))
         if slider_value is None:
             return self.base_default_conf
-        try:
-            return max(0.05, min(0.99, float(slider_value) / 10.0))
-        except (TypeError, ValueError):
-            return self.base_default_conf
+        return max(0.05, min(0.99, slider_value / 10.0))
 
     def _candidate_search_roots(self):
         roots = [Path.cwd()]
@@ -256,31 +291,26 @@ class ObjectDetector:
         return self.custom_default_label
 
     def _get_custom_confidence(self):
-        slider_value = self.tk_controls.get(CUSTOM_CONF_KEY)
+        slider_value = _coerce_to_float(self.tk_controls.get(CUSTOM_CONF_KEY))
         if slider_value is None:
             return self.custom_default_conf
-        try:
-            return max(0.05, min(0.99, float(slider_value) / 10.0))
-        except (TypeError, ValueError):
-            return self.custom_default_conf
+        return max(0.05, min(0.99, slider_value / 10.0))
 
     def _get_traffic_light_confidence(self):
-        slider_value = self.tk_controls.get(TRAFFIC_LIGHT_CONF_KEY)
+        slider_value = _coerce_to_float(self.tk_controls.get(TRAFFIC_LIGHT_CONF_KEY))
         if slider_value is None:
             return self.custom_default_conf
-        try:
-            return max(0.05, min(0.99, float(slider_value) / 10.0))
-        except (TypeError, ValueError):
-            return self.custom_default_conf
+        return max(0.05, min(0.99, slider_value / 10.0))
 
     def _get_custom_size_thresholds(self):
         thresholds = {}
         for label, slider_key in CUSTOM_CLASS_SLIDER_KEYS.items():
-            slider_value = self.tk_controls.get(slider_key)
-            try:
-                thresholds[_normalise_label(label)] = max(0.0, float(slider_value))
-            except (TypeError, ValueError):
-                thresholds[_normalise_label(label)] = 0.0
+            normalized_label = _normalise_label(label)
+            slider_value = _coerce_to_float(self.tk_controls.get(slider_key))
+            if slider_value is None:
+                thresholds[normalized_label] = 0.0
+            else:
+                thresholds[normalized_label] = max(0.0, slider_value)
         return thresholds
 
     @classmethod
