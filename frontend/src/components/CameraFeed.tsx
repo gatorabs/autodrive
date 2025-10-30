@@ -63,20 +63,10 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ label }) => {
     );
   }
 
-  const statusIndicator = isLoading
-    ? {
-        text: "Conectando...",
-        className: "animate-pulse text-yellow-400",
-      }
-    : hasError
-      ? {
-          text: "Desconectado",
-          className: "text-red-500",
-        }
-      : {
-          text: "Conectado",
-          className: "text-green-400",
-        };
+  const statusIndicator = {
+    text: "Conectado",
+    className: "text-green-400",
+  };
 
   return (
     <div className="bg-gray-800 rounded-lg overflow-hidden">
