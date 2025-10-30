@@ -23,6 +23,7 @@ DEFAULT_CUSTOM_CONFIDENCE = 0.35
 DEFAULT_BASE_CONFIDENCE = 0.35
 BASE_CONF_KEY = "BaseConf"
 CUSTOM_CONF_KEY = "CustomConf"
+TRAFFIC_LIGHT_CONF_KEY = "SEMAFORO_CustomConf"
 CUSTOM_BOX_COLOR = (255, 140, 0)
 PERSON_REGION_WIDTH_KEY = "PeopleRegion"
 DEFAULT_PERSON_REGION_PERCENT = 33
@@ -104,6 +105,8 @@ class ObjectDetector:
             self.tk_controls[BASE_CONF_KEY] = int(round(self.base_default_conf * 10))
         if CUSTOM_CONF_KEY not in self.tk_controls:
             self.tk_controls[CUSTOM_CONF_KEY] = int(round(self.custom_default_conf * 10))
+        if TRAFFIC_LIGHT_CONF_KEY not in self.tk_controls:
+            self.tk_controls[TRAFFIC_LIGHT_CONF_KEY] = int(round(self.custom_default_conf * 10))
 
     def _get_base_confidence(self):
         slider_value = self.tk_controls.get(BASE_CONF_KEY)
@@ -253,6 +256,15 @@ class ObjectDetector:
         except (TypeError, ValueError):
             return self.custom_default_conf
 
+    def _get_traffic_light_confidence(self):
+        slider_value = self.tk_controls.get(TRAFFIC_LIGHT_CONF_KEY)
+        if slider_value is None:
+            return self.custom_default_conf
+        try:
+            return max(0.05, min(0.99, float(slider_value) / 10.0))
+        except (TypeError, ValueError):
+            return self.custom_default_conf
+
     def _get_custom_size_thresholds(self):
         thresholds = {}
         for label, slider_key in CUSTOM_CLASS_SLIDER_KEYS.items():
@@ -274,16 +286,33 @@ class ObjectDetector:
                 )
                 custom_results = []
                 custom_conf = None
+                traffic_light_conf = None
+                traffic_light_pass_results = []
                 if self.custom_models:
                     custom_conf = self._get_custom_confidence()
+                    traffic_light_conf = self._get_traffic_light_confidence()
+                    needs_additional_traffic_light_pass = (
+                        traffic_light_conf is not None
+                        and custom_conf is not None
+                        and traffic_light_conf < custom_conf
+                    )
                     for custom_model in self.custom_models:
                         model = custom_model["model"]
-                        model_results = model(
+                        base_results = model(
                             frame,
                             conf=custom_conf,
                             **self.custom_inference_kwargs,
                         )
-                        custom_results.append((custom_model, model_results))
+                        custom_results.append((custom_model, base_results))
+                        if needs_additional_traffic_light_pass:
+                            traffic_light_results = model(
+                                frame,
+                                conf=traffic_light_conf,
+                                **self.custom_inference_kwargs,
+                            )
+                            traffic_light_pass_results.append(
+                                (custom_model, traffic_light_results)
+                            )
 
             person_detected = False
             traffic_light_state = 2
@@ -346,7 +375,16 @@ class ObjectDetector:
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             if custom_results:
-                custom_conf_threshold = custom_conf or self.custom_default_conf
+                traffic_light_conf_threshold = (
+                    traffic_light_conf
+                    if traffic_light_conf is not None
+                    else self.custom_default_conf
+                )
+                custom_conf_threshold = (
+                    custom_conf
+                    if custom_conf is not None
+                    else self.custom_default_conf
+                )
                 raw_detections = []
                 for model_info, result_batch in custom_results:
                     names = model_info.get("names", {})
@@ -354,16 +392,47 @@ class ObjectDetector:
                         for box in result.boxes:
                             cls = int(box.cls[0])
                             conf = float(box.conf[0]) if hasattr(box, "conf") else 0.0
-                            if conf < custom_conf_threshold:
-                                continue
                             x1, y1, x2, y2 = map(float, box.xyxy[0])
                             box_height = y2 - y1
                             box_width = x2 - x1
 
                             label = self._get_custom_label(cls, names)
+                            threshold = (
+                                traffic_light_conf_threshold
+                                if label == "SEMAFORO"
+                                else custom_conf_threshold
+                            )
+                            if conf < threshold:
+                                continue
                             min_threshold = custom_size_thresholds.get(label, 0.0)
                             if max(box_height, box_width) < min_threshold:
                                 continue
+                            raw_detections.append(
+                                {
+                                    "cls": cls,
+                                    "conf": conf,
+                                    "box": (x1, y1, x2, y2),
+                                    "label": label,
+                                }
+                            )
+
+                for model_info, result_batch in traffic_light_pass_results:
+                    names = model_info.get("names", {})
+                    for result in result_batch:
+                        for box in result.boxes:
+                            cls = int(box.cls[0])
+                            conf = float(box.conf[0]) if hasattr(box, "conf") else 0.0
+                            label = self._get_custom_label(cls, names)
+                            if label != "SEMAFORO" or conf < traffic_light_conf_threshold:
+                                continue
+
+                            x1, y1, x2, y2 = map(float, box.xyxy[0])
+                            box_height = y2 - y1
+                            box_width = x2 - x1
+                            min_threshold = custom_size_thresholds.get(label, 0.0)
+                            if max(box_height, box_width) < min_threshold:
+                                continue
+
                             raw_detections.append(
                                 {
                                     "cls": cls,

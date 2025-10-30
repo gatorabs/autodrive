@@ -16,6 +16,7 @@
     "PLACA_LOMBADA": 0,
     "BaseConf": 5,
     "CustomConf": 7,
+    "SEMAFORO_CustomConf": 7,
     "PeopleRegion": 40,
     "tl_x": 80,
     "tl_y": 230,
