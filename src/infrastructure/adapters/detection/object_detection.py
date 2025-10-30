@@ -223,6 +223,7 @@ class ObjectDetector:
                     "model": model,
                     "names": names_payload,
                     "path": model_path,
+                    "class_names": class_names,
                 })
                 if self.logger:
                     if names_payload:
@@ -275,6 +276,31 @@ class ObjectDetector:
                 thresholds[label] = 0.0
         return thresholds
 
+    @staticmethod
+    def _model_includes_label(model_info, target_label):
+        if not target_label:
+            return False
+
+        target_normalized = str(target_label).strip().casefold()
+
+        class_names = model_info.get("class_names")
+        if class_names:
+            for name in class_names:
+                if str(name).strip().casefold() == target_normalized:
+                    return True
+
+        names_payload = model_info.get("names")
+        if isinstance(names_payload, dict):
+            names_iterable = names_payload.values()
+        else:
+            names_iterable = names_payload or []
+
+        for name in names_iterable:
+            if str(name).strip().casefold() == target_normalized:
+                return True
+
+        return False
+
     def process_frame(self, frame):
         try:
             with torch.inference_mode():
@@ -304,7 +330,9 @@ class ObjectDetector:
                             **self.custom_inference_kwargs,
                         )
                         custom_results.append((custom_model, base_results))
-                        if needs_additional_traffic_light_pass:
+                        if needs_additional_traffic_light_pass and self._model_includes_label(
+                            custom_model, "SEMAFORO"
+                        ):
                             traffic_light_results = model(
                                 frame,
                                 conf=traffic_light_conf,
