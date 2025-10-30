@@ -19,7 +19,7 @@ def prepare_stop(shared_controls: dict, lane_data, person_detected: bool) -> Non
             shared_controls, lane_data, prefix=PERSON_PREFIX
         )
         prev_speed = shared_controls.get(prefixed(PERSON_PREFIX, "PREV_SPEED"))
-        if prev_speed in (None, 0):
+        if prev_speed is None:
             fallback_speed = (
                 shared_controls.get(prefixed(PERSON_PREFIX, "LAST_SPEED"))
                 or shared_controls.get("STOP_SIGN_LAST_SPEED")
