@@ -1,7 +1,7 @@
 """Utilities for configuring stop/acceleration ramps."""
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, cast
 
 
 def _as_mapping(ctrls: Any) -> Mapping[str, Any]:
@@ -9,6 +9,10 @@ def _as_mapping(ctrls: Any) -> Mapping[str, Any]:
         return ctrls
     if isinstance(ctrls, MutableMapping):  # pragma: no cover - MutableMapping is Mapping
         return ctrls  # type: ignore[return-value]
+    getter = getattr(ctrls, "get", None)
+    contains = getattr(ctrls, "__contains__", None)
+    if callable(getter) and callable(contains):
+        return cast(Mapping[str, Any], ctrls)
     return {}
 
 
