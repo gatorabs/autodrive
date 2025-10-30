@@ -36,6 +36,13 @@ CUSTOM_CLASS_SLIDER_KEYS = {
     "SEMAFORO": "SEMAFORO",
 }
 
+
+def _normalise_label(value):
+    return str(value).strip().casefold()
+
+
+TRAFFIC_LIGHT_LABEL_KEY = _normalise_label("SEMAFORO")
+
 class ObjectDetector:
     def __init__(self,
                  shared_serial_data,
@@ -271,26 +278,22 @@ class ObjectDetector:
         for label, slider_key in CUSTOM_CLASS_SLIDER_KEYS.items():
             slider_value = self.tk_controls.get(slider_key)
             try:
-                thresholds[label] = max(0.0, float(slider_value))
+                thresholds[_normalise_label(label)] = max(0.0, float(slider_value))
             except (TypeError, ValueError):
-                thresholds[label] = 0.0
+                thresholds[_normalise_label(label)] = 0.0
         return thresholds
-
-    @staticmethod
-    def _normalise_label(value):
-        return str(value).strip().casefold()
 
     @classmethod
     def _model_includes_label(cls, model_info, target_label):
         if not target_label:
             return False
 
-        target_normalized = cls._normalise_label(target_label)
+        target_normalized = _normalise_label(target_label)
 
         class_names = model_info.get("class_names")
         if class_names:
             for name in class_names:
-                if cls._normalise_label(name) == target_normalized:
+                if _normalise_label(name) == target_normalized:
                     return True
 
         names_payload = model_info.get("names")
@@ -300,7 +303,7 @@ class ObjectDetector:
             names_iterable = names_payload or []
 
         for name in names_iterable:
-            if cls._normalise_label(name) == target_normalized:
+            if _normalise_label(name) == target_normalized:
                 return True
 
         return False
@@ -311,7 +314,7 @@ class ObjectDetector:
         if not target_label or names_payload is None:
             return set()
 
-        target_normalized = cls._normalise_label(target_label)
+        target_normalized = _normalise_label(target_label)
         class_ids = set()
 
         if isinstance(names_payload, dict):
@@ -320,7 +323,7 @@ class ObjectDetector:
             items = enumerate(names_payload or [])
 
         for cls_id, label in items:
-            if cls._normalise_label(label) == target_normalized:
+            if _normalise_label(label) == target_normalized:
                 try:
                     class_ids.add(int(cls_id))
                 except (TypeError, ValueError):
@@ -436,15 +439,15 @@ class ObjectDetector:
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             if custom_results:
-                traffic_light_conf_threshold = (
-                    traffic_light_conf
-                    if traffic_light_conf is not None
-                    else self.custom_default_conf
-                )
                 custom_conf_threshold = (
                     custom_conf
                     if custom_conf is not None
                     else self.custom_default_conf
+                )
+                traffic_light_conf_threshold = (
+                    traffic_light_conf
+                    if traffic_light_conf is not None
+                    else custom_conf_threshold
                 )
                 raw_detections = []
                 for model_info, result_batch in custom_results:
@@ -458,14 +461,16 @@ class ObjectDetector:
                             box_width = x2 - x1
 
                             label = self._get_custom_label(cls, names)
+                            label_key = _normalise_label(label)
+                            is_traffic_light = label_key == TRAFFIC_LIGHT_LABEL_KEY
                             threshold = (
                                 traffic_light_conf_threshold
-                                if label == "SEMAFORO"
+                                if is_traffic_light
                                 else custom_conf_threshold
                             )
                             if conf < threshold:
                                 continue
-                            min_threshold = custom_size_thresholds.get(label, 0.0)
+                            min_threshold = custom_size_thresholds.get(label_key, 0.0)
                             if max(box_height, box_width) < min_threshold:
                                 continue
                             raw_detections.append(
@@ -474,6 +479,7 @@ class ObjectDetector:
                                     "conf": conf,
                                     "box": (x1, y1, x2, y2),
                                     "label": label,
+                                    "label_key": label_key,
                                 }
                             )
 
@@ -484,13 +490,17 @@ class ObjectDetector:
                             cls = int(box.cls[0])
                             conf = float(box.conf[0]) if hasattr(box, "conf") else 0.0
                             label = self._get_custom_label(cls, names)
-                            if label != "SEMAFORO" or conf < traffic_light_conf_threshold:
+                            label_key = _normalise_label(label)
+                            if (
+                                label_key != TRAFFIC_LIGHT_LABEL_KEY
+                                or conf < traffic_light_conf_threshold
+                            ):
                                 continue
 
                             x1, y1, x2, y2 = map(float, box.xyxy[0])
                             box_height = y2 - y1
                             box_width = x2 - x1
-                            min_threshold = custom_size_thresholds.get(label, 0.0)
+                            min_threshold = custom_size_thresholds.get(label_key, 0.0)
                             if max(box_height, box_width) < min_threshold:
                                 continue
 
@@ -500,6 +510,7 @@ class ObjectDetector:
                                     "conf": conf,
                                     "box": (x1, y1, x2, y2),
                                     "label": label,
+                                    "label_key": label_key,
                                 }
                             )
 
@@ -510,12 +521,13 @@ class ObjectDetector:
                 for detection in merged_detections:
                     x1, y1, x2, y2 = map(int, detection["box"])
                     label = detection["label"]
-                    min_size_threshold = custom_size_thresholds.get(label, 0.0)
+                    label_key = detection.get("label_key", _normalise_label(label))
+                    min_size_threshold = custom_size_thresholds.get(label_key, 0.0)
                     box_height = y2 - y1
                     box_width = x2 - x1
                     if max(box_height, box_width) < min_size_threshold:
                         continue
-                    if label == "SEMAFORO":
+                    if label_key == TRAFFIC_LIGHT_LABEL_KEY:
                         roi = frame[y1:y2, x1:x2]
                         active_color, color_bgr, traffic_light_state = process_traffic_light_roi(roi)
 
@@ -561,7 +573,11 @@ class ObjectDetector:
 
         grouped = defaultdict(list)
         for det in detections:
-            grouped[det["label"]].append(det)
+            label_key = det.get("label_key")
+            if label_key is None:
+                label_key = _normalise_label(det.get("label"))
+                det["label_key"] = label_key
+            grouped[label_key].append(det)
 
         merged = []
         for cls, det_list in grouped.items():
