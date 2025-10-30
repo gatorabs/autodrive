@@ -63,18 +63,30 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ label }) => {
     );
   }
 
+  const statusIndicator = isLoading
+    ? {
+        text: "Conectando...",
+        className: "animate-pulse text-yellow-400",
+      }
+    : hasError
+      ? {
+          text: "Desconectado",
+          className: "text-red-500",
+        }
+      : {
+          text: "Conectado",
+          className: "text-green-400",
+        };
+
   return (
     <div className="bg-gray-800 rounded-lg overflow-hidden">
       <div className="bg-gray-700 px-3 py-2 border-b border-gray-600">
         <div className="flex justify-between items-center">
           <span>{label}</span>
-          {isLoading ? (
-            <span className="animate-pulse text-yellow-400">●</span>
-          ) : hasError ? (
-            <span className="text-red-500">●</span>
-          ) : (
-            <span className="text-green-400">●</span>
-          )}
+          <span className={`${statusIndicator.className} flex items-center space-x-1 text-sm font-medium`}>
+            <span>●</span>
+            <span>{statusIndicator.text}</span>
+          </span>
         </div>
       </div>
 
