@@ -63,24 +63,60 @@ TRAFFIC_LIGHT_LABEL_KEY = _normalise_label("SEMAFORO")
 
 
 def _coerce_to_float(value):
-    getter = getattr(value, "get", None)
-    if callable(getter):
-        try:
-            signature = inspect.signature(getter)
-        except (TypeError, ValueError):
-            signature = None
+    """Attempt to coerce heterogenous UI control payloads to float.
 
-        if signature is None or not signature.parameters:
+    The tk_controls payloads flow through multiprocessing proxies and Tkinter
+    wrappers which occasionally expose ``get``/``_getvalue`` helpers or
+    locale-formatted strings.  This helper keeps unwrapping those layers until a
+    primitive numeric value is reached, falling back to ``None`` if conversion
+    fails at any stage.
+    """
+
+    seen = set()
+
+    while True:
+        # Resolve proxies that expose ``get`` (Tkinter variables, manager ValueProxy)
+        getter = getattr(value, "get", None)
+        if callable(getter):
             try:
-                value = getter()
+                signature = inspect.signature(getter)
+            except (TypeError, ValueError):
+                signature = None
+
+            # Only invoke zero-argument getters to avoid dict-like signatures
+            if signature is None or not signature.parameters:
+                try:
+                    candidate = getter()
+                except Exception:
+                    candidate = None
+                if candidate is not None and candidate is not value:
+                    value = candidate
+                    if id(value) in seen:
+                        break
+                    seen.add(id(value))
+                    continue
+
+        # Multiprocessing proxies also expose ``_getvalue``
+        get_value = getattr(value, "_getvalue", None)
+        if callable(get_value):
+            try:
+                candidate = get_value()
             except Exception:
-                return None
+                candidate = None
+            if candidate is not None and candidate is not value:
+                value = candidate
+                if id(value) in seen:
+                    break
+                seen.add(id(value))
+                continue
+
+        break
 
     if isinstance(value, (int, float)):
         return float(value)
 
     if isinstance(value, str):
-        value = value.strip()
+        value = value.strip().replace(",", ".")
         if not value:
             return None
 
@@ -88,6 +124,22 @@ def _coerce_to_float(value):
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _normalise_confidence_value(raw_value):
+    if raw_value is None:
+        return None
+
+    try:
+        numeric = float(raw_value)
+    except (TypeError, ValueError):
+        return None
+
+    if numeric > 1.5:
+        numeric /= 10.0
+
+    numeric = max(0.05, min(0.99, numeric))
+    return numeric
 
 class ObjectDetector:
     def __init__(self,
@@ -169,7 +221,10 @@ class ObjectDetector:
         if slider_value is None:
             return self._last_base_conf
 
-        coerced = max(0.05, min(0.99, slider_value / 10.0))
+        coerced = _normalise_confidence_value(slider_value)
+        if coerced is None:
+            return self._last_base_conf
+
         self._last_base_conf = coerced
         return coerced
 
@@ -309,7 +364,10 @@ class ObjectDetector:
         if slider_value is None:
             return self._last_custom_conf
 
-        coerced = max(0.05, min(0.99, slider_value / 10.0))
+        coerced = _normalise_confidence_value(slider_value)
+        if coerced is None:
+            return self._last_custom_conf
+
         self._last_custom_conf = coerced
         return coerced
 
@@ -318,7 +376,10 @@ class ObjectDetector:
         if slider_value is None:
             return self._last_traffic_light_conf
 
-        coerced = max(0.05, min(0.99, slider_value / 10.0))
+        coerced = _normalise_confidence_value(slider_value)
+        if coerced is None:
+            return self._last_traffic_light_conf
+
         self._last_traffic_light_conf = coerced
         return coerced
 
