@@ -10,7 +10,7 @@ interface MotorStatusProps {
 const MotorStatus = ({ title, value, color, icon, maxValue, currentValue }: MotorStatusProps) => {
   
   const percentage = (currentValue / maxValue) * 100;
-  const servoRotationAngle = icon === "rotate" ? currentValue - 180 : 0;
+  const servoRotationAngle = icon === "rotate" ? currentValue - 0 : 180;
   const isMotorRunning = icon === "gauge" && currentValue > 0;
 
   const spinDuration = isMotorRunning
