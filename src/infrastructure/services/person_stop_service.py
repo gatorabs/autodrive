@@ -38,12 +38,22 @@ def handle_resume(
     person_detected: bool,
 ) -> Optional[int]:
     prev_speed = shared_controls.get(prefixed(PERSON_PREFIX, "PREV_SPEED"))
+    override_speed: Optional[int] = None
+    override_raw = shared_controls.get("SPEED_OVERRIDE")
+    if isinstance(override_raw, (int, float)):
+        override_speed = clamp_speed(override_raw)
 
     if (
         prev_speed is not None
         and shared_controls.get(prefixed(PERSON_PREFIX, "STOP_ACTIVE"), False)
         and not person_detected
     ):
+        if override_speed is not None and override_speed <= 0:
+            shared_controls.pop(prefixed(PERSON_PREFIX, "PREV_SPEED"), None)
+            shared_controls[prefixed(PERSON_PREFIX, "STOP_ACTIVE")] = False
+            ramp_service.clear_stop_state(shared_controls, prefix=PERSON_PREFIX)
+            return 0
+
         if not shared_controls.get(prefixed(PERSON_PREFIX, "ACCEL_STATE")):
             ramp_service.start_acceleration(
                 shared_controls,
