@@ -24,15 +24,19 @@ class VideoProcessor:
         if self.is_cam:
             api = cv2.CAP_DSHOW if os.name == "nt" else cv2.CAP_ANY
             self.cap = cv2.VideoCapture(self.cam_index, api)
+            if self.cap.isOpened():
+                if os.name == "nt":
+                    self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.internal_width)
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.internal_height)
+                self.cap.set(cv2.CAP_PROP_FPS, 30)
+                self.cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)
+                self.cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75)
         else:
             self.cap = cv2.VideoCapture(video_source)
 
         if not self.cap.isOpened():
             raise RuntimeError(f"Não foi possível abrir a fonte de vídeo: {video_source}")
-
-        if self.is_cam:
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.internal_width)
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.internal_height)
 
         actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
