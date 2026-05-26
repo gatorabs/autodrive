@@ -4,9 +4,7 @@ from typing import Callable, Dict, Optional
 import customtkinter as ctk
 
 from src.infrastructure.data.repository.calibration_repository import (
-    load_data,
-    refresh_json,
-    save_data,
+    default_settings_store,
 )
 from src.infrastructure.constants.ui_constants.file_constants import (
     CALIBRATION_FILE,
@@ -58,8 +56,7 @@ class FloatingWidget(ctk.CTkFrame):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
         self.place(relx=1.0, rely=1.0, anchor="se", x=-650, y=-27)
 
-        self.save_data = save_data
-        self.load_data = load_data
+        self.settings_store = default_settings_store
         self.tk_controls = tk_controls
         self.shared_controls = shared_controls
         self.DEFAULTS_FILE = DEFAULTS_FILE
@@ -228,7 +225,7 @@ class FloatingWidget(ctk.CTkFrame):
         ).pack(fill="both", expand=True)
 
     def button_1_action(self):
-        refresh_json(self.tk_controls, self.DEFAULTS_FILE, only_existing_keys=True)
+        self.settings_store.update(self.tk_controls, self.DEFAULTS_FILE, only_existing_keys=True)
         self._hide_modal("save_modal", "save_modal_open")
 
     def button_2_action(self):
@@ -264,6 +261,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         super().__init__(master, fg_color="#2b2b2b", **kwargs)
         self.place(relx=1.0, rely=1.0, anchor="se", x=-600, y=-27)
 
+        self.settings_store = default_settings_store
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
         self.slider_configs = slider_configs or [
@@ -499,7 +497,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
             self.tk_controls[key] = stored_value
             self.calibration_data[key] = stored_value
 
-        refresh_json(updates, CALIBRATION_FILE)
+        self.settings_store.update(updates, CALIBRATION_FILE)
 
     def close_modal(self):
         self._close_settings_modal()

@@ -5,7 +5,7 @@ import customtkinter as ctk
 from PIL import UnidentifiedImageError
 from CTkMessagebox import CTkMessagebox
 
-from src.infrastructure.data.repository.calibration_repository import load_data, refresh_json
+from src.infrastructure.data.repository.calibration_repository import default_settings_store
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH, DEFAULTS_FILE
 from src.infrastructure.logging.logger import Logger
 
@@ -41,8 +41,9 @@ class MainApp(ctk.CTk):
         super().__init__()
         self.protocol("WM_DELETE_WINDOW", self._on_close_request)
 
-        self.calibration_data = load_data(CALIBRATION_FILE)
-        self.init_data = load_data(DEFAULT_UI_PATH)
+        self.settings_store = default_settings_store
+        self.calibration_data = self.settings_store.load(CALIBRATION_FILE)
+        self.init_data = self.settings_store.load(DEFAULT_UI_PATH)
         self.title("Autonomous Team")
 
         self.DEFAULTS_FILE = DEFAULTS_FILE
@@ -107,7 +108,7 @@ class MainApp(ctk.CTk):
             self.shared_controls["WEBVIEW"] = False
             self.shared_controls["MANUAL_MD"] = False
             self.shared_controls["RUNNING"] = False
-            refresh_json({"MANUAL_MD": False, "WEBVIEW": False}, DEFAULT_UI_PATH)
+            self.settings_store.update({"MANUAL_MD": False, "WEBVIEW": False}, DEFAULT_UI_PATH)
             self.destroy()
 
     def _build_home(self):
@@ -157,7 +158,7 @@ class MainApp(ctk.CTk):
                 if response == "OK":
                     self.tk_controls["MANUAL_MD"] = True
                     self.shared_controls["MANUAL_MD"] = True
-                    refresh_json({"MANUAL_MD": True}, DEFAULT_UI_PATH)
+                    self.settings_store.update({"MANUAL_MD": True}, DEFAULT_UI_PATH)
                     self.tab_manager.select_tab(tab_name)
                     self._sync_manual_controls()
             else:
@@ -188,7 +189,7 @@ class MainApp(ctk.CTk):
         self.tk_controls["LANE_SOURCE_TAB2"] = selected_source
         self.shared_controls["LANE_SOURCE_TAB2"] = selected_source
 
-        refresh_json({
+        self.settings_store.update({
             "LANE_SOURCE_TAB2": selected_source
         }, DEFAULT_UI_PATH)
 
@@ -252,7 +253,7 @@ class MainApp(ctk.CTk):
             if response == "OK":
                 self.tk_controls["MANUAL_MD"] = False
                 self.shared_controls["MANUAL_MD"] = False
-                refresh_json({"MANUAL_MD": False}, DEFAULT_UI_PATH)
+                self.settings_store.update({"MANUAL_MD": False}, DEFAULT_UI_PATH)
                 self.tab_manager.select_tab(tab_name)
         else:
             self.tab_manager.select_tab(tab_name)
@@ -264,7 +265,7 @@ class MainApp(ctk.CTk):
 
             if shared_manual != tk_manual:
                 self.tk_controls["MANUAL_MD"] = shared_manual
-                refresh_json({"MANUAL_MD": shared_manual}, DEFAULT_UI_PATH)
+                self.settings_store.update({"MANUAL_MD": shared_manual}, DEFAULT_UI_PATH)
                 if shared_manual:
                     self.tab_manager.select_tab("Manual Mode")
                     self._sync_manual_controls()
@@ -291,7 +292,7 @@ class MainApp(ctk.CTk):
         self.after(33, self.update_loop)
 
     def restore_defaults(self):
-        load_data(self.DEFAULTS_FILE, update_target_if_exists=self.tk_controls)
+        self.settings_store.load(self.DEFAULTS_FILE, update_target_if_exists=self.tk_controls)
         sections = [
             self.filters,
             self.warp_controls,
@@ -304,7 +305,7 @@ class MainApp(ctk.CTk):
             for section in sections:
                 if name in section.sliders:
                     section.set(name, value)
-        refresh_json(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
+        self.settings_store.update(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
 
 def launch_homepage(shared_frames, tk_controls, shared_controls, lane_queue):
     app = MainApp(shared_frames, tk_controls, shared_controls, lane_queue)

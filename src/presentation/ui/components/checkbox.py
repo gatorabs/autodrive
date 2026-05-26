@@ -1,6 +1,6 @@
 import customtkinter as ctk
 
-from src.infrastructure.data.repository.calibration_repository import refresh_json
+from src.infrastructure.data.repository.calibration_repository import default_settings_store
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
 from src.infrastructure.logging.logger import Logger
 
@@ -16,7 +16,7 @@ class CheckboxSection(ctk.CTkFrame):
         self.columns = columns
         self.vars = {}
         self.shared_controls = shared_controls
-        self.refresh_json = refresh_json
+        self.settings_store = default_settings_store
 
         if orientation == "grid":
             self._create_grid()
@@ -60,11 +60,11 @@ class CheckboxSection(ctk.CTkFrame):
             else:
                 updates[label] = value
         if updates:
-            refresh_json(updates, path=CALIBRATION_FILE)
+            self.settings_store.update(updates, path=CALIBRATION_FILE)
 
     def _save_to_default(self, key: str, value: bool):
         try:
-            self.refresh_json({key: value}, path=DEFAULT_UI_PATH)
+            self.settings_store.update({key: value}, path=DEFAULT_UI_PATH)
             self.shared_controls[key] = value
 
         except Exception as e:

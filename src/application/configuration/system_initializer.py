@@ -1,11 +1,13 @@
 from src.infrastructure.constants.colors_constants import RED, RESET
 from src.infrastructure.constants.ui_constants.file_constants import DEFAULT_UI_PATH
 from src.infrastructure.adapters.video.video_utility_process import detect_camera_indices
-from src.infrastructure.data.repository.calibration_repository import load_data, save_data
+from src.infrastructure.data.repository.calibration_repository import default_settings_store
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 
 
 class SystemInitializer:
+    def __init__(self, settings_store=default_settings_store):
+        self.settings_store = settings_store
 
     def init_shared_controls(self, user_flags):
         return {
@@ -25,7 +27,7 @@ class SystemInitializer:
                 print(f"{key}: {value}")
 
     def prepare_initial_flags(self, progress_callback=None):
-        defaults_ui = load_data(DEFAULT_UI_PATH)
+        defaults_ui = self.settings_store.load(DEFAULT_UI_PATH)
         if progress_callback:
             progress_callback(25)
 
@@ -43,7 +45,7 @@ class SystemInitializer:
             (port for port in ["COM8", "COM4"] if port in available_ports),
             available_ports[0] if available_ports else "N/A",
         )
-        save_data(defaults_ui, DEFAULT_UI_PATH)
+        self.settings_store.save(defaults_ui, DEFAULT_UI_PATH)
         if progress_callback:
             progress_callback(100)
 

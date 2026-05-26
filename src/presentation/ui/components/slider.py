@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 import customtkinter as ctk
 
-from src.infrastructure.data.repository.calibration_repository import refresh_json
+from src.infrastructure.data.repository.calibration_repository import default_settings_store
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
 
 @dataclass
@@ -29,7 +29,7 @@ class SliderSection(ctk.CTkFrame):
         super().__init__(master, **kwargs)
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
-        self.refresh_json = refresh_json
+        self.settings_store = default_settings_store
         self._no_persist = {"MANUAL_DIRECTION", "MANUAL_SPEED", "Side"}
 
         ctk.CTkLabel(self, text=title, font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
@@ -126,7 +126,7 @@ class SliderSection(ctk.CTkFrame):
 
         self.tk_controls[name] = stepped_value
         if name not in self._no_persist:
-            refresh_json({name: stepped_value}, CALIBRATION_FILE)
+            self.settings_store.update({name: stepped_value}, CALIBRATION_FILE)
 
     def get(self, name: str) -> float:
         slider_data = self.sliders[name]

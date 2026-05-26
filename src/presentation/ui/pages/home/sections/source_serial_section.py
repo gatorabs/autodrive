@@ -4,7 +4,7 @@ from src.infrastructure.adapters.video.video_utility_process import (
     detect_camera_indices,
     get_video_files_from_folder,
 )
-from src.infrastructure.data.repository.calibration_repository import refresh_json
+from src.infrastructure.data.repository.calibration_repository import default_settings_store
 from src.infrastructure.constants.ui_constants.file_constants import DEFAULT_UI_PATH
 
 class SourceAndSerialControls(ctk.CTkFrame):
@@ -16,7 +16,7 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.calibration_data = calibration_data
         self.shared_controls = shared_controls
         self.init_data = init_data
-        self.refresh_json = refresh_json
+        self.settings_store = default_settings_store
 
         self.com_ports = SerialCommunicator.list_available_ports()
         cams = self.tk_controls.get("DETECTED_CAMERAS", [])
@@ -123,7 +123,7 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.tk_controls["LANE_SOURCE"] = lane_value
         self.tk_controls["OBJECT_SOURCE"] = object_value
 
-        self.refresh_json({
+        self.settings_store.update({
             "LANE_SOURCE": lane_value,
             "OBJECT_SOURCE": object_value
         }, DEFAULT_UI_PATH)
@@ -180,7 +180,7 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.shared_controls["SENDER_COM"] = sender_com
         self.shared_controls["SECURITY_COM"] = security_com
 
-        self.refresh_json({
+        self.settings_store.update({
             "SENDER_COM": sender_com,
             "SECURITY_COM": security_com
         }, DEFAULT_UI_PATH)
