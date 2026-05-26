@@ -1,12 +1,18 @@
 import time
+from typing import Callable
 
-from src.infrastructure.logging.logger import Logger
+from src.application.ports import LoggerPort
 from src.infrastructure.services.manual_mode_service import publish
 from src.infrastructure.utils.update_time_processor import update_processing_time
 
 
-def manual_video_process(shared_controls, shared_frames, lane_queue):
-    logger = Logger("ManualProcess")
+def manual_video_process(
+    shared_controls,
+    shared_frames,
+    lane_queue,
+    logger_factory: Callable[..., LoggerPort],
+):
+    logger = logger_factory("ManualProcess")
 
     total_processing_time = 0
     frame_count = 0

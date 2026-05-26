@@ -1,37 +1,22 @@
 import multiprocessing as mp
 
-from src.application.configuration.system_initializer import SystemInitializer
-from src.infrastructure.data.repository.calibration_repository import default_settings_store
-from src.presentation.init_ui.init_ui_section import init_system
-from src.presentation.lane_overlay_renderer import draw_overlays
-from src.presentation.ui.main_app import launch_homepage
-from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
-from src.application.orchestration.process_manager import ProcessManager, ProcessTargets
-from src.application.state import RuntimeControls, SharedFrames, UiControls
-from src.infrastructure.utils.process_utils import terminate_if_alive
+from src.bootstrap import (
+    build_process_manager,
+    create_runtime_state,
+    terminate_runtime_processes,
+)
 
 def main():
     mp.set_start_method('spawn')
 
-    initializer = SystemInitializer()
-    user_flags = init_system(initializer)
-    calibrated_data = default_settings_store.load(CALIBRATION_FILE)
-    initial_tk = {**calibrated_data, **user_flags}
-
     with mp.Manager() as manager:
-        shared_controls = RuntimeControls(manager.dict(initializer.init_shared_controls(user_flags)))
-        tk_controls     = UiControls(manager.dict(initial_tk))
-        shared_frames   = SharedFrames(manager.dict())
+        shared_controls, tk_controls, shared_frames, user_flags = create_runtime_state(manager)
 
-        manager_instance = ProcessManager(
+        manager_instance = build_process_manager(
             shared_controls=shared_controls,
             shared_frames=shared_frames,
             tk_controls=tk_controls,
             user_flags=user_flags,
-            targets=ProcessTargets(
-                ui=launch_homepage,
-                lane_overlay_renderer=draw_overlays,
-            ),
         )
 
         processes = manager_instance.create_all_processes()
@@ -55,13 +40,7 @@ def main():
                 )
 
         except KeyboardInterrupt:
-            for p in processes:
-                terminate_if_alive(p)
-            for proc in (manager_instance.flask_proc,
-                         manager_instance.lane_proc,
-                         manager_instance.object_proc,
-                         manager_instance.camera_proc):
-                terminate_if_alive(proc)
+            terminate_runtime_processes(processes, manager_instance)
 
 if __name__ == '__main__':
     main()

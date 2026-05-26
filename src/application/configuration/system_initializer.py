@@ -1,13 +1,22 @@
-from src.infrastructure.constants.colors_constants import RED, RESET
-from src.infrastructure.constants.ui_constants.file_constants import DEFAULT_UI_PATH
-from src.infrastructure.adapters.video.video_utility_process import detect_camera_indices
-from src.infrastructure.data.repository.calibration_repository import default_settings_store
-from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
+from src.application.ports import SettingsStore
 
 
 class SystemInitializer:
-    def __init__(self, settings_store=default_settings_store):
+    def __init__(
+        self,
+        settings_store: SettingsStore,
+        default_ui_path,
+        camera_indices_detector,
+        serial_ports_lister,
+        false_color="",
+        reset_color="",
+    ):
         self.settings_store = settings_store
+        self.default_ui_path = default_ui_path
+        self.camera_indices_detector = camera_indices_detector
+        self.serial_ports_lister = serial_ports_lister
+        self.false_color = false_color
+        self.reset_color = reset_color
 
     def init_shared_controls(self, user_flags):
         return {
@@ -18,25 +27,24 @@ class SystemInitializer:
             "OBJ_SAFE_STOP": False,
         }
 
-    @staticmethod
-    def print_flags(flags: dict):
+    def print_flags(self, flags: dict):
         for key, value in flags.items():
             if isinstance(value, bool) and not value:
-                print(f"{key}: {RED}{value}{RESET}")
+                print(f"{key}: {self.false_color}{value}{self.reset_color}")
             else:
                 print(f"{key}: {value}")
 
     def prepare_initial_flags(self, progress_callback=None):
-        defaults_ui = self.settings_store.load(DEFAULT_UI_PATH)
+        defaults_ui = self.settings_store.load(self.default_ui_path)
         if progress_callback:
             progress_callback(25)
 
-        detected_cameras = detect_camera_indices()
+        detected_cameras = self.camera_indices_detector()
         defaults_ui["DETECTED_CAMERAS"] = detected_cameras
         if progress_callback:
             progress_callback(50)
 
-        available_ports = SerialCommunicator.list_available_ports()
+        available_ports = self.serial_ports_lister()
         defaults_ui["SEND_DATA"] = bool(available_ports)
         if progress_callback:
             progress_callback(75)
@@ -45,7 +53,7 @@ class SystemInitializer:
             (port for port in ["COM8", "COM4"] if port in available_ports),
             available_ports[0] if available_ports else "N/A",
         )
-        self.settings_store.save(defaults_ui, DEFAULT_UI_PATH)
+        self.settings_store.save(defaults_ui, self.default_ui_path)
         if progress_callback:
             progress_callback(100)
 

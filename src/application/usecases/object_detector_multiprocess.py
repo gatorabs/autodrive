@@ -1,23 +1,26 @@
-from src.infrastructure.adapters.detection.object_detection import ObjectDetector
-from src.infrastructure.adapters.video.video_manager_process import VideoSourceManager
-from src.infrastructure.logging.logger import Logger
+from typing import Callable
+
+from src.application.ports import LoggerPort, VideoSourceManager
 from src.infrastructure.services.object_detection_service import (
     force_default_object_data, try_capture_or_mark_for_reopen, publish_results,
 )
-from src.infrastructure.utils.priorities_processor import set_process_priority
 
 def object_detection_process(object_queue,
                              shared_controls,
                              shared_frames,
                              tk_controls,
                              verbose=True,
-                             camera_source=None):
+                             camera_source=None,
+                             logger_factory: Callable[..., LoggerPort] | None = None,
+                             video_source_manager_factory: Callable[..., VideoSourceManager] | None = None,
+                             object_detector_factory=None,
+                             priority_setter: Callable[[str], None] | None = None):
 
-    set_process_priority("high")
-    manager = VideoSourceManager(camera_source)
+    priority_setter("high")
+    manager = video_source_manager_factory(camera_source)
     current_source = manager.current_source
     object_serial_data = shared_controls.object_serial_data
-    logger = Logger("ObjectDetection", verbose=verbose)
+    logger = logger_factory("ObjectDetection", verbose=verbose)
 
     safe_stop = lambda q, sc, log, reason: force_default_object_data(
         q, object_serial_data, sc, log, reason
@@ -30,12 +33,12 @@ def object_detection_process(object_queue,
         safe_stop_cb=safe_stop,
     )
 
-    object_detector = ObjectDetector(shared_serial_data=object_serial_data,
-                                     shared_frames=shared_frames,
-                                     tk_controls=tk_controls,
-                                     camera_source=None,
-                                     logger=logger,
-                                     video_processor=video_proc)
+    object_detector = object_detector_factory(shared_serial_data=object_serial_data,
+                                              shared_frames=shared_frames,
+                                              tk_controls=tk_controls,
+                                              camera_source=None,
+                                              logger=logger,
+                                              video_processor=video_proc)
 
     try:
         while shared_controls.is_running():

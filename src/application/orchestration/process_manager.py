@@ -2,19 +2,6 @@ from dataclasses import dataclass
 import multiprocessing as mp
 from typing import Callable
 
-import requests
-
-from src.application.usecases.data_sender_multiprocess import data_sender_process
-from src.application.usecases.lane_detection_multiprocess import lane_detection_process
-from src.application.usecases.camera_capture_multiprocess import camera_capture_process
-from src.application.usecases.manual_mode_multiprocess import manual_video_process
-from src.application.usecases.object_detector_multiprocess import object_detection_process
-from src.infrastructure.adapters.web_server.app import start_flask_server
-from src.infrastructure.constants.services_constants.process_constants import (
-    shutdown_endpoint,
-)
-from src.infrastructure.logging.logger import Logger
-
 
 def _missing_target(*args, **kwargs):
     raise RuntimeError("Process target was not configured.")
@@ -23,13 +10,19 @@ def _missing_target(*args, **kwargs):
 @dataclass(frozen=True)
 class ProcessTargets:
     ui: Callable = _missing_target
-    sender: Callable = data_sender_process
-    camera: Callable = camera_capture_process
-    lane: Callable = lane_detection_process
-    object_detection: Callable = object_detection_process
-    manual_video: Callable = manual_video_process
-    web_server: Callable = start_flask_server
+    sender: Callable = _missing_target
+    camera: Callable = _missing_target
+    lane: Callable = _missing_target
+    object_detection: Callable = _missing_target
+    manual_video: Callable = _missing_target
+    web_server: Callable = _missing_target
+    web_server_shutdown: Callable = _missing_target
     lane_overlay_renderer: Callable = _missing_target
+    logger_factory: Callable = _missing_target
+    priority_setter: Callable = _missing_target
+    video_source_manager_factory: Callable = _missing_target
+    serial_communicator_factory: Callable = _missing_target
+    object_detector_factory: Callable = _missing_target
 
 
 class ProcessManager:
@@ -41,7 +34,7 @@ class ProcessManager:
         user_flags,
         *,
         targets: ProcessTargets | None = None,
-        shutdown_url: str = shutdown_endpoint,
+        shutdown_url: str = "",
         process_factory=mp.Process,
         queue_factory=mp.Queue,
         logger=None,
@@ -64,7 +57,7 @@ class ProcessManager:
         self.ui_proc = None
         self.sender_proc = None
         self.camera_proc = None
-        self.logger = logger or Logger("ProcessManager")
+        self.logger = logger or self.targets.logger_factory("ProcessManager")
 
     def create_all_processes(self):
         self.processes.clear()
@@ -96,6 +89,9 @@ class ProcessManager:
             object_queue=self.object_queue,
             shared_controls=self.shared_controls,
             tk_controls=self.tk_controls,
+            logger_factory=self.targets.logger_factory,
+            serial_communicator_factory=self.targets.serial_communicator_factory,
+            priority_setter=self.targets.priority_setter,
         )
         if self.sender_proc:
             self.processes.append(self.sender_proc)
@@ -128,6 +124,8 @@ class ProcessManager:
             shared_frames=self.shared_frames,
             tk_controls=self.tk_controls,
             overlay_renderer=self.targets.lane_overlay_renderer,
+            logger_factory=self.targets.logger_factory,
+            priority_setter=self.targets.priority_setter,
         )
 
     def start_camera_process(self, camera_source=None):
@@ -141,6 +139,9 @@ class ProcessManager:
             shared_controls=self.shared_controls,
             tk_controls=self.tk_controls,
             camera_source=source,
+            logger_factory=self.targets.logger_factory,
+            video_source_manager_factory=self.targets.video_source_manager_factory,
+            priority_setter=self.targets.priority_setter,
         )
 
     def start_object_process(self):
@@ -154,6 +155,10 @@ class ProcessManager:
             shared_frames=self.shared_frames,
             tk_controls=self.tk_controls,
             camera_source=self.user_flags["OBJECT_SOURCE"],
+            logger_factory=self.targets.logger_factory,
+            video_source_manager_factory=self.targets.video_source_manager_factory,
+            object_detector_factory=self.targets.object_detector_factory,
+            priority_setter=self.targets.priority_setter,
         )
 
     def start_detection_processes(self):
@@ -187,6 +192,7 @@ class ProcessManager:
             shared_controls=self.shared_controls,
             shared_frames=self.shared_frames,
             lane_queue=self.lane_queue,
+            logger_factory=self.targets.logger_factory,
         )
 
     def disable_manual_mode(self):
@@ -215,10 +221,7 @@ class ProcessManager:
             if self.flask_proc:
                 self.logger.warning("Encerrando Server Flask via /shutdown.")
 
-                try:
-                    requests.post(url=self.shutdown_url, timeout=3)
-                except Exception as e:
-                    self.logger.error(f"Erro ao chamar shutdown: {e}")
+                self.targets.web_server_shutdown(self.shutdown_url, self.logger)
 
                 if self.flask_proc.is_alive():
                     self.logger.info("Flask Server 'Vivo', finalizando processo.")

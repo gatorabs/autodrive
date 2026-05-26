@@ -1,12 +1,13 @@
 import cv2 as cv
 import time
+from typing import Callable
 
+from src.application.ports import LoggerPort
 from src.domain.constants.pid_constants import KP, KD, KI, TARGET_CENTER_DISTANCE
 from src.infrastructure.adapters.video.video_utility_process import (
     toggle_named_window,
     preprocess,
 )
-from src.infrastructure.logging.logger import Logger
 from src.infrastructure.services.lane_detection_service import (
     compute_distances,
     publish,
@@ -17,7 +18,6 @@ from src.infrastructure.services.pid_service import (
     pid_setup,
     check_and_update_pid,
 )
-from src.infrastructure.utils.priorities_processor import set_process_priority
 from src.infrastructure.utils.update_time_processor import update_processing_time
 
 
@@ -26,11 +26,13 @@ def lane_detection_process(lane_queue,
                            shared_frames,
                            tk_controls,
                            overlay_renderer,
+                           logger_factory: Callable[..., LoggerPort],
+                           priority_setter: Callable[[str], None],
                            verbose=True):
 
-    set_process_priority("above_normal")
+    priority_setter("above_normal")
 
-    logger = Logger("LaneDetection", verbose=verbose)
+    logger = logger_factory("LaneDetection", verbose=verbose)
 
     last_pid_flag = shared_controls.get("NEW_PID")
     pid = pid_setup(last_pid_flag, logger)

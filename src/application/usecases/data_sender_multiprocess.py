@@ -1,8 +1,8 @@
 import time
 from queue import Empty
+from typing import Callable
 
-from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
-from src.infrastructure.logging.logger import Logger
+from src.application.ports import LoggerPort, SerialSender
 from src.infrastructure.services.data_sender_service import (
     publish,
     handle_object_queue,
@@ -11,19 +11,21 @@ from src.infrastructure.services.data_sender_service import (
 from src.domain.services.safety_service import publish_emergency_stop
 from src.domain.models.lane_data.lane_data import LaneData
 from src.domain.models.object_data.object_data import ObjectData
-from src.infrastructure.utils.priorities_processor import set_process_priority
 
 def data_sender_process(lane_queue,
                         object_queue,
                         shared_controls,
                         tk_controls,
+                        logger_factory: Callable[..., LoggerPort],
+                        serial_communicator_factory: Callable[..., SerialSender],
+                        priority_setter: Callable[[str], None],
                         verbose=True):
 
-    set_process_priority("high")
-    logger = Logger("SerialCommunicator", verbose=verbose)
+    priority_setter("high")
+    logger = logger_factory("SerialCommunicator", verbose=verbose)
     current_com = shared_controls.sender_com
 
-    serial_comm = SerialCommunicator(
+    serial_comm = serial_communicator_factory(
         com_port=current_com,
         send_data=shared_controls.send_data,
         logger=logger

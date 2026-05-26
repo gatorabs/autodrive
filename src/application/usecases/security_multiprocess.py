@@ -1,18 +1,23 @@
 
 import time
+from typing import Callable
 
-from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
-from src.infrastructure.logging.logger import Logger
+from src.application.ports import LoggerPort, SerialSender
 from src.infrastructure.services.data_sender_service import change_serial_port
-from src.infrastructure.utils.priorities_processor import set_process_priority
 
-def security_process(shared_controls, verbose=True):
+def security_process(
+    shared_controls,
+    logger_factory: Callable[..., LoggerPort],
+    serial_communicator_factory: Callable[..., SerialSender],
+    priority_setter: Callable[[str], None],
+    verbose=True,
+):
 
-    set_process_priority("above_normal")
-    logger = Logger("SecurityCommunicator", verbose=verbose)
+    priority_setter("above_normal")
+    logger = logger_factory("SecurityCommunicator", verbose=verbose)
 
     current_com = shared_controls.security_com
-    serial_comm = SerialCommunicator(
+    serial_comm = serial_communicator_factory(
         com_port=shared_controls.security_com,
         open_for_receive=True,
         logger=logger,

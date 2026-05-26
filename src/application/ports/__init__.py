@@ -1,3 +1,13 @@
-from src.application.ports.io_ports import SerialSender, SettingsStore, VideoSource
+from src.application.ports.io_ports import (
+    LoggerPort,
+    SerialSender,
+    SettingsStore,
+    VideoSourceManager,
+)
 
-__all__ = ["SerialSender", "SettingsStore", "VideoSource"]
+__all__ = [
+    "LoggerPort",
+    "SerialSender",
+    "SettingsStore",
+    "VideoSourceManager",
+]

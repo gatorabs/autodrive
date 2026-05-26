@@ -1,19 +1,21 @@
 import cv2 as cv
+from typing import Callable
 
-from src.infrastructure.adapters.video.video_manager_process import VideoSourceManager
-from src.infrastructure.logging.logger import Logger
+from src.application.ports import LoggerPort, VideoSourceManager
 from src.infrastructure.services.camera_capture_service import publish, camera_safe_stop
-from src.infrastructure.utils.priorities_processor import set_process_priority
 
 def camera_capture_process(shared_frames,
                            shared_controls,
                            tk_controls,
                            verbose=True,
-                           camera_source=None):
+                           camera_source=None,
+                           logger_factory: Callable[..., LoggerPort] | None = None,
+                           video_source_manager_factory: Callable[..., VideoSourceManager] | None = None,
+                           priority_setter: Callable[[str], None] | None = None):
 
-    set_process_priority("above_normal")
-    logger = Logger("CameraCapture", verbose=verbose)
-    manager = VideoSourceManager(camera_source)
+    priority_setter("above_normal")
+    logger = logger_factory("CameraCapture", verbose=verbose)
+    manager = video_source_manager_factory(camera_source)
     video_proc = manager.open_video_source(
         lane_queue=None,
         shared_controls=shared_controls,
