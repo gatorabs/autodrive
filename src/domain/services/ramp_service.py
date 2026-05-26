@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, Tuple
 
-from src.utils import (
+from src.domain.utils import (
     clamp_speed,
     get_deceleration_step,
     get_ramp_interval,

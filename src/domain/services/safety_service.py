@@ -32,7 +32,7 @@ from src.domain.services.traffic_light_service import (
 )
 from src.domain.services.detour_monitor_service import handle_detour_detection
 from src.domain.services import ramp_service
-from src.utils import clamp_speed, prefixed
+from src.domain.utils import clamp_speed, prefixed
 
 
 def publish_emergency_stop(

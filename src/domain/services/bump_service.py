@@ -4,8 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from src.utils import clamp_speed, prefixed
-from src.utils import get_stop_hold_seconds
+from src.domain.utils import clamp_speed, get_stop_hold_seconds, prefixed
 
 from . import ramp_service
 from .detour_service import reset_detour_mode
