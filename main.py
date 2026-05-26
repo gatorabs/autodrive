@@ -3,8 +3,10 @@ import multiprocessing as mp
 from src.application.configuration.system_initializer import SystemInitializer
 from src.infrastructure.data.repository.calibration_repository import default_settings_store
 from src.presentation.init_ui.init_ui_section import init_system
+from src.presentation.lane_overlay_renderer import draw_overlays
+from src.presentation.ui.main_app import launch_homepage
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
-from src.application.orchestration.process_manager import ProcessManager
+from src.application.orchestration.process_manager import ProcessManager, ProcessTargets
 from src.application.state import RuntimeControls, SharedFrames, UiControls
 from src.infrastructure.utils.process_utils import terminate_if_alive
 
@@ -25,7 +27,11 @@ def main():
             shared_controls=shared_controls,
             shared_frames=shared_frames,
             tk_controls=tk_controls,
-            user_flags=user_flags
+            user_flags=user_flags,
+            targets=ProcessTargets(
+                ui=launch_homepage,
+                lane_overlay_renderer=draw_overlays,
+            ),
         )
 
         processes = manager_instance.create_all_processes()

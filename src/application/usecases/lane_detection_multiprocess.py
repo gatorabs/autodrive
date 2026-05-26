@@ -2,7 +2,6 @@ import cv2 as cv
 import time
 
 from src.domain.constants.pid_constants import KP, KD, KI, TARGET_CENTER_DISTANCE
-from src.presentation.lane_overlay_renderer import draw_overlays
 from src.infrastructure.adapters.video.video_utility_process import (
     toggle_named_window,
     preprocess,
@@ -26,6 +25,7 @@ def lane_detection_process(lane_queue,
                            shared_controls,
                            shared_frames,
                            tk_controls,
+                           overlay_renderer,
                            verbose=True):
 
     set_process_priority("above_normal")
@@ -103,7 +103,7 @@ def lane_detection_process(lane_queue,
             mapped_direction = define_and_calculate_side(direction=direction,
                                                          side=side)
 
-            frame_display = draw_overlays(
+            frame_display = overlay_renderer(
                 frame=frame,
                 distances=(avg_left, avg_right),
                 warp_points=warp_points,

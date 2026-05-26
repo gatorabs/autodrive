@@ -9,7 +9,6 @@ from src.application.usecases.lane_detection_multiprocess import lane_detection_
 from src.application.usecases.camera_capture_multiprocess import camera_capture_process
 from src.application.usecases.manual_mode_multiprocess import manual_video_process
 from src.application.usecases.object_detector_multiprocess import object_detection_process
-from src.presentation.ui.main_app import launch_homepage
 from src.infrastructure.adapters.web_server.app import start_flask_server
 from src.infrastructure.constants.services_constants.process_constants import (
     shutdown_endpoint,
@@ -17,15 +16,20 @@ from src.infrastructure.constants.services_constants.process_constants import (
 from src.infrastructure.logging.logger import Logger
 
 
+def _missing_target(*args, **kwargs):
+    raise RuntimeError("Process target was not configured.")
+
+
 @dataclass(frozen=True)
 class ProcessTargets:
-    ui: Callable = launch_homepage
+    ui: Callable = _missing_target
     sender: Callable = data_sender_process
     camera: Callable = camera_capture_process
     lane: Callable = lane_detection_process
     object_detection: Callable = object_detection_process
     manual_video: Callable = manual_video_process
     web_server: Callable = start_flask_server
+    lane_overlay_renderer: Callable = _missing_target
 
 
 class ProcessManager:
@@ -123,6 +127,7 @@ class ProcessManager:
             shared_controls=self.shared_controls,
             shared_frames=self.shared_frames,
             tk_controls=self.tk_controls,
+            overlay_renderer=self.targets.lane_overlay_renderer,
         )
 
     def start_camera_process(self, camera_source=None):
