@@ -59,8 +59,9 @@ carrega configuracoes de `config/` e abre a UI principal.
 ## Organizacao
 
 - `src/application`: casos de uso e inicializacao do sistema.
-- `src/domain`: modelos, constantes e regras puras em migracao gradual.
-- `src/infrastructure`: adapters, servicos, persistencia, logging e integracoes.
+- `src/domain`: modelos, constantes e regras de decisao sem dependencia de IO.
+- `src/infrastructure`: adapters, fachadas de compatibilidade, persistencia,
+  logging e integracoes com camera, serial, Flask, OpenCV e YOLO.
 - `src/presentation`: UI desktop e elementos visuais.
 - `utils/model_trainer`: scripts e artefatos de treino YOLO.
 - `microcontroller`: codigo do microcontrolador.

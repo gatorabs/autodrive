@@ -4,11 +4,11 @@ from queue import Empty
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.services.data_sender_service import (
-    publish_emergency_stop,
     publish,
     handle_object_queue,
     change_serial_port,
 )
+from src.domain.services.safety_service import publish_emergency_stop
 from src.domain.models.lane_data.lane_data import LaneData
 from src.domain.models.object_data.object_data import ObjectData
 from src.infrastructure.utils.priorities_processor import set_process_priority

@@ -9,7 +9,7 @@ from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.mappers.direction_mapper import map_direction
 from src.infrastructure.utils.frame_utils import encode_frame
 from src.domain.constants.pid_constants import FALLBACK_PID_INPUT, FALLBACK_PID_OUTPUT
-from src.infrastructure.services.detour_service import reset_detour_mode
+from src.domain.services.detour_service import reset_detour_mode
 
 _encoder_pool = ThreadPoolExecutor(max_workers=2)
 

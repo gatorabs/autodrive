@@ -3,15 +3,11 @@ import numpy as np
 from src.infrastructure.adapters.video.video_process import VideoProcessor
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
 from src.infrastructure.utils.frame_utils import encode_frame
-
-
-CUSTOM_OBJECT_PRIORITY = [
-    ("PLACA_PARE", 1),
-    ("PLACA_DESVIO", 2),
-    ("PLACA_LOMBADA", 3),
-]
-CUSTOM_OBJECT_CODE_BY_LABEL = {label: code for label, code in CUSTOM_OBJECT_PRIORITY}
-CUSTOM_OBJECT_LABEL_BY_CODE = {code: label for label, code in CUSTOM_OBJECT_PRIORITY}
+from src.domain.constants.object_detection_constants import (
+    CUSTOM_OBJECT_CODE_BY_LABEL,
+    CUSTOM_OBJECT_LABEL_BY_CODE,
+    CUSTOM_OBJECT_PRIORITY,
+)
 
 def process_traffic_light_roi(roi):
     active_color = "Unknown"
