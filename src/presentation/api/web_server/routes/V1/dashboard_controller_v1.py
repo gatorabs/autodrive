@@ -1,6 +1,6 @@
 from src.infrastructure.adapters.video.video_utility_process import generate_placeholder_image
 from src.infrastructure.utils.frame_utils import encode_frame
-from src.infrastructure.adapters.web_server import app_settings
+from src.presentation.api.web_server import app_settings
 from flask import Response, jsonify, request
 import time
 

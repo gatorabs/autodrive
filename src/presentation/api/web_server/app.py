@@ -1,8 +1,8 @@
 from flask import Flask
 from flask_cors import CORS
-from src.infrastructure.adapters.web_server.routes.V1.dashboard_controller_v1 import car_api_info, video_api_info
-from src.infrastructure.adapters.web_server.routes.V2.dashboard_controller_v2 import process_api_info
-from src.infrastructure.adapters.web_server.routes.V1.app_controller import shutdown_server
+from src.presentation.api.web_server.routes.V1.dashboard_controller_v1 import car_api_info, video_api_info
+from src.presentation.api.web_server.routes.V2.dashboard_controller_v2 import process_api_info
+from src.presentation.api.web_server.routes.V1.app_controller import shutdown_server
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.logging.werkzeug_filters import SuppressCodesFilter
 import logging
@@ -19,7 +19,7 @@ def create_app(frames_dict, controls_dict):
     shared_frames = frames_dict
     shared_controls = controls_dict
 
-    app = Flask(__name__, template_folder="templates")
+    app = Flask(__name__, template_folder="templates", static_folder="static")
 
     CORS(app)
     shutdown_server(app)

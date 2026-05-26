@@ -39,8 +39,8 @@ def build_process_targets() -> ProcessTargets:
     from src.infrastructure.adapters.detection.object_detection import ObjectDetector
     from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
     from src.infrastructure.adapters.video.video_manager_process import VideoSourceManager
-    from src.infrastructure.adapters.web_server.app import start_flask_server
-    from src.infrastructure.adapters.web_server.lifecycle import shutdown_flask_server
+    from src.presentation.api.web_server.app import start_flask_server
+    from src.presentation.api.web_server.lifecycle import shutdown_flask_server
     from src.infrastructure.logging.logger import Logger
     from src.infrastructure.utils.priorities_processor import set_process_priority
     from src.presentation.lane_overlay_renderer import draw_overlays

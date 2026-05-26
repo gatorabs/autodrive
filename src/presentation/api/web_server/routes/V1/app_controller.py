@@ -1,6 +1,6 @@
 from flask import request, after_this_request
 import threading
-from src.infrastructure.adapters.web_server import app_settings
+from src.presentation.api.web_server import app_settings
 
 def shutdown_server(app):
     @app.route('/shutdown', methods=['POST'])
