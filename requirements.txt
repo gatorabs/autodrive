@@ -1,0 +1,14 @@
+customtkinter
+CTkMessagebox
+Pillow
+flask
+flask-cors
+matplotlib
+numpy
+opencv-python
+psutil
+pyserial
+PyYAML
+requests
+torch
+ultralytics

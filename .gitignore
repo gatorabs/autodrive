@@ -3,6 +3,25 @@
 profiles_settings.xml
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
 yolov8n.pt
 yolo11n.pt
 /frontend/cart-view-navigator-dashboard-main/src/components/ui
+
+# Training outputs and generated datasets.
+# Existing tracked files are not removed by these rules; this only avoids adding
+# new large artifacts by accident.
+utils/model_trainer/runs/
+utils/model_trainer/yolo_runs/
+utils/model_trainer/dataset/
+utils/model_trainer/**/*.cache
+utils/model_trainer/**/*.pt
+utils/model_trainer/**/*.onnx
+utils/model_trainer/**/*.engine
+utils/model_trainer/**/*.tflite

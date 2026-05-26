@@ -1,0 +1,60 @@
+"""
+Central names for shared runtime-control dictionaries.
+
+This module is intentionally additive for now. Existing string literals can be
+migrated gradually to these constants without changing runtime behavior.
+"""
+
+# Lifecycle and process flags.
+RUNNING = "RUNNING"
+WEBVIEW = "WEBVIEW"
+MANUAL_MODE = "MANUAL_MD"
+NEW_PID = "NEW_PID"
+
+# Safety flags.
+SAFE_STOP = "SAFE_STOP"
+OBJECT_SAFE_STOP = "OBJ_SAFE_STOP"
+EMERGENCY_STOP = "EMERGENCY_STOP"
+
+# Shared telemetry and frame keys.
+CAR_INFO = "CAR_INFO"
+TIME_INFO = "TIME_INFO"
+MAX_HEIGHT = "MAX_HEIGHT"
+CAMERA_FRAME = "CAMERA_FRAME"
+NORMAL_FRAME = "NORMAL_FRAME"
+EDGES_FRAME = "EDGES_FRAME"
+OBJECT_FRAME = "OBJECT_FRAME"
+TAB2_FRAME = "TAB2_FRAME"
+
+# Lane and car payload keys.
+CAR_SPEED_DATA = "CAR_SPEED_DATA"
+CAR_DIRECTION_DATA = "CAR_DIRECTION_DATA"
+SPEED_OVERRIDE = "SPEED_OVERRIDE"
+
+# Object detection payload keys.
+OBJECT_SERIAL_DATA = "OBJECT_SERIAL_DATA"
+CUSTOM_OBJECT_DATA = "CUSTOM_OBJECT_DATA"
+CUSTOM_OBJECT_LABEL = "CUSTOM_OBJECT_LABEL"
+OBJECT_PERSON_DATA = "OBJECT_PERSON_DATA"
+TRAFFIC_LIGHT_DATA = "TRAFFIC_LIGHT_DATA"
+
+# Source and communication controls.
+SEND_DATA = "SEND_DATA"
+SEND_LOGS = "SEND_LOGS"
+SENDER_COM = "SENDER_COM"
+SECURITY_COM = "SECURITY_COM"
+LANE_SOURCE = "LANE_SOURCE"
+LANE_SOURCE_TAB2 = "LANE_SOURCE_TAB2"
+OBJECT_SOURCE = "OBJECT_SOURCE"
+DETECTED_CAMERAS = "DETECTED_CAMERAS"
+
+# UI/control values used by processing services.
+SPEED = "Speed"
+SIDE = "Side"
+LINES = "Lines"
+DISTANCE = "Distance"
+SHOW_INFO = "SHOW_INFO"
+SHOW_LINES = "SHOW_LINES"
+SHOW_ROI = "SHOW_ROI"
+FIRST_CANNY = "F_Canny"
+SECOND_CANNY = "S_Canny"
