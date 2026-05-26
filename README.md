@@ -58,7 +58,7 @@ carrega configuracoes de `config/` e abre a UI principal.
 
 ## Organizacao
 
-- `src/application`: casos de uso e inicializacao do sistema.
+- `src/application`: casos de uso, inicializacao e orquestracao de processos.
 - `src/domain`: modelos, constantes e regras de decisao sem dependencia de IO.
 - `src/infrastructure`: adapters, fachadas de compatibilidade, persistencia,
   logging e integracoes com camera, serial, Flask, OpenCV e YOLO.

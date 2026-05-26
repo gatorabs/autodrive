@@ -1,10 +1,10 @@
 import multiprocessing as mp
 
 from src.application.configuration.system_initializer import SystemInitializer
-from src.infrastructure.data.repository.calibration_repository import load_data
+from src.infrastructure.data.repository.calibration_repository import default_settings_store
 from src.presentation.init_ui.init_ui_section import init_system
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
-from src.infrastructure.services.process_service import ProcessManager
+from src.application.orchestration.process_manager import ProcessManager
 from src.infrastructure.utils.process_utils import terminate_if_alive
 
 def main():
@@ -12,7 +12,7 @@ def main():
 
     initializer = SystemInitializer()
     user_flags = init_system(initializer)
-    calibrated_data = load_data(CALIBRATION_FILE)
+    calibrated_data = default_settings_store.load(CALIBRATION_FILE)
     initial_tk = {**calibrated_data, **user_flags}
 
     with mp.Manager() as manager:
