@@ -16,7 +16,7 @@ yolo11n.pt
 
 # Local runtime configuration.
 # Files already tracked by Git remain tracked until explicitly removed from the index.
-config/*.json
+config/*
 
 # Training outputs and generated datasets.
 # Existing tracked files are not removed by these rules; this only avoids adding
