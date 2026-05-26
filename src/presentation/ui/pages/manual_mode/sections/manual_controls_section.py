@@ -5,7 +5,7 @@ class ManualControls(SliderSection):
 
     def __init__(self, master, tk_controls, calibration_data, shared_controls, on_direction_change, **kwargs):
         self.shared_controls = shared_controls
-        self.car_data = shared_controls.get("CAR_INFO", {})
+        self.car_data = shared_controls.car_info
         self._on_direction_change_cb = on_direction_change
         sliders = [
             SliderConfig("MANUAL_DIRECTION", "Dire\u00e7\u00e3o", 0, 180),
@@ -20,7 +20,7 @@ class ManualControls(SliderSection):
             "CAR_SPEED_DATA": self.tk_controls.get("MANUAL_SPEED", 0),
             "CAR_DIRECTION_DATA": self.tk_controls.get("MANUAL_DIRECTION", 0),
         }
-        self.shared_controls["CAR_INFO"] = lane_data
+        self.shared_controls.car_info = lane_data
         self.car_data = lane_data
         if name == "MANUAL_DIRECTION" and self._on_direction_change_cb:
             self._on_direction_change_cb(lane_data["CAR_DIRECTION_DATA"])

@@ -12,9 +12,9 @@ def manual_video_process(shared_controls, shared_frames, lane_queue):
     frame_count = 0
 
     try:
-        while shared_controls.get("MANUAL_MD", False):
+        while shared_controls.manual_mode:
             start_time = time.time()
-            frame = shared_frames.get("CAMERA_FRAME")
+            frame = shared_frames.camera_frame
             if frame is None:
                 continue
 

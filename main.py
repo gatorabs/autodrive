@@ -5,6 +5,7 @@ from src.infrastructure.data.repository.calibration_repository import default_se
 from src.presentation.init_ui.init_ui_section import init_system
 from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
 from src.application.orchestration.process_manager import ProcessManager
+from src.application.state import RuntimeControls, SharedFrames, UiControls
 from src.infrastructure.utils.process_utils import terminate_if_alive
 
 def main():
@@ -16,9 +17,9 @@ def main():
     initial_tk = {**calibrated_data, **user_flags}
 
     with mp.Manager() as manager:
-        shared_controls = manager.dict(initializer.init_shared_controls(user_flags))
-        tk_controls     = manager.dict(initial_tk)
-        shared_frames   = manager.dict()
+        shared_controls = RuntimeControls(manager.dict(initializer.init_shared_controls(user_flags)))
+        tk_controls     = UiControls(manager.dict(initial_tk))
+        shared_frames   = SharedFrames(manager.dict())
 
         manager_instance = ProcessManager(
             shared_controls=shared_controls,
@@ -33,9 +34,9 @@ def main():
         last_manual_mode = None
 
         try:
-            while shared_controls.get("RUNNING", True):
-                current_webview = shared_controls.get("WEBVIEW")
-                current_manual_mode = shared_controls.get("MANUAL_MD")
+            while shared_controls.is_running():
+                current_webview = shared_controls.webview
+                current_manual_mode = shared_controls.manual_mode
 
                 _, last_webview = manager_instance.handle_flask_process(
                     current_webview=current_webview,

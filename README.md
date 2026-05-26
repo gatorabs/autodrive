@@ -66,6 +66,21 @@ carrega configuracoes de `config/` e abre a UI principal.
 - `utils/model_trainer`: scripts e artefatos de treino YOLO.
 - `microcontroller`: codigo do microcontrolador.
 
+## Arquitetura
+
+Este projeto segue uma arquitetura Clean/Hexagonal pragmatica com dominio leve:
+
+- `domain` concentra decisoes puras do carro, como parada, retomada, lombada,
+  desvio e semaforo.
+- `application` coordena processos, inicializacao e estado compartilhado.
+- `infrastructure` integra IO e frameworks: camera, serial, Flask, OpenCV, YOLO,
+  JSON e logging.
+- `presentation` concentra a UI desktop e renderizacao visual.
+
+O estado compartilhado ainda usa `multiprocessing.Manager().dict()`, mas o acesso
+deve passar gradualmente pelos wrappers em `src/application/state` para reduzir
+chaves string espalhadas pelo codigo.
+
 ## Observacoes De Versionamento
 
 Os diretorios de treino em `utils/model_trainer/runs`, `yolo_runs` e `dataset`

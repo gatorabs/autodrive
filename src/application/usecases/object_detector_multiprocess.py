@@ -16,7 +16,7 @@ def object_detection_process(object_queue,
     set_process_priority("high")
     manager = VideoSourceManager(camera_source)
     current_source = manager.current_source
-    object_serial_data = shared_controls["OBJECT_SERIAL_DATA"]
+    object_serial_data = shared_controls.object_serial_data
     logger = Logger("ObjectDetection", verbose=verbose)
 
     safe_stop = lambda q, sc, log, reason: force_default_object_data(
@@ -38,11 +38,11 @@ def object_detection_process(object_queue,
                                      video_processor=video_proc)
 
     try:
-        while shared_controls.get("RUNNING", True):
+        while shared_controls.is_running():
 
             object_detector.video_processor, current_source = manager.ensure_video_source(
                 video_processor=object_detector.video_processor,
-                requested_source=tk_controls.get("OBJECT_SOURCE"),
+                requested_source=tk_controls.object_source,
                 queue=object_queue,
                 shared_controls=shared_controls,
                 logger=logger,

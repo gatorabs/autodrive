@@ -11,9 +11,9 @@ def security_process(shared_controls, verbose=True):
     set_process_priority("above_normal")
     logger = Logger("SecurityCommunicator", verbose=verbose)
 
-    current_com = shared_controls.get("SECURITY_COM")
+    current_com = shared_controls.security_com
     serial_comm = SerialCommunicator(
-        com_port=shared_controls.get("SECURITY_COM"),
+        com_port=shared_controls.security_com,
         open_for_receive=True,
         logger=logger,
     )
@@ -22,8 +22,8 @@ def security_process(shared_controls, verbose=True):
     send_interval = 0.01
 
     try:
-        while shared_controls.get("RUNNING", True):
-            new_com = shared_controls.get("SECURITY_COM")
+        while shared_controls.is_running():
+            new_com = shared_controls.security_com
             current_com = change_serial_port(
                 new_com=new_com,
                 current_com=current_com,
@@ -41,13 +41,13 @@ def security_process(shared_controls, verbose=True):
                     logger.error(
                         f"Erro na leitura serial de segurança: {read_err}"
                     )
-                    shared_controls["EMERGENCY_STOP"] = 0
+                    shared_controls.emergency_stop = 0
                 else:
                     if data and (b"s" in data or b"S" in data):
-                        shared_controls["EMERGENCY_STOP"] = 1
+                        shared_controls.emergency_stop = 1
                         logger.info("Emergency Stop triggered!")
                     else:
-                        shared_controls["EMERGENCY_STOP"] = 0
+                        shared_controls.emergency_stop = 0
                 last_send = now
 
     except Exception as e:

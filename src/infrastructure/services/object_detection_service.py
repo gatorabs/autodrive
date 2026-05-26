@@ -95,7 +95,7 @@ def publish_results(
         shared_serial_data[0] = custom_serial_value
 
     try:
-        shared_frames["OBJECT_FRAME"] = encode_frame(frame)
+        shared_frames.object_frame = encode_frame(frame)
     except Exception as e:
         logger.error(f"Erro ao codificar frames: {e}")
 
@@ -128,7 +128,7 @@ def force_default_object_data(object_queue, shared_serial_data, shared_controls,
     if not object_queue.full():
         object_queue.put(object_data)
 
-    shared_controls["OBJ_SAFE_STOP"] = True
+    shared_controls.object_safe_stop = True
     logger.warning(f"OBJ-SAFE-STOP ativado ({reason}).")
 
 def try_capture_or_mark_for_reopen(video_proc,
@@ -139,7 +139,7 @@ def try_capture_or_mark_for_reopen(video_proc,
                               logger):
     try:
         frame = video_proc.get_frame()
-        shared_controls["OBJ_SAFE_STOP"] = False
+        shared_controls.object_safe_stop = False
         return video_proc, frame
     except RuntimeError as e:
         force_default_object_data(object_queue, shared_serial_data, shared_controls, logger, reason=str(e))

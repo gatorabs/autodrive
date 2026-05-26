@@ -2,7 +2,7 @@ import cv2 as cv
 import time
 
 from src.domain.constants.pid_constants import KP, KD, KI, TARGET_CENTER_DISTANCE
-from src.presentation.setup_embedded_ui import draw_overlays
+from src.presentation.lane_overlay_renderer import draw_overlays
 from src.infrastructure.adapters.video.video_utility_process import (
     toggle_named_window,
     preprocess,
@@ -44,11 +44,11 @@ def lane_detection_process(lane_queue,
     fps = 0
 
     try:
-        while shared_controls.get("RUNNING", True):
+        while shared_controls.is_running():
             start_time = time.time()
-            if shared_controls.get("SAFE_STOP"):
+            if shared_controls.safe_stop:
                 continue
-            frame = shared_frames.get("CAMERA_FRAME")
+            frame = shared_frames.camera_frame
             if frame is None:
                 continue
 
@@ -110,17 +110,17 @@ def lane_detection_process(lane_queue,
                 edges=edges,
                 has_ref=has_ref,
                 mapped_direction=mapped_direction,
-                show_info=tk_controls.get("SHOW_INFO"),
-                show_roi_lines=tk_controls.get("SHOW_LINES"),
+                show_info=tk_controls.show_info,
+                show_roi_lines=tk_controls.show_lines,
                 fps=fps,
                 ms=avg_time,
                 roi=warped_roi,
                 left_lines=left_lines,
                 right_lines=right_lines,
-                distance_value=tk_controls.get("Distance")
+                distance_value=tk_controls.distance
             )
 
-            toggle_named_window(is_enabled=tk_controls.get("SHOW_ROI"),
+            toggle_named_window(is_enabled=tk_controls.show_roi,
                                 window_name="Warped Roi",
                                 frame=warped_roi)
 

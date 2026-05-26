@@ -32,20 +32,19 @@ def publish(frame_display,
         future_display = _encoder_pool.submit(encode_frame, frame_display)
         future_edges   = _encoder_pool.submit(encode_frame, edges)
 
-        shared_frames["NORMAL_FRAME"] = future_display.result()
-        shared_frames["EDGES_FRAME"]  = future_edges.result()
+        shared_frames.publish_lane_frames(
+            future_display.result(),
+            future_edges.result(),
+        )
     except Exception as e:
         logger.error(f"Erro ao codificar frames: {e}")
 
     if not lane_queue.full():
         lane_queue.put(lane_data)
 
-    shared_controls["MAX_HEIGHT"] = max_height
-    shared_controls["CAR_INFO"]  = lane_data
-    shared_controls["TIME_INFO"] = {
-        'fps': round(fps, 0),
-        'total_processing_time': round(avg_time, 2)
-    }
+    shared_controls.set_max_height(max_height)
+    shared_controls.car_info = lane_data
+    shared_controls.set_time_info(fps, avg_time)
 
 def compute_distances(warped_roi, side, num_lines):
     if num_lines <= 0:
@@ -103,7 +102,7 @@ def compute_speed_and_direction(pid,
 def force_safe_stop(lane_queue, shared_controls, logger, reason="CAMERA_ERROR"):
 
     shared_controls["CAR_SPEED_DATA"] = 0
-    direction = shared_controls.get("CAR_INFO", {}).get("CAR_DIRECTION_DATA", 90)
+    direction = shared_controls.car_info.get("CAR_DIRECTION_DATA", 90)
 
     lane_data = {
         "CAR_SPEED_DATA": 0,
@@ -113,7 +112,7 @@ def force_safe_stop(lane_queue, shared_controls, logger, reason="CAMERA_ERROR"):
     if not lane_queue.full():
         lane_queue.put(lane_data)
 
-    shared_controls["SAFE_STOP"] = True
+    shared_controls.safe_stop = True
     logger.warning(f"SAFE-STOP ativado ({reason}).")
 
 
@@ -124,7 +123,7 @@ def try_capture_or_mark_for_reopen(video_proc,
                               logger):
     try:
         frame = video_proc.get_frame()
-        shared_controls["SAFE_STOP"] = False
+        shared_controls.safe_stop = False
         return video_proc, frame
     except RuntimeError as e:
         force_safe_stop(lane_queue, shared_controls, logger, reason=str(e))

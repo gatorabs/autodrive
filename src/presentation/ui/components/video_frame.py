@@ -104,15 +104,15 @@ class VideoFrame(ctk.CTkFrame):
         self.after(200, self._check_flags)
 
     def _placeholder_message(self):
-        if self.shared_controls.get("WEBVIEW"):
+        if self.shared_controls.webview:
             return "Webview ATIVO."
 
-        safe_stop = self.shared_controls.get("SAFE_STOP") and self.frame_name in (
+        safe_stop = self.shared_controls.safe_stop and self.frame_name in (
             "NORMAL_FRAME",
             "EDGES_FRAME",
         )
         obj_safe_stop = (
-            self.shared_controls.get("OBJ_SAFE_STOP")
+            self.shared_controls.object_safe_stop
             and self.frame_name == "OBJECT_FRAME"
         )
 

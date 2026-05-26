@@ -105,9 +105,9 @@ class MainApp(ctk.CTk):
         )
 
         if box.get() == "Sim":
-            self.shared_controls["WEBVIEW"] = False
-            self.shared_controls["MANUAL_MD"] = False
-            self.shared_controls["RUNNING"] = False
+            self.shared_controls.webview = False
+            self.shared_controls.manual_mode = False
+            self.shared_controls.request_shutdown()
             self.settings_store.update({"MANUAL_MD": False, "WEBVIEW": False}, DEFAULT_UI_PATH)
             self.destroy()
 
@@ -146,7 +146,7 @@ class MainApp(ctk.CTk):
         )
 
         def on_manual_selected(tab_name):
-            if not self.tk_controls.get("MANUAL_MD", False):
+            if not self.tk_controls.manual_mode:
                 box = CTkMessagebox(
                     title="Atenção",
                     message="Modo manual será ativo",
@@ -156,8 +156,8 @@ class MainApp(ctk.CTk):
                 )
                 response = box.get()
                 if response == "OK":
-                    self.tk_controls["MANUAL_MD"] = True
-                    self.shared_controls["MANUAL_MD"] = True
+                    self.tk_controls.manual_mode = True
+                    self.shared_controls.manual_mode = True
                     self.settings_store.update({"MANUAL_MD": True}, DEFAULT_UI_PATH)
                     self.tab_manager.select_tab(tab_name)
                     self._sync_manual_controls()
@@ -186,7 +186,7 @@ class MainApp(ctk.CTk):
             return value.replace("Câmera ", "") if value.startswith("Câmera ") else value
 
         selected_source = clean_source(self.lane_source_combo_manual_tab.get())
-        self.tk_controls["LANE_SOURCE_TAB2"] = selected_source
+        self.tk_controls.lane_source_tab2 = selected_source
         self.shared_controls["LANE_SOURCE_TAB2"] = selected_source
 
         self.settings_store.update({
@@ -218,7 +218,7 @@ class MainApp(ctk.CTk):
             self.lane_source_combo_manual_tab.set(new_options[0])
 
     def _sync_manual_controls(self):
-        last_data = self.shared_controls.get("CAR_INFO", {})
+        last_data = self.shared_controls.car_info
 
         direction = last_data.get("CAR_DIRECTION_DATA")
         speed = last_data.get("CAR_SPEED_DATA")
@@ -241,7 +241,7 @@ class MainApp(ctk.CTk):
             self.settings_widget.close_modal()
 
     def on_home_selected(self, tab_name):
-        if self.tk_controls.get("MANUAL_MD", False):
+        if self.tk_controls.manual_mode:
             box = CTkMessagebox(
                 title="Atenção",
                 message="O Modo manual será desativado",
@@ -251,8 +251,8 @@ class MainApp(ctk.CTk):
             )
             response = box.get()
             if response == "OK":
-                self.tk_controls["MANUAL_MD"] = False
-                self.shared_controls["MANUAL_MD"] = False
+                self.tk_controls.manual_mode = False
+                self.shared_controls.manual_mode = False
                 self.settings_store.update({"MANUAL_MD": False}, DEFAULT_UI_PATH)
                 self.tab_manager.select_tab(tab_name)
         else:
@@ -260,11 +260,11 @@ class MainApp(ctk.CTk):
 
     def update_loop(self):
         try:
-            shared_manual = self.shared_controls.get("MANUAL_MD", False)
-            tk_manual = self.tk_controls.get("MANUAL_MD", False)
+            shared_manual = self.shared_controls.manual_mode
+            tk_manual = self.tk_controls.manual_mode
 
             if shared_manual != tk_manual:
-                self.tk_controls["MANUAL_MD"] = shared_manual
+                self.tk_controls.manual_mode = shared_manual
                 self.settings_store.update({"MANUAL_MD": shared_manual}, DEFAULT_UI_PATH)
                 if shared_manual:
                     self.tab_manager.select_tab("Manual Mode")
@@ -272,18 +272,18 @@ class MainApp(ctk.CTk):
                 else:
                     self.tab_manager.select_tab("Home")
 
-            if self.tk_controls.get("MANUAL_MD", False):
-                car_info = self.shared_controls.get("CAR_INFO", {})
+            if self.tk_controls.manual_mode:
+                car_info = self.shared_controls.car_info
                 if car_info != getattr(self.manual_controls, "car_data", {}):
                     self._sync_manual_controls()
 
-            if not self.tk_controls.get("MANUAL_MD", False):
-                self.normal_frame.update_image(self.shared_frames.get("NORMAL_FRAME"))
-                self.edges_frame.update_image(self.shared_frames.get("EDGES_FRAME"))
-                self.object_frame.update_image(self.shared_frames.get("OBJECT_FRAME"))
+            if not self.tk_controls.manual_mode:
+                self.normal_frame.update_image(self.shared_frames.normal_frame)
+                self.edges_frame.update_image(self.shared_frames.edges_frame)
+                self.object_frame.update_image(self.shared_frames.object_frame)
             else:
                 self.central_video_frame_manual_tab.update_image(
-                    self.shared_frames.get("TAB2_FRAME")
+                    self.shared_frames.tab2_frame
                 )
 
         except (KeyError, OSError, UnidentifiedImageError) as e:

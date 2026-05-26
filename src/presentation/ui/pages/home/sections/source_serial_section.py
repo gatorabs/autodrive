@@ -32,8 +32,8 @@ class SourceAndSerialControls(ctk.CTkFrame):
 
         self.lane_source_var = ctk.StringVar(value=lane_value)
         self.object_source_var = ctk.StringVar(value=obj_value)
-        self.security_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.get("SECURITY_COM")))
-        self.sender_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.get("SENDER_COM")))
+        self.security_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.security_com))
+        self.sender_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.sender_com))
 
         self._build_ui()
 
@@ -120,8 +120,8 @@ class SourceAndSerialControls(ctk.CTkFrame):
         lane_value = clean_source(self.lane_source_combo.get())
         object_value = clean_source(self.object_source_combo.get())
 
-        self.tk_controls["LANE_SOURCE"] = lane_value
-        self.tk_controls["OBJECT_SOURCE"] = object_value
+        self.tk_controls.lane_source = lane_value
+        self.tk_controls.object_source = object_value
 
         self.settings_store.update({
             "LANE_SOURCE": lane_value,
@@ -176,9 +176,9 @@ class SourceAndSerialControls(ctk.CTkFrame):
 
         valid_sender = bool(sender_com) and sender_com in self.com_ports
 
-        self.shared_controls["SEND_DATA"] = valid_sender
-        self.shared_controls["SENDER_COM"] = sender_com
-        self.shared_controls["SECURITY_COM"] = security_com
+        self.shared_controls.send_data = valid_sender
+        self.shared_controls.sender_com = sender_com
+        self.shared_controls.security_com = security_com
 
         self.settings_store.update({
             "SENDER_COM": sender_com,

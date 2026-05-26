@@ -8,17 +8,14 @@ def publish(frame,
             avg_time,
             shared_controls):
     try:
-        shared_frames["TAB2_FRAME"] = encode_frame(frame)
+        shared_frames.tab2_frame = encode_frame(frame)
     except Exception as e:
         logger.error(f"Erro ao codificar frames: {e}")
 
     if not lane_queue.full():
-        lane_queue.put(shared_controls["CAR_INFO"])
+        lane_queue.put(shared_controls.car_info)
 
-    shared_controls["TIME_INFO"] = {
-        'fps': round(fps, 0),
-        'total_processing_time': round(avg_time, 2)
-    }
+    shared_controls.set_time_info(fps, avg_time)
 
 
 def capture_frame_with_reopen(video_proc, logger):

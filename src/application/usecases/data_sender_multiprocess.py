@@ -21,11 +21,11 @@ def data_sender_process(lane_queue,
 
     set_process_priority("high")
     logger = Logger("SerialCommunicator", verbose=verbose)
-    current_com = shared_controls.get("SENDER_COM")
+    current_com = shared_controls.sender_com
 
     serial_comm = SerialCommunicator(
         com_port=current_com,
-        send_data=shared_controls.get("SEND_DATA", False),
+        send_data=shared_controls.send_data,
         logger=logger
     )
 
@@ -36,8 +36,8 @@ def data_sender_process(lane_queue,
     last_send = time.monotonic()
 
     try:
-        while shared_controls.get("RUNNING", True):
-            new_com = shared_controls.get("SENDER_COM")
+        while shared_controls.is_running():
+            new_com = shared_controls.sender_com
             current_com = change_serial_port(
                 new_com=new_com,
                 current_com=current_com,
@@ -59,7 +59,7 @@ def data_sender_process(lane_queue,
             except Empty:
                 pass
 
-            handle_object_queue(manual_md=shared_controls.get("MANUAL_MD"),
+            handle_object_queue(manual_md=shared_controls.manual_mode,
                                 object_queue=object_queue,
                                 obj_data=obj_data)
 
@@ -72,7 +72,7 @@ def data_sender_process(lane_queue,
                     lane_data=lane_data,
                     serial_comm=serial_comm,
                     logger=logger,
-                    verbose=tk_controls.get("SEND_LOGS"))
+                    verbose=tk_controls.send_logs)
 
             last_send = now
 

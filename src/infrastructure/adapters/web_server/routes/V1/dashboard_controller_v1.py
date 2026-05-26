@@ -10,10 +10,10 @@ def car_api_info(app, shared_controls):
         if getattr(app_settings, "shutdown_pending", False):
             return jsonify({"error": "Server is shutting down"}), 503
         info = {
-            "running": shared_controls.get("RUNNING", False),
-            "manual_mode": shared_controls.get("MANUAL_MD", False),
-            "webview": shared_controls.get("WEBVIEW", False),
-            "car_info": shared_controls.get("CAR_INFO", {}),
+            "running": shared_controls.is_running(),
+            "manual_mode": shared_controls.manual_mode,
+            "webview": shared_controls.webview,
+            "car_info": shared_controls.car_info,
             "time_info": shared_controls.get("TIME_INFO", [])
         }
         return jsonify(info)
@@ -32,9 +32,9 @@ def car_api_info(app, shared_controls):
 
             shared_controls["SPEED_OVERRIDE"] = speed
 
-            car_info = dict(shared_controls.get("CAR_INFO") or {})
+            car_info = dict(shared_controls.car_info or {})
             car_info["CAR_SPEED_DATA"] = speed
-            shared_controls["CAR_INFO"] = car_info
+            shared_controls.car_info = car_info
 
             return jsonify({"message": f"Speed set to {speed}"}), 200
 

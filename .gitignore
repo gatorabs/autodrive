@@ -14,6 +14,10 @@ yolov8n.pt
 yolo11n.pt
 /frontend/cart-view-navigator-dashboard-main/src/components/ui
 
+# Local runtime configuration.
+# Files already tracked by Git remain tracked until explicitly removed from the index.
+config/*.json
+
 # Training outputs and generated datasets.
 # Existing tracked files are not removed by these rules; this only avoids adding
 # new large artifacts by accident.

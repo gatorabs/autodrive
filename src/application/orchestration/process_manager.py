@@ -173,7 +173,7 @@ class ProcessManager:
     def enable_manual_mode(self):
         self.terminate_lane_process()
         self.terminate_object_process()
-        self.start_camera_process(camera_source=self.user_flags.get("LANE_SOURCE_TAB2"))
+        self.start_camera_process(camera_source=self.tk_controls.lane_source_tab2)
         self._start_process(
             "manual_proc",
             "manual_video",
