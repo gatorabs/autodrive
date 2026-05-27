@@ -344,23 +344,6 @@ class HomeView(ctk.CTkFrame):
         for col, tile in enumerate((self.normal_video, self.edges_video, self.object_video)):
             tile.grid(row=0, column=col, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
 
-        self._build_sources(row=1, column=0)
-        self.filter_card = self._slider_card(
-            "Filtros de Imagem",
-            [SliderSpec("F_Canny", "Canny baixo", 0, 255), SliderSpec("S_Canny", "Canny alto", 0, 255)],
-            2,
-            0,
-        )
-        self.pid_card = self._slider_card(
-            "Controle PID",
-            [
-                SliderSpec("KP", "Proporcional", 0.0, 5.0, 0.01),
-                SliderSpec("KI", "Integral", 0.0, 10.0, 0.001),
-                SliderSpec("KD", "Derivativo", 0.0, 10.0, 0.001),
-            ],
-            3,
-            0,
-        )
         self.warp_card = self._slider_card(
             "Perspectiva da Pista",
             [
@@ -374,8 +357,26 @@ class HomeView(ctk.CTkFrame):
                 SliderSpec("br_y", "Base Dir. Y", 0, 480),
             ],
             1,
-            1,
+            0,
             rowspan=3,
+        )
+
+        self._build_sources(row=1, column=1)
+        self.filter_card = self._slider_card(
+            "Filtros de Imagem",
+            [SliderSpec("F_Canny", "Canny baixo", 0, 255), SliderSpec("S_Canny", "Canny alto", 0, 255)],
+            2,
+            1,
+        )
+        self.pid_card = self._slider_card(
+            "Controle PID",
+            [
+                SliderSpec("KP", "Proporcional", 0.0, 5.0, 0.01),
+                SliderSpec("KI", "Integral", 0.0, 10.0, 0.001),
+                SliderSpec("KD", "Derivativo", 0.0, 10.0, 0.001),
+            ],
+            3,
+            1,
         )
         self.extras_card = self._slider_card(
             "Operacao",
