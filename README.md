@@ -23,23 +23,23 @@ runtime alive and attempts to recover when the resource becomes available again.
 ## Requirements
 
 - Python 3.10+ recommended.
+- [PyCharm](https://www.jetbrains.com/pycharm/download/) recommended, because
+  it provides native support for Python interpreters, virtual environments,
+  dependency installation from `requirements.txt`, run configurations, and
+  debugging.
 - USB camera or video file in `resources/test_videos`.
 - Available serial port when microcontroller transmission is enabled.
 - YOLO models downloaded/loaded locally as needed.
 
-Install dependencies:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+Open the project in PyCharm, select or create a Python interpreter, and let the
+IDE install the packages listed in `requirements.txt` when prompted.
 
 ## How To Run
 
-```powershell
-python main.py
-```
+Open `main.py` in PyCharm and run it with the IDE run button. PyCharm will keep
+the interpreter, working directory, environment, logs, and debugger in one
+place, which is especially useful for this project because it starts multiple
+processes and interacts with cameras and serial ports.
 
 On startup, the application detects available cameras, lists serial ports, loads
 settings from `config/`, and opens the main UI.
