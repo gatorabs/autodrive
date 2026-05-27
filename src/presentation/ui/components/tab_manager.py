@@ -3,14 +3,14 @@ import customtkinter as ctk
 class TabManager(ctk.CTkFrame):
     """Simple tab manager using CTk buttons."""
     def __init__(self, master, **kwargs):
-        super().__init__(master, **kwargs)
-        self.grid(row=0, column=0, columnspan=3, sticky="ew", padx=10, pady=(5,0))
+        super().__init__(master, fg_color="#171717", corner_radius=8, **kwargs)
+        self.grid(row=0, column=0, columnspan=3, sticky="ew", padx=14, pady=(10, 6))
         self.tabs = {}
         self.buttons = {}
         self.left = ctk.CTkFrame(self, fg_color="transparent")
-        self.left.pack(side="left", fill="x", expand=True)
+        self.left.pack(side="left", fill="x", expand=True, padx=6, pady=6)
         self.right = ctk.CTkFrame(self, fg_color="transparent")
-        self.right.pack(side="right")
+        self.right.pack(side="right", padx=6, pady=6)
         self.active = None
 
     def create_tab(self, name, frame, on_right=False, on_select=None):
@@ -24,44 +24,48 @@ class TabManager(ctk.CTkFrame):
             self.right if on_right else self.left,
             text=name,
             command=cb,
-            width=80, height=28,
-            fg_color="transparent",
-            border_width=2,
-            border_color="#444444",
-            hover_color="#444444",
+            width=118,
+            height=34,
+            corner_radius=8,
+            fg_color="#242424",
+            border_width=1,
+            border_color="#343434",
+            hover_color="#303030",
             text_color="#fff"
         )
-        btn.pack(side="left", padx=2)
+        btn.pack(side="left", padx=3)
         self.buttons[name] = btn
         self.tabs[name] = frame
         if frame:
-            frame.grid_forget()
+            frame.grid(row=1, column=0, columnspan=3, sticky="nsew")
+            frame.lower()
         if self.active is None and frame:
             self.select_tab(name)
 
     def select_tab(self, name):
         prev = self.active
+        if prev == name:
+            return
+
         if prev is not None:
             prev_btn = self.buttons.get(prev)
             if prev_btn:
                 prev_btn.configure(
-                    fg_color="transparent",
+                    fg_color="#242424",
+                    border_color="#343434",
                     text_color="#fff"
                 )
 
-            prev_frame = self.tabs.get(prev)
-            if prev_frame:
-                prev_frame.grid_forget()
-
         new_frame = self.tabs.get(name)
         if new_frame:
-            new_frame.grid(row=1, column=0, columnspan=3, sticky="nsew")
+            new_frame.tkraise()
         self.active = name
 
         active_btn = self.buttons.get(name)
         if active_btn:
             active_btn.configure(
-                fg_color="#444444",
+                fg_color="#2563eb",
+                border_color="#3b82f6",
                 text_color="#fff"
             )
 

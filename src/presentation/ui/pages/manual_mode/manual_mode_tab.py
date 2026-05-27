@@ -8,7 +8,7 @@ from src.infrastructure.adapters.video.video_utility_process import get_video_fi
 
 class ManualModeTab(ctk.CTkFrame):
     def __init__(self, master, tk_controls, calibration_data, shared_controls, init_data, **kwargs):
-        super().__init__(master, **kwargs)
+        super().__init__(master, fg_color="#121212", **kwargs)
         self.master = master
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
@@ -25,11 +25,17 @@ class ManualModeTab(ctk.CTkFrame):
             title="Vídeo Central",
         )
         self.central_video_frame_manual_tab.grid(
-            row=0, column=0, pady=(10, 5), padx=10, sticky="n"
+            row=0, column=0, pady=(12, 8), padx=10, sticky="n"
         )
 
-        self.source_frame_manual_tab = ctk.CTkFrame(self)
-        self.source_frame_manual_tab.grid(row=1, column=0, pady=5, padx=10, sticky="n")
+        self.source_frame_manual_tab = ctk.CTkFrame(
+            self,
+            fg_color="#1f1f1f",
+            corner_radius=8,
+            border_width=1,
+            border_color="#303030",
+        )
+        self.source_frame_manual_tab.grid(row=1, column=0, pady=6, padx=10, sticky="n")
 
         ctk.CTkLabel(self.source_frame_manual_tab, text="Fonte de Vídeo").pack(pady=(5, 0))
 

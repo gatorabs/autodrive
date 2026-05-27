@@ -45,6 +45,7 @@ class MainApp(ctk.CTk):
         self.calibration_data = self.settings_store.load(CALIBRATION_FILE)
         self.init_data = self.settings_store.load(DEFAULT_UI_PATH)
         self.title("Autonomous Team")
+        self.configure(fg_color="#121212")
 
         self.DEFAULTS_FILE = DEFAULTS_FILE
         self.shared_frames = shared_frames
@@ -93,6 +94,7 @@ class MainApp(ctk.CTk):
 
         self._build_manual_tab()
         self._build_task_manager_frame()
+        self._last_manual_mode = self.shared_controls.manual_mode
         self.update_loop()
 
     def _on_close_request(self):
@@ -239,6 +241,8 @@ class MainApp(ctk.CTk):
         if previous == "Home" and current != "Home":
             self.floating_widget.close_modal()
             self.settings_widget.close_modal()
+        if hasattr(self, "task_manager_frame"):
+            self.task_manager_frame.set_active(current == "Task Manager")
 
     def on_home_selected(self, tab_name):
         if self.tk_controls.manual_mode:
@@ -263,9 +267,12 @@ class MainApp(ctk.CTk):
             shared_manual = self.shared_controls.manual_mode
             tk_manual = self.tk_controls.manual_mode
 
+            if shared_manual != self._last_manual_mode:
+                self.settings_store.update({"MANUAL_MD": shared_manual}, DEFAULT_UI_PATH)
+                self._last_manual_mode = shared_manual
+
             if shared_manual != tk_manual:
                 self.tk_controls.manual_mode = shared_manual
-                self.settings_store.update({"MANUAL_MD": shared_manual}, DEFAULT_UI_PATH)
                 if shared_manual:
                     self.tab_manager.select_tab("Manual Mode")
                     self._sync_manual_controls()
@@ -277,11 +284,12 @@ class MainApp(ctk.CTk):
                 if car_info != getattr(self.manual_controls, "car_data", {}):
                     self._sync_manual_controls()
 
-            if not self.tk_controls.manual_mode:
+            active_tab = self.tab_manager.active
+            if active_tab == "Home" and not self.tk_controls.manual_mode:
                 self.normal_frame.update_image(self.shared_frames.normal_frame)
                 self.edges_frame.update_image(self.shared_frames.edges_frame)
                 self.object_frame.update_image(self.shared_frames.object_frame)
-            else:
+            elif active_tab == "Manual Mode" and self.tk_controls.manual_mode:
                 self.central_video_frame_manual_tab.update_image(
                     self.shared_frames.tab2_frame
                 )
@@ -289,7 +297,8 @@ class MainApp(ctk.CTk):
         except (KeyError, OSError, UnidentifiedImageError) as e:
             logger.error(f"Erro ao atualizar frames: {e}")
 
-        self.after(33, self.update_loop)
+        interval_ms = 33 if self.tab_manager.active in {"Home", "Manual Mode"} else 250
+        self.after(interval_ms, self.update_loop)
 
     def restore_defaults(self):
         self.settings_store.load(self.DEFAULTS_FILE, update_target_if_exists=self.tk_controls)

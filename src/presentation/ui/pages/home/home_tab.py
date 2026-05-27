@@ -16,7 +16,7 @@ from ...components.floating_widget import FloatingWidget, SettingsFloatingWidget
 
 class HomeTab(ctk.CTkFrame):
     def __init__(self, master, tk_controls, calibration_data, shared_controls, init_data, **kwargs):
-        super().__init__(master, **kwargs)
+        super().__init__(master, fg_color="#121212", **kwargs)
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
         self.shared_controls = shared_controls
@@ -32,8 +32,13 @@ class HomeTab(ctk.CTkFrame):
         VIDEO_WIDTH, VIDEO_HEIGHT = FRAME_WIDTH_T, FRAME_HEIGHT_T
 
         def _add_video_frame(col, name):
-            container = ctk.CTkFrame(self, width=VIDEO_WIDTH, height=VIDEO_HEIGHT, fg_color="transparent")
-            container.grid(row=0, column=col, padx=10, pady=(10, 2), sticky="nsew")
+            container = ctk.CTkFrame(
+                self,
+                width=VIDEO_WIDTH + 18,
+                height=VIDEO_HEIGHT + 48,
+                fg_color="transparent",
+            )
+            container.grid(row=0, column=col, padx=10, pady=(8, 6), sticky="nsew")
             container.grid_propagate(False)
             video = VideoFrame(container, shared_controls, name)
             video.pack(expand=True, fill="both")
@@ -44,8 +49,15 @@ class HomeTab(ctk.CTkFrame):
         self.object_frame = _add_video_frame(2, "OBJECT_FRAME")
 
         def _make_section(master_section, height, ControlClass, *args):
-            sec = ctk.CTkFrame(master_section, height=height, fg_color="transparent")
-            sec.pack(fill="x", pady=5, padx=10)
+            sec = ctk.CTkFrame(
+                master_section,
+                height=height,
+                fg_color="#1f1f1f",
+                corner_radius=8,
+                border_width=1,
+                border_color="#303030",
+            )
+            sec.pack(fill="x", pady=6, padx=10)
             sec.pack_propagate(False)
             ctrl = ControlClass(sec, *args)
             ctrl.pack(expand=True, fill="both")

@@ -31,6 +31,8 @@ class SliderSection(ctk.CTkFrame):
         self.calibration_data = calibration_data
         self.settings_store = default_settings_store
         self._no_persist = {"MANUAL_DIRECTION", "MANUAL_SPEED", "Side"}
+        self._persist_jobs: dict[str, str] = {}
+        self._pending_persist: dict[str, float] = {}
 
         ctk.CTkLabel(self, text=title, font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
 
@@ -126,7 +128,31 @@ class SliderSection(ctk.CTkFrame):
 
         self.tk_controls[name] = stepped_value
         if name not in self._no_persist:
-            self.settings_store.update({name: stepped_value}, CALIBRATION_FILE)
+            self._schedule_persist(name, stepped_value)
+
+    def _schedule_persist(self, name: str, value: float) -> None:
+        job = self._persist_jobs.pop(name, None)
+        if job is not None:
+            self.after_cancel(job)
+        self._pending_persist[name] = value
+        self._persist_jobs[name] = self.after(
+            250,
+            lambda n=name: self._persist_value(n),
+        )
+
+    def _persist_value(self, name: str) -> None:
+        self._persist_jobs.pop(name, None)
+        value = self._pending_persist.pop(name)
+        self.settings_store.update({name: value}, CALIBRATION_FILE)
+
+    def destroy(self) -> None:
+        for job in self._persist_jobs.values():
+            self.after_cancel(job)
+        self._persist_jobs.clear()
+        for name, value in self._pending_persist.items():
+            self.settings_store.update({name: value}, CALIBRATION_FILE)
+        self._pending_persist.clear()
+        super().destroy()
 
     def get(self, name: str) -> float:
         slider_data = self.sliders[name]

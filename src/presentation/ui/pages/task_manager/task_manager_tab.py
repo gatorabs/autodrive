@@ -21,6 +21,8 @@ class TaskManagerTab(ctk.CTkFrame):
     """Aba de gerenciamento de processos Python com estatísticas de CPU, memória e I/O."""
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
+        self.is_active = False
+        self._refresh_job = None
 
         # quadro interno
         self.outer_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -135,8 +137,13 @@ class TaskManagerTab(ctk.CTkFrame):
             pady=(10, 0)
         )
 
-        # Inicia atualização após o frame ser mapeado
-        self.after_idle(self.update_table)
+    def set_active(self, is_active: bool) -> None:
+        self.is_active = is_active
+        if is_active and self._refresh_job is None:
+            self.after_idle(self.update_table)
+        elif not is_active and self._refresh_job is not None:
+            self.after_cancel(self._refresh_job)
+            self._refresh_job = None
 
     def toggle_compact(self):
         if self.compact_var.get():
@@ -164,8 +171,8 @@ class TaskManagerTab(ctk.CTkFrame):
         )
 
     def update_table(self):
-        if not self.winfo_ismapped():
-            self.after(2000, self.update_table)
+        self._refresh_job = None
+        if not self.is_active:
             return
 
         data = get_active_python_processes()
@@ -173,7 +180,7 @@ class TaskManagerTab(ctk.CTkFrame):
         metrics = self._populate_table(processes)
         self._update_summary(data, len(processes))
         self._update_chart(metrics)
-        self.after(2000, self.update_table)
+        self._refresh_job = self.after(2000, self.update_table)
 
     def _populate_table(self, processes: list[dict]) -> ProcessMetrics:
         for item in self.tree.get_children():

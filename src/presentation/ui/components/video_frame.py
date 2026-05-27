@@ -14,12 +14,24 @@ from src.infrastructure.constants.ui_constants.component_constants import (
 
 class VideoFrame(ctk.CTkFrame):
     def __init__(self, master, shared_controls, title="Frame", **kwargs):
-        super().__init__(master, **kwargs)
+        super().__init__(
+            master,
+            fg_color="#1f1f1f",
+            corner_radius=8,
+            border_width=1,
+            border_color="#303030",
+            **kwargs,
+        )
         self.shared_controls = shared_controls
         self.frame_name = title
 
-        self.label = ctk.CTkLabel(self, text=title)
-        self.label.pack()
+        self.label = ctk.CTkLabel(
+            self,
+            text=title.replace("_", " ").title(),
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#f1f5f9",
+        )
+        self.label.pack(anchor="w", padx=10, pady=(8, 4))
 
         placeholder_img = Image.new(
             "RGB", (FRAME_WIDTH_T, FRAME_HEIGHT_T), color=(50, 50, 50)
@@ -31,12 +43,13 @@ class VideoFrame(ctk.CTkFrame):
         self.image_label = ctk.CTkLabel(
             self, text="", image=self.placeholder_ctk_image
         )
-        self.image_label.pack()
+        self.image_label.pack(padx=8, pady=(0, 8))
 
         self.image_label.bind("<Button-1>", self._open_modal)
         self.modal = None
         self.modal_image_label = None
         self.current_image_full = None
+        self._last_placeholder_message = None
 
         self.after(500, self._check_flags)
 
@@ -53,6 +66,7 @@ class VideoFrame(ctk.CTkFrame):
         if image is None:
             return
 
+        self._last_placeholder_message = None
         self.current_image_full = image
 
         if self.modal and self.modal.winfo_exists():
@@ -122,6 +136,9 @@ class VideoFrame(ctk.CTkFrame):
         return None
 
     def _show_placeholder(self, message: str) -> None:
+        if self._last_placeholder_message == message and self.current_image_full is None:
+            return
+        self._last_placeholder_message = message
         self.current_image_full = None
         self._set_main_image(self.placeholder_ctk_image, message)
         self._close_modal()
