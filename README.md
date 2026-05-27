@@ -4,12 +4,6 @@ Python application for controlling and monitoring an autonomous car, with a
 CustomTkinter desktop UI, OpenCV/YOLO video processing, serial communication
 with the microcontroller, and an optional Flask web panel.
 
-Autodrive is designed as a resilient real-time control dashboard: cameras,
-serial ports, control parameters, detection thresholds, perspective points, PID
-values, and runtime flags can be changed while the system is running. If a
-microcontroller or camera source is disconnected, the application keeps the
-runtime alive and attempts to recover when the resource becomes available again.
-
 ## Demo
 
 ### Autonomous car in action
@@ -43,45 +37,6 @@ python main.py
 
 On startup, the application detects available cameras, lists serial ports, loads
 settings from `config/`, and opens the main UI.
-
-## Runtime Features
-
-- Live dashboard with lane, edge, and object-detection video feeds.
-- Runtime tuning for camera sources, serial ports, Canny filters, road
-  perspective, PID control, operation values, and object-detection thresholds.
-- Manual Mode for direct speed and steering control, including a visual steering
-  wheel and dedicated manual video source.
-- Task Manager view for monitoring Python process count, memory, CPU, IO, and
-  per-process priority while the application is running.
-- Optional Flask web panel for remote/manual speed control when `WEBVIEW` is
-  enabled.
-
-Most mutable values are stored in JSON files under `config/` and synchronized
-with the shared runtime state. Slider changes are debounced before being
-persisted, so the UI stays responsive while still keeping calibration values up
-to date.
-
-## Resilience
-
-- Serial transmission is fault tolerant: if the selected microcontroller port is
-  unavailable or disconnected, the sender skips failed writes and keeps trying
-  to reconnect instead of crashing the application.
-- Camera/video sources are monitored by their capture processes. Failed frames,
-  unavailable sources, and video restarts are handled so the UI can remain open
-  and recover when input becomes valid again.
-- Backend processes are isolated from the UI with multiprocessing, shared
-  dictionaries, and queues. This keeps expensive vision work away from the
-  interface thread and allows the dashboard to continue rendering status while
-  workers restart or recover.
-
-## Performance Notes
-
-- Camera capture, lane detection, object detection, serial sending, Flask, and
-  manual mode run in separated processes when enabled.
-- The desktop UI renders live frames only for the active view and pauses Task
-  Manager refreshes when the view is not visible.
-- Video frames are resized for the available UI area, and slider persistence is
-  debounced to avoid excessive disk writes.
 
 ## Ports And Interfaces
 
