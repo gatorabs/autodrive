@@ -7,7 +7,7 @@ def create_initializer():
     from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
     from src.infrastructure.adapters.video.video_utility_process import detect_camera_indices
     from src.infrastructure.constants.colors_constants import RED, RESET
-    from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
+    from src.infrastructure.constants.path_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
     from src.infrastructure.data.repository.calibration_repository import default_settings_store
 
     initializer = SystemInitializer(
@@ -22,7 +22,7 @@ def create_initializer():
 
 
 def create_runtime_state(manager, user_flags):
-    from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
+    from src.infrastructure.constants.path_constants import CALIBRATION_FILE
     from src.infrastructure.data.repository.calibration_repository import default_settings_store
 
     initializer, _, _ = create_initializer()

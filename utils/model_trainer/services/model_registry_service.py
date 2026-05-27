@@ -5,12 +5,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from src.infrastructure.constants.path_constants import MODEL_REGISTRY_FILE, REPO_ROOT
+
 from .metadata_service import load_names_from_yaml
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
 TRAINER_ROOT = Path(__file__).resolve().parents[1]
-REGISTRY_PATH = REPO_ROOT / "config" / "model_registry.json"
+REGISTRY_PATH = MODEL_REGISTRY_FILE
 
 
 @dataclass(frozen=True)

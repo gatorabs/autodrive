@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from src.infrastructure.constants.path_constants import MODEL_REGISTRY_FILE, REPO_ROOT
 
-DEFAULT_MODEL_REGISTRY_PATH = Path("config/model_registry.json")
+DEFAULT_MODEL_REGISTRY_PATH = MODEL_REGISTRY_FILE
 
 
 @dataclass(frozen=True)
@@ -19,7 +20,7 @@ class ActiveModel:
 
 
 def get_repo_root() -> Path:
-    return Path(__file__).resolve().parents[4]
+    return REPO_ROOT
 
 
 def resolve_model_path(raw_path: str | Path, *, base_dir: Path | None = None) -> Path:

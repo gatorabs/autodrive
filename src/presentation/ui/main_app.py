@@ -26,7 +26,7 @@ from src.infrastructure.adapters.video.video_utility_process import (
     detect_camera_indices,
     get_video_files_from_folder,
 )
-from src.infrastructure.constants.ui_constants.file_constants import (
+from src.infrastructure.constants.path_constants import (
     CALIBRATION_FILE,
     DEFAULTS_FILE,
     DEFAULT_UI_PATH,

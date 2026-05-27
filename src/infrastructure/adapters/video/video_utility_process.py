@@ -4,6 +4,7 @@ import contextlib
 import cv2 as cv
 import numpy as np
 from src.infrastructure.adapters.video.video_process import VideoProcessor
+from src.infrastructure.constants.path_constants import TEST_VIDEOS_DIR
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.utils.frame_utils import encode_frame
 from src.infrastructure.utils.lane_utils import (
@@ -53,9 +54,10 @@ def detect_camera_indices(max_tested=3, exclude_indices=None):
     return available
 
 
-def get_video_files_from_folder(folder="resources/test_videos"):
+def get_video_files_from_folder(folder=TEST_VIDEOS_DIR):
     video_exts = ("*.mp4", "*.avi", "*.mov", "*.mkv")
     files = []
+    folder = os.fspath(folder)
     for ext in video_exts:
         files.extend(glob.glob(os.path.join(folder, ext)))
     return sorted(files)
