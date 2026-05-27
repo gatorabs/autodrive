@@ -4,6 +4,16 @@ Aplicacao Python para controle e monitoramento de um carro autonomo com UI em
 CustomTkinter, processamento de video com OpenCV/YOLO, comunicacao serial com o
 microcontrolador e painel web opcional via Flask.
 
+## Demo
+
+### Autonomous car in action
+
+![Autonomous car driving on a marked track](docs/assets/autonomous-car-demo.gif)
+
+### Desktop monitoring interface
+
+![Autodrive desktop interface running with live video feeds](docs/assets/autodrive-ui.gif)
+
 ## Requisitos
 
 - Python 3.10+ recomendado.
