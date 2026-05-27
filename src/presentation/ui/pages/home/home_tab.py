@@ -10,7 +10,6 @@ from .sections.source_serial_section import SourceAndSerialControls
 from src.infrastructure.constants.ui_constants.component_constants import (
     FRAME_WIDTH_T,
     FRAME_HEIGHT_T,
-    OBJECT_ROI_SECTION_HEIGHT,
 )
 from ...components.floating_widget import FloatingWidget, SettingsFloatingWidget
 
@@ -25,9 +24,21 @@ class HomeTab(ctk.CTkFrame):
         self.grid_rowconfigure((0, 1), weight=0)
         self.grid_columnconfigure((0, 1, 2), weight=1, uniform="col")
 
-        # Floating widgets live on the main window
-        self.floating_widget = FloatingWidget(master, tk_controls, shared_controls)
-        self.settings_widget = SettingsFloatingWidget(master, tk_controls, calibration_data)
+        toolbar_parent = getattr(getattr(master, "tab_manager", None), "right", master)
+        self.settings_widget = SettingsFloatingWidget(
+            toolbar_parent,
+            tk_controls,
+            calibration_data,
+            auto_place=False,
+        )
+        self.settings_widget.pack(side="left", padx=(0, 8))
+        self.floating_widget = FloatingWidget(
+            toolbar_parent,
+            tk_controls,
+            shared_controls,
+            auto_place=False,
+        )
+        self.floating_widget.pack(side="left", padx=(0, 12))
 
         VIDEO_WIDTH, VIDEO_HEIGHT = FRAME_WIDTH_T, FRAME_HEIGHT_T
 
@@ -65,30 +76,30 @@ class HomeTab(ctk.CTkFrame):
 
         col0 = ctk.CTkFrame(self, fg_color="transparent")
         col0.grid(row=1, column=0, sticky="nsew")
-        self.warp_controls = _make_section(col0, 300, WarpControls, tk_controls, calibration_data)
-        self.pid_controls = _make_section(col0, 165, PIDSection, tk_controls, calibration_data)
-
-        col1 = ctk.CTkFrame(self, fg_color="transparent")
-        col1.grid(row=1, column=1, sticky="nsew")
-        self.filters = _make_section(col1, 110, FilterControls, tk_controls, calibration_data)
         self.sources_controls = _make_section(
-            col1,
-            250,
+            col0,
+            230,
             SourceAndSerialControls,
             tk_controls,
             calibration_data,
             shared_controls,
             init_data,
         )
+        self.filters = _make_section(col0, 100, FilterControls, tk_controls, calibration_data)
+
+        col1 = ctk.CTkFrame(self, fg_color="transparent")
+        col1.grid(row=1, column=1, sticky="nsew")
+        self.warp_controls = _make_section(col1, 270, WarpControls, tk_controls, calibration_data)
+        self.pid_controls = _make_section(col1, 130, PIDSection, tk_controls, calibration_data)
 
         col2 = ctk.CTkFrame(self, fg_color="transparent")
         col2.grid(row=1, column=2, sticky="nsew")
+        self.extras_controls = _make_section(col2, 160, ExtrasControls, tk_controls, calibration_data, shared_controls)
         self.object_roi_controls = _make_section(
             col2,
-            OBJECT_ROI_SECTION_HEIGHT,
+            220,
             ObjectRoiSection,
             tk_controls,
             calibration_data,
         )
-        self.extras_controls = _make_section(col2, 210, ExtrasControls, tk_controls, shared_controls, shared_controls)
 

@@ -1,16 +1,19 @@
 import customtkinter as ctk
+
 from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 from src.infrastructure.adapters.video.video_utility_process import (
     detect_camera_indices,
     get_video_files_from_folder,
 )
-from src.infrastructure.data.repository.calibration_repository import default_settings_store
 from src.infrastructure.constants.ui_constants.file_constants import DEFAULT_UI_PATH
+from src.infrastructure.data.repository.calibration_repository import default_settings_store
+
 
 class SourceAndSerialControls(ctk.CTkFrame):
     """Manage video sources and serial communication settings."""
+
     def __init__(self, master, tk_controls, calibration_data, shared_controls, init_data, **kwargs):
-        super().__init__(master, **kwargs)
+        super().__init__(master, fg_color="transparent", **kwargs)
         self.pack_propagate(False)
         self.tk_controls = tk_controls
         self.calibration_data = calibration_data
@@ -20,15 +23,15 @@ class SourceAndSerialControls(ctk.CTkFrame):
 
         self.com_ports = SerialCommunicator.list_available_ports()
         cams = self.tk_controls.get("DETECTED_CAMERAS", [])
-        self.detected_cameras = [f"Câmera {c}" for c in cams]
+        self.detected_cameras = [f"Camera {c}" for c in cams]
         self.sources = self.detected_cameras + get_video_files_from_folder()
 
         lane_value = self.init_data.get("LANE_SOURCE")
         obj_value = self.init_data.get("OBJECT_SOURCE")
         if str(lane_value).isdigit():
-            lane_value = f"Câmera {lane_value}"
+            lane_value = f"Camera {lane_value}"
         if str(obj_value).isdigit():
-            obj_value = f"Câmera {obj_value}"
+            obj_value = f"Camera {obj_value}"
 
         self.lane_source_var = ctk.StringVar(value=lane_value)
         self.object_source_var = ctk.StringVar(value=obj_value)
@@ -36,6 +39,18 @@ class SourceAndSerialControls(ctk.CTkFrame):
         self.sender_com_var = ctk.StringVar(value=self._get_valid_com(self.shared_controls.sender_com))
 
         self._build_ui()
+
+    def _build_ui(self):
+        ctk.CTkLabel(
+            self,
+            text="Entrada e Comunicacao",
+            font=ctk.CTkFont(size=15, weight="bold"),
+            text_color="#f8fafc",
+        ).pack(anchor="w", padx=18, pady=(12, 8))
+
+        self._create_source_comboboxes()
+        self._create_com_comboboxes()
+        self._create_action_buttons()
 
     def _on_lane_selected(self, _=None):
         self._update_available_sources()
@@ -46,54 +61,94 @@ class SourceAndSerialControls(ctk.CTkFrame):
     def _get_valid_com(self, port_name):
         return port_name if port_name in self.com_ports else (self.com_ports[0] if self.com_ports else "")
 
-    def _build_ui(self):
-        ctk.CTkLabel(self, text="Fontes e Comunicação", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
-
-        self._create_source_comboboxes()
-        self._create_source_buttons()
-        self._create_com_comboboxes()
-        self._create_com_buttons()
-
     def _create_source_comboboxes(self):
         self.lane_source_combo = self._create_combo_row(
-            "Lane Source",
+            "Camera pista",
             self.sources,
             self.lane_source_var,
             command=self._on_lane_selected,
         )
         self.object_source_combo = self._create_combo_row(
-            "Object Source",
+            "Camera objetos",
             self.sources,
             self.object_source_var,
             command=self._on_object_selected,
         )
-
-        # remove selected option from the opposite combobox
         self._update_available_sources()
 
-    def _create_source_buttons(self):
-        row = ctk.CTkFrame(self, fg_color="transparent")
-        row.pack(pady=(5, 10))
-
-        ctk.CTkButton(row, text="Aplicar", width=148, command=self.apply_sources).pack(side="left", padx=10)
-        ctk.CTkButton(row, text="Atualizar", width=148, command=self.refresh_sources).pack(side="left", padx=10)
-
     def _create_com_comboboxes(self):
-        self.security_com_combo = self._create_combo_row("Security COM", self.com_ports, self.security_com_var)
-        self.sender_com_combo = self._create_combo_row("Sender COM", self.com_ports, self.sender_com_var)
+        self.security_com_combo = self._create_combo_row(
+            "COM seguranca",
+            self.com_ports,
+            self.security_com_var,
+        )
+        self.sender_com_combo = self._create_combo_row(
+            "COM envio",
+            self.com_ports,
+            self.sender_com_var,
+        )
 
-    def _create_com_buttons(self):
+    def _create_action_buttons(self):
         row = ctk.CTkFrame(self, fg_color="transparent")
-        row.pack(pady=(5, 10))
+        row.pack(fill="x", padx=18, pady=(8, 10))
 
-        ctk.CTkButton(row, text="Aplicar", width=148, command=self.apply_sender_com).pack(side="left", padx=10)
-        ctk.CTkButton(row, text="Atualizar", width=148, command=self.refresh_com_ports).pack(side="left", padx=10)
+        ctk.CTkButton(
+            row,
+            text="Fontes",
+            width=68,
+            height=28,
+            fg_color="#2563eb",
+            hover_color="#1d4ed8",
+            command=self.apply_sources,
+        ).pack(side="left")
+        ctk.CTkButton(
+            row,
+            text="Lista",
+            width=68,
+            height=28,
+            fg_color="#334155",
+            hover_color="#475569",
+            command=self.refresh_sources,
+        ).pack(side="left", padx=(8, 0))
+        ctk.CTkButton(
+            row,
+            text="COM",
+            width=68,
+            height=28,
+            fg_color="#2563eb",
+            hover_color="#1d4ed8",
+            command=self.apply_sender_com,
+        ).pack(side="left", padx=(8, 0))
+        ctk.CTkButton(
+            row,
+            text="Portas",
+            width=68,
+            height=28,
+            fg_color="#334155",
+            hover_color="#475569",
+            command=self.refresh_com_ports,
+        ).pack(side="left", padx=(8, 0))
 
     def _create_combo_row(self, label_text, values, variable, command=None):
-        row = ctk.CTkFrame(self)
-        row.pack(fill="x", padx=20, pady=2)
-        ctk.CTkLabel(row, text=label_text).pack(side="left", padx=(10, 5))
-        combo = ctk.CTkComboBox(row, values=values, variable=variable, command=command)
+        row = ctk.CTkFrame(self, fg_color="transparent")
+        row.pack(fill="x", padx=14, pady=2)
+        ctk.CTkLabel(
+            row,
+            text=label_text,
+            width=96,
+            anchor="w",
+            text_color="#cbd5e1",
+        ).pack(side="left", padx=(4, 8))
+        combo = ctk.CTkComboBox(
+            row,
+            values=values,
+            variable=variable,
+            command=command,
+            fg_color="#111827",
+            border_color="#334155",
+            button_color="#334155",
+            button_hover_color="#475569",
+        )
         combo.pack(side="left", fill="x", expand=True)
         return combo
 
@@ -115,7 +170,7 @@ class SourceAndSerialControls(ctk.CTkFrame):
 
     def apply_sources(self):
         def clean_source(value):
-            return value.replace("Câmera ", "") if value.startswith("Câmera ") else value
+            return value.replace("Camera ", "") if value.startswith("Camera ") else value
 
         lane_value = clean_source(self.lane_source_combo.get())
         object_value = clean_source(self.object_source_combo.get())
@@ -134,20 +189,19 @@ class SourceAndSerialControls(ctk.CTkFrame):
 
         exclude = []
         for current in (current_lane, current_object):
-            if current.startswith("Câmera "):
+            if current.startswith("Camera "):
                 try:
-                    exclude.append(int(current.replace("Câmera ", "")))
+                    exclude.append(int(current.replace("Camera ", "")))
                 except ValueError:
                     continue
 
         cameras = detect_camera_indices(exclude_indices=exclude)
         videos = get_video_files_from_folder()
 
-        self.sources = [f"Câmera {i}" for i in cameras] + videos
+        self.sources = [f"Camera {i}" for i in cameras] + videos
 
-        # keep currently selected cameras even if excluded from detection
         for current in (current_lane, current_object):
-            if current.startswith("Câmera") and current not in self.sources:
+            if current.startswith("Camera") and current not in self.sources:
                 self.sources.append(current)
 
         if not self.sources:

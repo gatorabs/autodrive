@@ -1,19 +1,21 @@
 from src.infrastructure.constants.video_constants import FRAME_HEIGHT
-from src.presentation.ui.components.slider import SliderSection, SliderConfig
+from src.presentation.ui.components.slider import SliderConfig, SliderSection
+
 
 class ExtrasControls(SliderSection):
     """Additional sliders and checkboxes for extra options."""
+
     def __init__(self, master, tk_controls, calibration_data, shared_controls, **kwargs):
         self.shared_controls = shared_controls
 
         sliders = [
-            SliderConfig("Lines", "Lines", 0, FRAME_HEIGHT),
-            SliderConfig("Distance", "Distance", 0, 270),
-            SliderConfig("Speed", "Speed", 0, 255),
-            SliderConfig("Side", "Side", 1, 2),
+            SliderConfig("Lines", "Linhas", 0, FRAME_HEIGHT),
+            SliderConfig("Distance", "Distancia", 0, 270),
+            SliderConfig("Speed", "Velocidade", 0, 255),
+            SliderConfig("Side", "Lado", 1, 2),
         ]
 
-        super().__init__(master, "Extras", tk_controls, calibration_data, sliders, **kwargs)
+        super().__init__(master, "Operacao", tk_controls, calibration_data, sliders, **kwargs)
         self._update_lines_slider()
         self._sync_side_slider()
 

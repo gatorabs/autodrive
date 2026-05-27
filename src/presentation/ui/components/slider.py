@@ -34,7 +34,12 @@ class SliderSection(ctk.CTkFrame):
         self._persist_jobs: dict[str, str] = {}
         self._pending_persist: dict[str, float] = {}
 
-        ctk.CTkLabel(self, text=title, font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(0, 10))
+        ctk.CTkLabel(
+            self,
+            text=title,
+            font=ctk.CTkFont(size=15, weight="bold"),
+            text_color="#f8fafc",
+        ).pack(anchor="w", padx=18, pady=(9, 4))
 
         self.sliders: dict[str, dict[str, Any]] = {}
 
@@ -78,11 +83,17 @@ class SliderSection(ctk.CTkFrame):
         default: float,
         step: float = 1.0,
     ) -> tuple[ctk.CTkSlider, ctk.CTkEntry]:
-        row = ctk.CTkFrame(parent)
-        row.pack(fill="x", padx=20, pady=2)
+        row = ctk.CTkFrame(parent, fg_color="transparent")
+        row.pack(fill="x", padx=14, pady=1)
         row.columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(row, text=label_text).grid(row=0, column=0, padx=(10, 5))
+        ctk.CTkLabel(
+            row,
+            text=label_text,
+            width=94,
+            anchor="w",
+            text_color="#cbd5e1",
+        ).grid(row=0, column=0, padx=(4, 8), sticky="w")
 
         num_steps = int(round((to - from_) / step))
 
@@ -91,6 +102,10 @@ class SliderSection(ctk.CTkFrame):
             from_=from_,
             to=to,
             number_of_steps=num_steps,
+            progress_color="#3b82f6",
+            button_color="#60a5fa",
+            button_hover_color="#93c5fd",
+            height=16,
             command=lambda value, n=name, s=step, l=label_text: self._on_slider_change(n, value, s)
         )
         slider.set(default)
@@ -100,7 +115,14 @@ class SliderSection(ctk.CTkFrame):
             text = f"{default:.3f}"
         else:
             text = str(int(default))
-        value_entry = ctk.CTkEntry(row, width=45)
+        value_entry = ctk.CTkEntry(
+            row,
+            width=58 if step < 1 else 48,
+            justify="center",
+            fg_color="#111827",
+            border_color="#334155",
+            height=24,
+        )
         value_entry.insert(0, text)
         value_entry.grid(row=0, column=2, padx=(5, 10))
         value_entry.bind(

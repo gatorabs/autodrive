@@ -40,11 +40,11 @@ class ManualModeTab(ctk.CTkFrame):
         ctk.CTkLabel(self.source_frame_manual_tab, text="Fonte de Vídeo").pack(pady=(5, 0))
 
         cams = tk_controls.get("DETECTED_CAMERAS", [])
-        sources_manual_tab = [f"Câmera {c}" for c in cams] + get_video_files_from_folder()
+        sources_manual_tab = [f"Camera {c}" for c in cams] + get_video_files_from_folder()
 
         default_source = init_data.get("LANE_SOURCE_TAB2", "")
         if str(default_source).isdigit():
-            default_source = f"Câmera {default_source}"
+            default_source = f"Camera {default_source}"
 
         self.lane_source_combo_manual_tab = ctk.CTkComboBox(
             self.source_frame_manual_tab,

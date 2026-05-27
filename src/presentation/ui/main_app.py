@@ -185,6 +185,8 @@ class MainApp(ctk.CTk):
 
     def apply_lane_source_manual_tab(self):
         def clean_source(value):
+            if value.startswith("Camera "):
+                return value.replace("Camera ", "")
             return value.replace("Câmera ", "") if value.startswith("Câmera ") else value
 
         selected_source = clean_source(self.lane_source_combo_manual_tab.get())
@@ -199,17 +201,17 @@ class MainApp(ctk.CTk):
         current = self.lane_source_combo_manual_tab.get()
 
         exclude = []
-        if current.startswith("Câmera "):
+        if current.startswith("Camera ") or current.startswith("Câmera "):
             try:
-                exclude.append(int(current.replace("Câmera ", "")))
+                exclude.append(int(current.replace("Camera ", "").replace("Câmera ", "")))
             except ValueError:
                 pass
 
         cameras = detect_camera_indices(exclude_indices=exclude)
         videos = get_video_files_from_folder()
-        new_options = [f"Câmera {i}" for i in cameras] + videos
+        new_options = [f"Camera {i}" for i in cameras] + videos
 
-        if current.startswith("Câmera") and current not in new_options:
+        if (current.startswith("Camera") or current.startswith("Câmera")) and current not in new_options:
             new_options.append(current)
 
         if not new_options:

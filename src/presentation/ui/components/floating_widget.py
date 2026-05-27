@@ -51,10 +51,12 @@ class FloatingWidget(ctk.CTkFrame):
         tk_controls,
         shared_controls,
         checkbox_labels=None,
+        auto_place=True,
         **kwargs,
     ):
-        super().__init__(master, fg_color="#2b2b2b", **kwargs)
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-650, y=-27)
+        super().__init__(master, fg_color="transparent", **kwargs)
+        if auto_place:
+            self.place(relx=1.0, rely=1.0, anchor="se", x=-700, y=-27)
 
         self.settings_store = default_settings_store
         self.tk_controls = tk_controls
@@ -84,22 +86,30 @@ class FloatingWidget(ctk.CTkFrame):
 
         self.checkboxes_button = ctk.CTkButton(
             buttons_row,
-            text="✅",
-            width=40,
-            height=40,
-            corner_radius=10,
-            font=ctk.CTkFont(size=15),
+            text="Opcoes",
+            width=92,
+            height=34,
+            corner_radius=8,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#242424",
+            border_width=1,
+            border_color="#343434",
+            hover_color="#303030",
             command=self.toggle_checkbox_modal,
         )
         self.checkboxes_button.pack(side="right")
 
         self.floating_button = ctk.CTkButton(
             buttons_row,
-            text="📂",
-            width=40,
-            height=40,
-            corner_radius=10,
-            font=ctk.CTkFont(size=15),
+            text="Padroes",
+            width=92,
+            height=34,
+            corner_radius=8,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#242424",
+            border_width=1,
+            border_color="#343434",
+            hover_color="#303030",
             command=self.toggle_save_modal,
         )
         self.floating_button.pack(side="right", padx=(0, 8))
@@ -256,10 +266,12 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         calibration_data,
         *,
         slider_configs=None,
+        auto_place=True,
         **kwargs,
     ):
-        super().__init__(master, fg_color="#2b2b2b", **kwargs)
-        self.place(relx=1.0, rely=1.0, anchor="se", x=-600, y=-27)
+        super().__init__(master, fg_color="transparent", **kwargs)
+        if auto_place:
+            self.place(relx=1.0, rely=1.0, anchor="se", x=-600, y=-27)
 
         self.settings_store = default_settings_store
         self.tk_controls = tk_controls
@@ -318,11 +330,15 @@ class SettingsFloatingWidget(ctk.CTkFrame):
 
         self.settings_button = ctk.CTkButton(
             button_row,
-            text="⚙️",
-            width=40,
-            height=40,
-            corner_radius=10,
-            font=ctk.CTkFont(size=15),
+            text="Ajustes",
+            width=92,
+            height=34,
+            corner_radius=8,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#242424",
+            border_width=1,
+            border_color="#343434",
+            hover_color="#303030",
             command=self.toggle_settings_modal,
         )
         self.settings_button.pack(side="right")
