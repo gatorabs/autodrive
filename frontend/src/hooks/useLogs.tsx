@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { toast } from "sonner";
 
 export interface LogEntry {
   id: string;
