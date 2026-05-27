@@ -131,6 +131,31 @@ to date.
 - Video frames are resized for the available UI area, and slider persistence is
   debounced to avoid excessive disk writes.
 
+## GPU And Inference Performance
+
+The application can run without a dedicated GPU, but YOLO object detection is
+computationally expensive. For smoother real-time inference with
+`ObjectDetector`, use a machine with an NVIDIA GPU, updated NVIDIA drivers, and
+a CUDA-compatible PyTorch installation.
+
+The detector automatically uses CUDA when PyTorch reports that it is available;
+otherwise it falls back to CPU. CPU inference works for testing, but it can
+become the main bottleneck and make the camera/object pipeline stutter,
+especially with higher resolutions, larger models, or multiple video sources.
+
+You can validate GPU availability in the same PyCharm interpreter used by the
+project:
+
+```python
+import torch
+
+print(torch.cuda.is_available())
+print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU only")
+```
+
+If CUDA is not available, prefer smaller models such as `yolov8n.pt`, reduce
+YOLO image size, lower camera FPS, or use lighter test videos.
+
 ## Ports And Interfaces
 
 - Desktop UI: CustomTkinter, started by the main application process.
