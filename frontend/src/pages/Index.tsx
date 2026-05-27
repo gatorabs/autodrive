@@ -98,7 +98,7 @@ export default function Index() {
         <>
           <StatusPill label={isConnected ? "API connected" : "API offline"} tone={isConnected ? "good" : "bad"} />
           <SystemInspectorDialog logs={logs} onClearLogs={clearLogs} />
-          <Button className="bg-blue-500 text-white hover:bg-blue-400" onClick={() => setManualDialogOpen(true)}>
+          <Button className="w-full border border-slate-700 bg-slate-100 text-slate-950 hover:bg-white sm:w-auto" onClick={() => setManualDialogOpen(true)}>
             <Settings className="mr-2 h-4 w-4" />
             Manual Mode
           </Button>
@@ -106,10 +106,10 @@ export default function Index() {
       }
     >
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Vehicle State" value={running ? "Active" : "Inactive"} detail={isConnected ? "Telemetry online" : "Waiting for API"} icon={<Activity className="h-5 w-5" />} tone={running ? "green" : "orange"} />
-        <MetricCard label="Steering" value={`${direction} deg`} detail={direction > 90 ? "Turning right" : direction < 90 ? "Turning left" : "Centered"} icon={<Route className="h-5 w-5" />} tone="blue" />
-        <MetricCard label="Speed" value={`${speed} PWM`} detail="Microcontroller command" icon={<Gauge className="h-5 w-5" />} tone="purple" />
-        <MetricCard label="Performance" value={`${fps} FPS`} detail={`${frameTime} ms frame time`} icon={<Timer className="h-5 w-5" />} tone="green" />
+        <MetricCard label="Vehicle State" value={running ? "Active" : "Inactive"} detail={isConnected ? "Telemetry online" : "Waiting for API"} icon={<Activity className="h-5 w-5" />} tone={running ? "good" : "warn"} />
+        <MetricCard label="Steering" value={`${direction} deg`} detail={direction > 90 ? "Turning right" : direction < 90 ? "Turning left" : "Centered"} icon={<Route className="h-5 w-5" />} />
+        <MetricCard label="Speed" value={`${speed} PWM`} detail="Microcontroller command" icon={<Gauge className="h-5 w-5" />} />
+        <MetricCard label="Performance" value={`${fps} FPS`} detail={`${frameTime} ms frame time`} icon={<Timer className="h-5 w-5" />} tone={fps > 0 ? "good" : "warn"} />
       </section>
 
       <section className="mt-4 grid gap-4 xl:grid-cols-3">

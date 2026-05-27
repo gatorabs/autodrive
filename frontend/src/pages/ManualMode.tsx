@@ -58,16 +58,16 @@ export default function ManualMode() {
       title="Manual Mode"
       eyebrow="Direct vehicle control"
       actions={
-        <Button className="bg-slate-800 text-white hover:bg-slate-700" onClick={() => setExitDialogOpen(true)}>
+        <Button className="w-full border border-slate-700 bg-slate-100 text-slate-950 hover:bg-white sm:w-auto" onClick={() => setExitDialogOpen(true)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Return To Dashboard
         </Button>
       }
     >
       <section className="grid gap-3 sm:grid-cols-3">
-        <MetricCard label="Throttle" value={`${Math.round(controlData.y * 100)}%`} detail={throttleLabel} icon={<Gauge className="h-5 w-5" />} tone="blue" />
-        <MetricCard label="Steering" value={steeringLabel} detail={`${Math.round(controlData.x * 45)} deg`} icon={<Route className="h-5 w-5" />} tone="orange" />
-        <MetricCard label="Performance" value={`${fps} FPS`} detail={`${frameTime} ms frame time`} icon={<Timer className="h-5 w-5" />} tone="green" />
+        <MetricCard label="Throttle" value={`${Math.round(controlData.y * 100)}%`} detail={throttleLabel} icon={<Gauge className="h-5 w-5" />} />
+        <MetricCard label="Steering" value={steeringLabel} detail={`${Math.round(controlData.x * 45)} deg`} icon={<Route className="h-5 w-5" />} />
+        <MetricCard label="Performance" value={`${fps} FPS`} detail={`${frameTime} ms frame time`} icon={<Timer className="h-5 w-5" />} tone={fps > 0 ? "good" : "warn"} />
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">

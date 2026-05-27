@@ -17,18 +17,18 @@ export function ManualDriveControls({ onChange }: ManualDriveControlsProps) {
 
   const buttonClass = (active: boolean) =>
     active
-      ? "border-blue-400 bg-blue-500 text-white hover:bg-blue-500"
-      : "border-white/10 bg-slate-800 text-slate-200 hover:bg-slate-700";
+      ? "border-slate-300 bg-slate-100 text-slate-950 hover:bg-white"
+      : "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800";
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Gauge className="h-4 w-4 text-blue-300" />
+            <Gauge className="h-4 w-4 text-slate-400" />
             <span className="font-semibold text-white">Throttle</span>
           </div>
-          <button className="text-sm text-blue-300 hover:text-blue-200" onClick={() => setThrottle(0)} type="button">
+          <button className="text-sm text-slate-400 hover:text-white" onClick={() => setThrottle(0)} type="button">
             Reset
           </button>
         </div>
@@ -38,7 +38,7 @@ export function ManualDriveControls({ onChange }: ManualDriveControlsProps) {
           max={100}
           value={throttle}
           onChange={(event) => setThrottle(Number(event.target.value))}
-          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-blue-400"
+          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-slate-200"
         />
         <div className="mt-3 flex justify-between text-xs text-slate-400">
           <span>Stopped</span>
@@ -47,17 +47,17 @@ export function ManualDriveControls({ onChange }: ManualDriveControlsProps) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <ArrowDownToLine className="h-4 w-4 text-blue-300" />
+            <ArrowDownToLine className="h-4 w-4 text-slate-400" />
             <span className="font-semibold text-white">Steering</span>
           </div>
-          <button className="text-sm text-blue-300 hover:text-blue-200" onClick={() => setSteering(0)} type="button">
+          <button className="text-sm text-slate-400 hover:text-white" onClick={() => setSteering(0)} type="button">
             Center
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Button className={buttonClass(steering === -1)} variant="outline" onClick={() => setSteering(-1)}>
             <ChevronLeft className="mr-2 h-5 w-5" />
             Left

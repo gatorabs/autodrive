@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = "http://192.40.226.220:5000";
+const DEFAULT_API_BASE_URL = ""; //coloque o endereço retornado pelo FLASK process do python.
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL;
 
