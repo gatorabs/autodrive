@@ -116,8 +116,8 @@ to date.
 - `src/application`: use cases, startup flow, and process orchestration.
 - `src/domain`: models, constants, and decision rules without IO dependencies.
 - `src/infrastructure`: adapters, compatibility facades, persistence, logging,
-  and integrations with camera, serial, Flask, OpenCV, and YOLO.
-- `src/presentation`: desktop UI and visual elements.
+  and integrations with camera, serial, OpenCV, and YOLO.
+- `src/presentation`: desktop UI, visual elements, and the Flask web API.
 - `utils/model_trainer`: YOLO training scripts and artifacts.
 - `microcontroller`: microcontroller code.
 
@@ -129,9 +129,10 @@ domain:
 - `domain` contains pure car decisions, such as stop, resume, speed bump,
   detour, and traffic light behavior.
 - `application` coordinates processes, startup, and shared state.
-- `infrastructure` integrates IO and frameworks: camera, serial, Flask, OpenCV,
-  YOLO, JSON, and logging.
-- `presentation` contains the desktop UI and visual rendering.
+- `infrastructure` integrates IO and technical services: camera, serial,
+  OpenCV, YOLO, JSON, and logging.
+- `presentation` contains the desktop UI, visual rendering, and Flask API
+  endpoints exposed to the user.
 
 Shared state still uses `multiprocessing.Manager().dict()`, but access should
 gradually go through the wrappers in `src/application/state` to reduce scattered
