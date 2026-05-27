@@ -1,324 +1,1091 @@
-import ctypes
-import sys
+from __future__ import annotations
 
+import io
+import threading
+from dataclasses import dataclass
+from typing import Callable
+
+import cv2
 import customtkinter as ctk
-from PIL import UnidentifiedImageError
+import numpy as np
 from CTkMessagebox import CTkMessagebox
+from customtkinter import CTkImage
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from PIL import Image, UnidentifiedImageError
+from tkinter import ttk
 
-from src.infrastructure.data.repository.calibration_repository import default_settings_store
-from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH, DEFAULTS_FILE
-from src.infrastructure.logging.logger import Logger
-
-from src.infrastructure.constants.ui_constants.component_constants import (
-    FRAME_WIDTH_T,
-    FRAME_HEIGHT_T,
-    WARP_SECTION_HEIGHT,
-    PID_SECTION_HEIGHT,
-    OBJECT_ROI_SECTION_HEIGHT,
-    EXTRAS_SECTION_HEIGHT,
-    COMS_SECTION_HEIGHT,
-    FILTERS_SECTION_HEIGHT,
-    GAP,
-    EXTRA_MARGIN,
+from src.bootstrap import (
+    build_process_manager,
+    create_initializer,
+    create_runtime_state,
+    terminate_runtime_processes,
 )
-from src.presentation.ui.pages.home.home_tab import HomeTab
-from src.presentation.ui.pages.manual_mode.manual_mode_tab import ManualModeTab
+from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
 from src.infrastructure.adapters.video.video_utility_process import (
     detect_camera_indices,
     get_video_files_from_folder,
 )
-from .components.tab_manager import TabManager
-from src.presentation.ui.pages.task_manager.task_manager_tab import TaskManagerTab
-from .helpers.main_app_helper import enable_windows_dpi_awareness
-
-enable_windows_dpi_awareness()
+from src.infrastructure.constants.ui_constants.file_constants import (
+    CALIBRATION_FILE,
+    DEFAULTS_FILE,
+    DEFAULT_UI_PATH,
+)
+from src.infrastructure.data.repository.calibration_repository import default_settings_store
+from src.infrastructure.logging.logger import Logger
+from src.infrastructure.services.python_process_service import get_active_python_processes
+from src.presentation.ui.theme import Theme, button_style, card_style, font, input_style
 
 logger = Logger("MainUI")
 
-class MainApp(ctk.CTk):
-    """Main application window for the UI."""
-    def __init__(self, shared_frames, tk_controls, shared_controls, lane_queue):
-        super().__init__()
-        self.protocol("WM_DELETE_WINDOW", self._on_close_request)
 
-        self.settings_store = default_settings_store
-        self.calibration_data = self.settings_store.load(CALIBRATION_FILE)
-        self.init_data = self.settings_store.load(DEFAULT_UI_PATH)
-        self.title("Autonomous Team")
-        self.configure(fg_color="#121212")
+@dataclass(frozen=True)
+class SliderSpec:
+    key: str
+    label: str
+    min_value: float
+    max_value: float
+    step: float = 1.0
 
-        self.DEFAULTS_FILE = DEFAULTS_FILE
-        self.shared_frames = shared_frames
-        self.tk_controls = tk_controls
-        self.shared_controls = shared_controls
-        self.lane_queue = lane_queue
 
-        self.VIDEO_WIDTH = FRAME_WIDTH_T
-        self.VIDEO_HEIGHT = FRAME_HEIGHT_T
+class Card(ctk.CTkFrame):
+    def __init__(self, master, title: str | None = None, **kwargs):
+        super().__init__(master, **card_style(), **kwargs)
+        self.grid_columnconfigure(0, weight=1)
+        if title:
+            ctk.CTkLabel(
+                self,
+                text=title,
+                font=font(16, "bold"),
+                text_color=Theme.TEXT,
+            ).grid(row=0, column=0, sticky="w", padx=14, pady=(11, 6))
 
-        self.GAP = GAP
 
-        self.video_section_height = self.VIDEO_HEIGHT + 12 + EXTRA_MARGIN
-        self.warp_section_height = WARP_SECTION_HEIGHT
-        self.pid_section_height = PID_SECTION_HEIGHT
+class StateBlock(ctk.CTkFrame):
+    def __init__(self, master, title: str, message: str, tone: str = "info"):
+        super().__init__(
+            master,
+            fg_color=Theme.PANEL_ALT,
+            border_color=Theme.BORDER,
+            border_width=1,
+            corner_radius=Theme.RADIUS_SM,
+        )
+        color = {
+            "info": Theme.TEXT,
+            "success": Theme.SUCCESS,
+            "warning": Theme.WARNING,
+            "error": Theme.DANGER,
+        }.get(tone, Theme.TEXT)
+        ctk.CTkLabel(self, text=title, font=font(14, "bold"), text_color=color).pack(
+            anchor="w", padx=14, pady=(12, 2)
+        )
+        ctk.CTkLabel(
+            self,
+            text=message,
+            text_color=Theme.MUTED,
+            justify="left",
+            wraplength=520,
+        ).pack(anchor="w", padx=14, pady=(0, 12))
 
-        self.first_column_section_height = self.pid_section_height + self.warp_section_height
 
-        self.object_roi_section_height = OBJECT_ROI_SECTION_HEIGHT
-        self.extras_section_height = EXTRAS_SECTION_HEIGHT
+class BootView(ctk.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master, fg_color=Theme.BG)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
-        self.last_column_section_height = self.extras_section_height + self.object_roi_section_height
+        shell = Card(self)
+        shell.grid(row=0, column=0, sticky="nsew", padx=36, pady=36)
+        shell.grid_columnconfigure(0, weight=1)
 
-        self.coms_section_height = COMS_SECTION_HEIGHT
-        self.filters_section_height = FILTERS_SECTION_HEIGHT
-        self.filters_coms_section_height = self.filters_section_height + self.coms_section_height + 5
+        ctk.CTkLabel(
+            shell,
+            text="Autonomous Team",
+            font=font(28, "bold"),
+            text_color=Theme.TEXT,
+        ).grid(row=0, column=0, pady=(44, 4))
+        ctk.CTkLabel(
+            shell,
+            text="Inicializando dashboard, processos e dispositivos",
+            text_color=Theme.MUTED,
+        ).grid(row=1, column=0, pady=(0, 26))
 
-        lower = max(
-            self.first_column_section_height,
-            self.filters_coms_section_height,
-            self.last_column_section_height,
-        ) + EXTRA_MARGIN
+        self.progress = ctk.CTkProgressBar(
+            shell,
+            progress_color=Theme.PRIMARY,
+            fg_color=Theme.PANEL_SOFT,
+        )
+        self.progress.grid(row=2, column=0, sticky="ew", padx=54)
+        self.progress.set(0)
 
-        self.TOTAL_HEIGHT = self.video_section_height + lower + 30
-        self.TOTAL_WIDTH = self.VIDEO_WIDTH * 3 + self.GAP * 4
+        self.step_label = ctk.CTkLabel(shell, text="Preparando...", text_color=Theme.MUTED)
+        self.step_label.grid(row=3, column=0, pady=(12, 28))
 
-        self.geometry(f"{self.TOTAL_WIDTH}x{self.TOTAL_HEIGHT}")
-        self.minsize(self.TOTAL_WIDTH, self.TOTAL_HEIGHT)
+        self.state_slot = ctk.CTkFrame(shell, fg_color="transparent")
+        self.state_slot.grid(row=4, column=0, sticky="ew", padx=54, pady=(0, 42))
 
+    def set_progress(self, value: float, message: str) -> None:
+        self.progress.set(max(0.0, min(value / 100.0, 1.0)))
+        self.step_label.configure(text=message)
+
+    def show_error(self, message: str) -> None:
+        for child in self.state_slot.winfo_children():
+            child.destroy()
+        StateBlock(self.state_slot, "Falha na inicializacao", message, "error").pack(fill="x")
+
+
+class VideoTile(Card):
+    def __init__(self, master, title: str, placeholder: str, error_key: str):
+        super().__init__(master, title)
+        self.placeholder = placeholder
+        self.error_key = error_key
+        self.current_image: Image.Image | None = None
+        self.current_frame_ref = None
+        self.render_size: tuple[int, int] | None = None
+        self.ctk_image = None
+        self.resize_job = None
+
+        self.image_label = ctk.CTkLabel(
+            self,
+            text=placeholder,
+            text_color=Theme.MUTED,
+            fg_color=Theme.PANEL,
+            corner_radius=Theme.RADIUS_SM,
+        )
+        self.image_label.grid(row=1, column=0, sticky="nsew", padx=8, pady=(0, 8))
+        self.image_label.grid_propagate(False)
+        self.image_label.configure(height=Theme.VIDEO_MIN_HEIGHT)
+        self.image_label.bind("<Configure>", self._schedule_resize)
         self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure((0,1,2), weight=1)
 
-        self.tab_manager = TabManager(self)
+    def update_state(self, frame, *, webview=False, safe_stop=False, object_safe_stop=False):
+        if webview:
+            self._show_text("Webview ativo")
+            return
+        if self.error_key == "lane" and safe_stop:
+            self._show_text("Erro na transmissao")
+            return
+        if self.error_key == "object" and object_safe_stop:
+            self._show_text("Erro na transmissao")
+            return
+        if frame is None:
+            self._show_text(self.placeholder)
+            return
+        if frame is self.current_frame_ref and self.render_size == self._target_size():
+            return
+        image = self._to_image(frame)
+        if image is None:
+            self._show_text(self.placeholder)
+            return
+        self.current_frame_ref = frame
+        self.current_image = image
+        self._render()
 
-        self._build_home()
+    def _to_image(self, frame):
+        try:
+            if isinstance(frame, (bytes, bytearray)):
+                return Image.open(io.BytesIO(frame))
+            if isinstance(frame, np.ndarray):
+                return Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        except (OSError, UnidentifiedImageError, cv2.error):
+            return None
+        return None
 
-        self._build_manual_tab()
-        self._build_task_manager_frame()
-        self._last_manual_mode = self.shared_controls.manual_mode
-        self.update_loop()
+    def _target_size(self) -> tuple[int, int]:
+        width = max(240, self.image_label.winfo_width() - 2)
+        height = max(Theme.VIDEO_MIN_HEIGHT, self.image_label.winfo_height() - 2)
+        target_height = int(width * 9 / 16)
+        if target_height > height:
+            target_height = height
+            width = int(height * 16 / 9)
+        return max(1, width), max(1, target_height)
 
-    def _on_close_request(self):
-        box = CTkMessagebox(
-            title="Encerrar aplicação",
-            message="Deseja realmente encerrar o sistema?",
-            icon="question",
-            option_1="Sim",
-            option_2="Cancelar"
+    def _render(self):
+        if self.current_image is None:
+            return
+        size = self._target_size()
+        self.render_size = size
+        resized = self.current_image.resize(size, Image.Resampling.LANCZOS)
+        self.ctk_image = CTkImage(light_image=resized, size=size)
+        self.image_label.configure(image=self.ctk_image, text="")
+
+    def _show_text(self, text: str) -> None:
+        self.current_image = None
+        self.current_frame_ref = None
+        self.render_size = None
+        self.image_label.configure(image=None, text=text)
+
+    def _schedule_resize(self, _event=None) -> None:
+        if self.resize_job is not None:
+            self.after_cancel(self.resize_job)
+        self.resize_job = self.after(80, self._on_resize)
+
+    def _on_resize(self) -> None:
+        self.resize_job = None
+        if self.current_image is not None and self.render_size != self._target_size():
+            self._render()
+
+    def destroy(self) -> None:
+        if self.resize_job is not None:
+            try:
+                self.after_cancel(self.resize_job)
+            except Exception:
+                pass
+        super().destroy()
+
+
+class SliderControl(ctk.CTkFrame):
+    def __init__(
+        self,
+        master,
+        spec: SliderSpec,
+        value: float,
+        on_change: Callable[[str, float], None],
+    ):
+        super().__init__(master, fg_color="transparent")
+        self.spec = spec
+        self.on_change = on_change
+        self.grid_columnconfigure(0, weight=0, minsize=116)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(2, weight=0, minsize=64)
+
+        ctk.CTkLabel(self, text=spec.label, text_color=Theme.MUTED, anchor="w").grid(
+            row=0, column=0, sticky="w", padx=(0, 8), pady=2
+        )
+        steps = max(1, int(round((spec.max_value - spec.min_value) / spec.step)))
+        self.slider = ctk.CTkSlider(
+            self,
+            from_=spec.min_value,
+            to=spec.max_value,
+            number_of_steps=steps,
+            progress_color=Theme.PRIMARY,
+            button_color="#60a5fa",
+            button_hover_color="#93c5fd",
+            command=self._slider_changed,
+        )
+        self.slider.grid(row=0, column=1, sticky="ew", pady=2)
+        self.entry = ctk.CTkEntry(
+            self,
+            justify="center",
+            fg_color=Theme.INPUT,
+            border_color=Theme.BORDER_HOVER,
+            width=64,
+        )
+        self.entry.grid(row=0, column=2, padx=(8, 0), pady=2)
+        self.entry.bind("<Return>", self._entry_changed)
+        self.entry.bind("<FocusOut>", self._entry_changed)
+        self.set(value, notify=False)
+
+    def set(self, value: float, *, notify=True) -> None:
+        value = self._normalize(value)
+        self.slider.set(value)
+        self.entry.delete(0, "end")
+        self.entry.insert(0, self._format(value))
+        if notify:
+            self.on_change(self.spec.key, value)
+
+    def _slider_changed(self, value) -> None:
+        self.set(value)
+
+    def _entry_changed(self, _event=None) -> None:
+        try:
+            value = float(self.entry.get())
+        except ValueError:
+            value = self.slider.get()
+        self.set(value)
+
+    def _normalize(self, value: float):
+        value = max(self.spec.min_value, min(float(value), self.spec.max_value))
+        stepped = round((value - self.spec.min_value) / self.spec.step) * self.spec.step + self.spec.min_value
+        return int(round(stepped)) if self.spec.step >= 1 else stepped
+
+    def _format(self, value) -> str:
+        return f"{value:.3f}" if self.spec.step < 1 else str(int(round(value)))
+
+
+class SliderCard(Card):
+    def __init__(
+        self,
+        master,
+        title: str,
+        specs: list[SliderSpec],
+        tk_controls,
+        calibration_data,
+        on_change: Callable[[str, float], None],
+    ):
+        super().__init__(master, title)
+        self.controls: dict[str, SliderControl] = {}
+        for row, spec in enumerate(specs, start=1):
+            value = calibration_data.get(spec.key, tk_controls.get(spec.key, spec.min_value))
+            control = SliderControl(self, spec, value, on_change)
+            control.grid(row=row, column=0, sticky="ew", padx=14, pady=0)
+            self.controls[spec.key] = control
+
+    def set_value(self, key: str, value: float) -> None:
+        if key in self.controls:
+            self.controls[key].set(value, notify=False)
+
+
+class HomeView(ctk.CTkFrame):
+    def __init__(self, master, app):
+        super().__init__(master, fg_color=Theme.BG)
+        self.app = app
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=6)
+        self.scroll.grid_columnconfigure((0, 1, 2), weight=1, uniform="home")
+        self.scroll.grid_rowconfigure(0, weight=1, uniform="video-row")
+
+        self.normal_video = VideoTile(self.scroll, "Normal Frame", "Aguardando frame normal", "lane")
+        self.edges_video = VideoTile(self.scroll, "Edges Frame", "Aguardando frame edges", "lane")
+        self.object_video = VideoTile(self.scroll, "Object Frame", "Aguardando frame object", "object")
+        for col, tile in enumerate((self.normal_video, self.edges_video, self.object_video)):
+            tile.grid(row=0, column=col, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
+
+        self._build_sources(row=1, column=0)
+        self.filter_card = self._slider_card(
+            "Filtros de Imagem",
+            [SliderSpec("F_Canny", "Canny baixo", 0, 255), SliderSpec("S_Canny", "Canny alto", 0, 255)],
+            2,
+            0,
+        )
+        self.pid_card = self._slider_card(
+            "Controle PID",
+            [
+                SliderSpec("KP", "Proporcional", 0.0, 5.0, 0.01),
+                SliderSpec("KI", "Integral", 0.0, 10.0, 0.001),
+                SliderSpec("KD", "Derivativo", 0.0, 10.0, 0.001),
+            ],
+            3,
+            0,
+        )
+        self.warp_card = self._slider_card(
+            "Perspectiva da Pista",
+            [
+                SliderSpec("tl_x", "Topo Esq. X", 0, 640),
+                SliderSpec("tl_y", "Topo Esq. Y", 0, 480),
+                SliderSpec("tr_x", "Topo Dir. X", 0, 640),
+                SliderSpec("tr_y", "Topo Dir. Y", 0, 480),
+                SliderSpec("bl_x", "Base Esq. X", 0, 640),
+                SliderSpec("bl_y", "Base Esq. Y", 0, 480),
+                SliderSpec("br_x", "Base Dir. X", 0, 640),
+                SliderSpec("br_y", "Base Dir. Y", 0, 480),
+            ],
+            1,
+            1,
+            rowspan=3,
+        )
+        self.extras_card = self._slider_card(
+            "Operacao",
+            [
+                SliderSpec("Lines", "Linhas", 0, 480),
+                SliderSpec("Distance", "Distancia", 0, 270),
+                SliderSpec("Speed", "Velocidade", 0, 255),
+                SliderSpec("Side", "Lado", 1, 2),
+            ],
+            1,
+            2,
+        )
+        self.object_card = self._slider_card(
+            "Deteccao de Objetos",
+            [
+                SliderSpec("Person", "Pessoa", 0, 240),
+                SliderSpec("SEMAFORO", "Semaforo", 0, 240),
+                SliderSpec("PeopleRegion", "Regiao Pessoa", 10, 100),
+                SliderSpec("PLACA_PARE", "Placa Pare", 0, 240),
+                SliderSpec("PLACA_DESVIO", "Placa Desvio", 0, 240),
+                SliderSpec("PLACA_LOMBADA", "Placa Lombada", 0, 240),
+            ],
+            2,
+            2,
+            rowspan=2,
         )
 
-        if box.get() == "Sim":
+    def _build_sources(self, row, column):
+        card = Card(self.scroll, "Entrada e Comunicacao")
+        card.grid(row=row, column=column, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
+
+        self.refresh_source_options()
+        self.refresh_com_options()
+        init_data = self.app.init_data
+        lane = self._display_source(init_data.get("LANE_SOURCE", ""))
+        obj = self._display_source(init_data.get("OBJECT_SOURCE", ""))
+
+        self.lane_source = ctk.StringVar(value=lane)
+        self.object_source = ctk.StringVar(value=obj)
+        self.security_com = ctk.StringVar(value=self.app.shared_controls.security_com)
+        self.sender_com = ctk.StringVar(value=self.app.shared_controls.sender_com)
+
+        self.lane_combo = self._combo_row(card, 1, "Camera pista", self.sources, self.lane_source)
+        self.object_combo = self._combo_row(card, 2, "Camera objetos", self.sources, self.object_source)
+        self.security_combo = self._combo_row(card, 3, "COM seguranca", self.com_ports, self.security_com)
+        self.sender_combo = self._combo_row(card, 4, "COM envio", self.com_ports, self.sender_com)
+
+        buttons = ctk.CTkFrame(card, fg_color="transparent")
+        buttons.grid(row=5, column=0, sticky="ew", padx=14, pady=(8, 10))
+        buttons.grid_columnconfigure((0, 1), weight=1)
+        ctk.CTkButton(buttons, text="Aplicar fontes", **button_style(True), command=self.apply_sources).grid(
+            row=0, column=0, sticky="ew", padx=(0, 4), pady=3
+        )
+        ctk.CTkButton(buttons, text="Atualizar fontes", **button_style(), command=self.update_sources).grid(
+            row=0, column=1, sticky="ew", padx=(4, 0), pady=3
+        )
+        ctk.CTkButton(buttons, text="Aplicar COMs", **button_style(True), command=self.apply_coms).grid(
+            row=1, column=0, sticky="ew", padx=(0, 4), pady=3
+        )
+        ctk.CTkButton(buttons, text="Atualizar portas", **button_style(), command=self.update_coms).grid(
+            row=1, column=1, sticky="ew", padx=(4, 0), pady=3
+        )
+
+    def _combo_row(self, parent, row, label, values, variable):
+        wrapper = ctk.CTkFrame(parent, fg_color="transparent")
+        wrapper.grid(row=row, column=0, sticky="ew", padx=14, pady=2)
+        wrapper.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(wrapper, text=label, text_color=Theme.MUTED).grid(row=0, column=0, sticky="w", padx=(0, 8))
+        combo = ctk.CTkComboBox(wrapper, values=values, variable=variable, **input_style())
+        combo.grid(row=0, column=1, sticky="ew")
+        return combo
+
+    def _slider_card(self, title, specs, row, column, rowspan=1):
+        card = SliderCard(
+            self.scroll,
+            title,
+            specs,
+            self.app.tk_controls,
+            self.app.calibration_data,
+            self.app.on_slider_value,
+        )
+        card.grid(row=row, column=column, rowspan=rowspan, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
+        return card
+
+    def refresh_source_options(self):
+        cameras = self.app.tk_controls.get("DETECTED_CAMERAS", [])
+        self.sources = [f"Camera {c}" for c in cameras] + get_video_files_from_folder()
+
+    def refresh_com_options(self):
+        self.com_ports = SerialCommunicator.list_available_ports()
+
+    def update_sources(self):
+        current_lane = self.lane_source.get()
+        current_object = self.object_source.get()
+        exclude = []
+        for current in (current_lane, current_object):
+            if current.startswith("Camera "):
+                try:
+                    exclude.append(int(current.replace("Camera ", "")))
+                except ValueError:
+                    pass
+        cameras = detect_camera_indices(exclude_indices=exclude)
+        videos = get_video_files_from_folder()
+        self.sources = [f"Camera {i}" for i in cameras] + videos
+        if not self.sources:
+            self.app.show_status("Nenhuma fonte encontrada", "warning")
+            return
+        self.lane_combo.configure(values=self.sources)
+        self.object_combo.configure(values=self.sources)
+
+    def update_coms(self):
+        self.refresh_com_options()
+        self.security_combo.configure(values=self.com_ports)
+        self.sender_combo.configure(values=self.com_ports)
+        if not self.com_ports:
+            self.app.show_status("Nenhuma porta COM encontrada", "warning")
+
+    def apply_sources(self):
+        lane = self._clean_source(self.lane_combo.get())
+        obj = self._clean_source(self.object_combo.get())
+        self.app.tk_controls.lane_source = lane
+        self.app.tk_controls.object_source = obj
+        self.app.settings_store.update({"LANE_SOURCE": lane, "OBJECT_SOURCE": obj}, DEFAULT_UI_PATH)
+        self.app.show_status("Fontes aplicadas", "success")
+
+    def apply_coms(self):
+        sender = self.sender_combo.get()
+        security = self.security_combo.get()
+        self.app.shared_controls.send_data = bool(sender) and sender in self.com_ports
+        self.app.shared_controls.sender_com = sender
+        self.app.shared_controls.security_com = security
+        self.app.settings_store.update({"SENDER_COM": sender, "SECURITY_COM": security}, DEFAULT_UI_PATH)
+        self.app.show_status("Portas COM aplicadas", "success")
+
+    def sync_dynamic_ranges(self):
+        max_height = self.app.shared_controls.get("MAX_HEIGHT")
+        if isinstance(max_height, (int, float)) and max_height > 0:
+            control = self.extras_card.controls.get("Lines")
+            if control and control.spec.max_value != max_height:
+                control.spec = SliderSpec("Lines", "Linhas", 0, max_height)
+                control.slider.configure(to=max_height, number_of_steps=max(1, int(max_height)))
+
+    @staticmethod
+    def _clean_source(value):
+        return value.replace("Camera ", "") if value.startswith("Camera ") else value
+
+    @staticmethod
+    def _display_source(value):
+        return f"Camera {value}" if str(value).isdigit() else value
+
+
+class ManualView(ctk.CTkFrame):
+    def __init__(self, master, app):
+        super().__init__(master, fg_color=Theme.BG)
+        self.app = app
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=8)
+        scroll.grid_columnconfigure((0, 1), weight=1, uniform="manual")
+
+        self.video = VideoTile(scroll, "Video Manual", "Aguardando frame manual", "lane")
+        self.video.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=6, pady=6)
+
+        source_card = Card(scroll, "Fonte Manual")
+        source_card.grid(row=1, column=0, sticky="new", padx=6, pady=6)
+        source_card.grid_columnconfigure(0, weight=1)
+
+        sources = [f"Camera {c}" for c in self.app.tk_controls.get("DETECTED_CAMERAS", [])] + get_video_files_from_folder()
+        default = self._display_source(self.app.init_data.get("LANE_SOURCE_TAB2", ""))
+        self.source_var = ctk.StringVar(value=default)
+        self.source_combo = ctk.CTkComboBox(source_card, values=sources, variable=self.source_var, **input_style())
+        self.source_combo.grid(row=1, column=0, sticky="ew", padx=16, pady=8)
+
+        row = ctk.CTkFrame(source_card, fg_color="transparent")
+        row.grid(row=2, column=0, sticky="ew", padx=16, pady=(4, 16))
+        row.grid_columnconfigure((0, 1), weight=1)
+        ctk.CTkButton(row, text="Aplicar", **button_style(True), command=self.apply_source).grid(
+            row=0, column=0, sticky="ew", padx=(0, 4)
+        )
+        ctk.CTkButton(row, text="Atualizar", **button_style(), command=self.refresh_sources).grid(
+            row=0, column=1, sticky="ew", padx=(4, 0)
+        )
+
+        self.control_card = SliderCard(
+            scroll,
+            "Controle Manual",
+            [
+                SliderSpec("MANUAL_DIRECTION", "Direcao", 0, 180),
+                SliderSpec("MANUAL_SPEED", "Velocidade", 0, 255),
+            ],
+            self.app.tk_controls,
+            self.app.calibration_data,
+            self._manual_slider_changed,
+        )
+        self.control_card.grid(row=1, column=1, sticky="new", padx=6, pady=6)
+
+        self.wheel_card = Card(scroll, "Volante")
+        self.wheel_card.grid(row=2, column=0, columnspan=2, sticky="n", padx=6, pady=6)
+        self.wheel = ctk.CTkCanvas(self.wheel_card, width=170, height=170, bg=Theme.PANEL, highlightthickness=0)
+        self.wheel.grid(row=1, column=0, padx=24, pady=(0, 20))
+        self.wheel.bind("<B1-Motion>", self._wheel_drag)
+        self._draw_wheel(self.app.tk_controls.get("MANUAL_DIRECTION", 90))
+
+    def apply_source(self):
+        selected = self._clean_source(self.source_combo.get())
+        self.app.tk_controls.lane_source_tab2 = selected
+        self.app.shared_controls["LANE_SOURCE_TAB2"] = selected
+        self.app.settings_store.update({"LANE_SOURCE_TAB2": selected}, DEFAULT_UI_PATH)
+        self.app.show_status("Fonte manual aplicada", "success")
+
+    def refresh_sources(self):
+        current = self.source_combo.get()
+        exclude = []
+        if current.startswith("Camera "):
+            try:
+                exclude.append(int(current.replace("Camera ", "")))
+            except ValueError:
+                pass
+        sources = [f"Camera {i}" for i in detect_camera_indices(exclude_indices=exclude)] + get_video_files_from_folder()
+        if not sources:
+            self.app.show_status("Nenhuma fonte manual encontrada", "warning")
+            return
+        self.source_combo.configure(values=sources)
+
+    def sync_car_info(self):
+        data = self.app.shared_controls.car_info
+        direction = data.get("CAR_DIRECTION_DATA")
+        speed = data.get("CAR_SPEED_DATA")
+        if direction is not None:
+            self.control_card.set_value("MANUAL_DIRECTION", direction)
+            self._draw_wheel(direction)
+        if speed is not None:
+            self.control_card.set_value("MANUAL_SPEED", speed)
+
+    def _manual_slider_changed(self, key, value):
+        self.app.tk_controls[key] = value
+        lane_data = {
+            "CAR_SPEED_DATA": self.app.tk_controls.get("MANUAL_SPEED", 0),
+            "CAR_DIRECTION_DATA": self.app.tk_controls.get("MANUAL_DIRECTION", 0),
+        }
+        self.app.shared_controls.car_info = lane_data
+        if key == "MANUAL_DIRECTION":
+            self._draw_wheel(value)
+
+    def _draw_wheel(self, angle):
+        self.wheel.delete("all")
+        cx = cy = 85
+        radius = 68
+        self.wheel.create_oval(cx - radius, cy - radius, cx + radius, cy + radius, outline="#60a5fa", width=2)
+        self.wheel.create_oval(cx - 30, cy - 30, cx + 30, cy + 30, outline=Theme.BORDER_HOVER, width=1)
+        radians = np.deg2rad(float(angle) - 90)
+        x = cx + radius * 0.75 * np.cos(radians)
+        y = cy + radius * 0.75 * np.sin(radians)
+        self.wheel.create_line(cx, cy, x, y, fill=Theme.PRIMARY, width=4)
+
+    def _wheel_drag(self, event):
+        dx = event.x - 85
+        dy = event.y - 85
+        angle = int((np.rad2deg(np.arctan2(dy, dx)) + 90) % 180)
+        self.control_card.controls["MANUAL_DIRECTION"].set(angle)
+
+    @staticmethod
+    def _clean_source(value):
+        return value.replace("Camera ", "") if value.startswith("Camera ") else value
+
+    @staticmethod
+    def _display_source(value):
+        return f"Camera {value}" if str(value).isdigit() else value
+
+
+class TaskManagerView(ctk.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master, fg_color=Theme.BG)
+        self.active = False
+        self.job = None
+        self.compact = ctk.BooleanVar(value=False)
+        self.metric = ctk.StringVar(value="Memory")
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        card = Card(self, "Task Manager")
+        card.grid(row=0, column=0, sticky="nsew", padx=18, pady=14)
+        card.grid_columnconfigure(0, weight=1)
+        card.grid_rowconfigure(2, weight=1)
+        card.grid_rowconfigure(4, weight=1)
+
+        header = ctk.CTkFrame(card, fg_color="transparent")
+        header.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 8))
+        header.grid_columnconfigure(0, weight=1)
+        self.summary = ctk.CTkLabel(header, text="Aguardando leitura...", text_color=Theme.MUTED)
+        self.summary.grid(row=0, column=0, sticky="w")
+        ctk.CTkSwitch(header, text="Compacto", variable=self.compact, command=self._toggle_compact).grid(
+            row=0, column=1, sticky="e"
+        )
+
+        self._configure_tree()
+        table = ctk.CTkFrame(card, fg_color="transparent")
+        table.grid(row=2, column=0, sticky="nsew", padx=16)
+        table.grid_columnconfigure(0, weight=1)
+        table.grid_rowconfigure(0, weight=1)
+        cols = ("ProcessName", "Id", "Priority", "Memory (MB)")
+        self.tree = ttk.Treeview(table, columns=cols, show="headings")
+        for col in cols:
+            self.tree.heading(col, text=col, command=lambda c=col: self._sort(c, False))
+            self.tree.column(col, stretch=True, minwidth=50)
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(table, orient="vertical", command=self.tree.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.tree.configure(yscrollcommand=scrollbar.set)
+
+        self.metric_menu = ctk.CTkOptionMenu(
+            card,
+            values=["Memory", "CPU", "IO"],
+            variable=self.metric,
+            command=lambda _: self.refresh(),
+            fg_color=Theme.PANEL_SOFT,
+            button_color=Theme.PANEL_SOFT,
+        )
+        self.metric_menu.grid(row=3, column=0, sticky="w", padx=16, pady=(10, 0))
+        self.fig = Figure(figsize=(5, 2), dpi=100, facecolor=Theme.PANEL)
+        self.ax = self.fig.add_subplot(111, facecolor=Theme.PANEL)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=card)
+        self.canvas.get_tk_widget().grid(row=4, column=0, sticky="nsew", padx=16, pady=(8, 16))
+
+    def set_active(self, active):
+        self.active = active
+        if active and self.job is None:
+            self.after_idle(self.refresh)
+        elif not active and self.job is not None:
+            self.after_cancel(self.job)
+            self.job = None
+
+    def refresh(self):
+        self.job = None
+        if not self.active:
+            return
+        data = get_active_python_processes()
+        processes = data.get("processes", [])
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        labels, memory, cpu, io_values = [], [], [], []
+        for index, proc in enumerate(processes):
+            pid = proc.get("pid")
+            mem = proc.get("memory_mb", 0.0)
+            labels.append(str(pid))
+            memory.append(mem)
+            cpu.append(proc.get("cpu_percent", 0.0))
+            io_values.append(proc.get("io_mb", 0.0))
+            tag = "evenrow" if index % 2 == 0 else "oddrow"
+            self.tree.insert("", "end", values=(proc.get("name"), pid, proc.get("priority"), f"{mem:.2f}"), tags=(tag,))
+        self.summary.configure(
+            text=(
+                f"Python processes: {data.get('process_count', len(processes))} | "
+                f"Total RAM: {data.get('total_ram_mb', 0.0):.2f} MB | "
+                f"System CPU: {data.get('system_cpu', 0.0):.1f}%"
+            )
+        )
+        self._draw_chart(labels, memory, cpu, io_values)
+        self.job = self.after(2000, self.refresh)
+
+    def _draw_chart(self, labels, memory, cpu, io_values):
+        metric = self.metric.get()
+        values = memory if metric == "Memory" else cpu if metric == "CPU" else io_values
+        xlabel = "MB" if metric == "Memory" else "% CPU" if metric == "CPU" else "I/O MB"
+        self.ax.clear()
+        self.ax.set_facecolor(Theme.PANEL)
+        self.fig.patch.set_facecolor(Theme.PANEL)
+        if values:
+            self.ax.barh(labels, values)
+        else:
+            self.ax.text(0.5, 0.5, "Nenhum processo Python encontrado", color=Theme.MUTED, ha="center")
+        self.ax.set_xlabel(xlabel, color=Theme.TEXT)
+        self.ax.tick_params(axis="x", colors=Theme.TEXT)
+        self.ax.tick_params(axis="y", colors=Theme.TEXT)
+        self.fig.tight_layout()
+        self.canvas.draw_idle()
+
+    def _toggle_compact(self):
+        if self.compact.get():
+            self.metric_menu.grid_remove()
+            self.canvas.get_tk_widget().grid_remove()
+        else:
+            self.metric_menu.grid()
+            self.canvas.get_tk_widget().grid()
+
+    def _sort(self, col, descending):
+        rows = [(self.tree.set(child, col), child) for child in self.tree.get_children("")]
+        try:
+            rows.sort(reverse=descending, key=lambda x: float(x[0]))
+        except ValueError:
+            rows.sort(reverse=descending, key=lambda x: x[0].lower())
+        for index, item in enumerate(rows):
+            self.tree.move(item[1], "", index)
+        self.tree.heading(col, command=lambda: self._sort(col, not descending))
+
+    def _configure_tree(self):
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Treeview", background=Theme.PANEL_ALT, fieldbackground=Theme.PANEL_ALT, foreground=Theme.TEXT, rowheight=28)
+        style.configure("Treeview.Heading", background=Theme.PANEL_SOFT, foreground=Theme.TEXT, font=("Arial", 12, "bold"))
+        style.map("Treeview", background=[("selected", Theme.PRIMARY)], foreground=[("selected", Theme.TEXT)])
+
+
+class DashboardShell(ctk.CTkFrame):
+    def __init__(self, master, app):
+        super().__init__(master, fg_color=Theme.BG)
+        self.app = app
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.current = None
+        self.buttons = {}
+
+        header = ctk.CTkFrame(self, fg_color=Theme.PANEL, corner_radius=0)
+        header.grid(row=0, column=0, sticky="ew")
+        header.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(header, text="Autonomous Team", font=font(18, "bold"), text_color=Theme.TEXT).grid(
+            row=0, column=0, padx=18, pady=12
+        )
+        nav = ctk.CTkFrame(header, fg_color="transparent")
+        nav.grid(row=0, column=1, sticky="e", padx=12)
+        for name in ("Home", "Manual", "Task Manager"):
+            self.buttons[name] = ctk.CTkButton(nav, text=name, **button_style(), command=lambda n=name: self.select(n))
+            self.buttons[name].pack(side="left", padx=4)
+        for text, command in (
+            ("Ajustes", app.open_settings),
+            ("Padroes", app.open_defaults),
+            ("Opcoes", app.open_options),
+        ):
+            ctk.CTkButton(nav, text=text, **button_style(), command=command).pack(side="left", padx=4)
+
+        self.content = ctk.CTkFrame(self, fg_color=Theme.BG)
+        self.content.grid(row=1, column=0, sticky="nsew")
+        self.content.grid_rowconfigure(0, weight=1)
+        self.content.grid_columnconfigure(0, weight=1)
+        self.status = ctk.CTkLabel(self, text="Pronto", text_color=Theme.MUTED, anchor="w")
+        self.status.grid(row=2, column=0, sticky="ew", padx=18, pady=(0, 8))
+
+        self.views = {
+            "Home": HomeView(self.content, app),
+            "Manual": ManualView(self.content, app),
+            "Task Manager": TaskManagerView(self.content),
+        }
+        for view in self.views.values():
+            view.grid(row=0, column=0, sticky="nsew")
+        self._activate("Manual" if app.shared_controls.manual_mode else "Home")
+
+    def select(self, name):
+        if name == "Manual" and not self.app.shared_controls.manual_mode:
+            box = CTkMessagebox(title="Atencao", message="Modo manual sera ativo", icon="warning", option_1="OK", option_2="Cancelar")
+            if box.get() != "OK":
+                return
+            self.app.set_manual_mode(True)
+        elif name == "Home" and self.app.shared_controls.manual_mode:
+            box = CTkMessagebox(title="Atencao", message="O modo manual sera desativado", icon="info", option_1="OK", option_2="Cancelar")
+            if box.get() != "OK":
+                return
+            self.app.set_manual_mode(False)
+        self._activate(name)
+
+    def _activate(self, name):
+        if self.current == name:
+            return
+        if self.current == "Task Manager":
+            self.views["Task Manager"].set_active(False)
+        self.current = name
+        self.views[name].tkraise()
+        for key, button in self.buttons.items():
+            button.configure(**button_style(key == name))
+        if name == "Task Manager":
+            self.views["Task Manager"].set_active(True)
+
+    def show_status(self, message, tone="info"):
+        color = {"success": Theme.SUCCESS, "warning": Theme.WARNING, "error": Theme.DANGER}.get(tone, Theme.MUTED)
+        self.status.configure(text=message, text_color=color)
+
+
+class AutodriveApp(ctk.CTk):
+    def __init__(self, manager):
+        super().__init__()
+        self.manager = manager
+        self.title("Autonomous Team")
+        self.configure(fg_color=Theme.BG)
+        self.minsize(Theme.MIN_WIDTH, Theme.MIN_HEIGHT)
+        self.after(0, self._maximize_window)
+        self.protocol("WM_DELETE_WINDOW", self.close)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        self.settings_store = default_settings_store
+        self.calibration_data = {}
+        self.init_data = {}
+        self.shared_controls = None
+        self.tk_controls = None
+        self.shared_frames = None
+        self.process_manager = None
+        self.processes = []
+        self.last_webview = None
+        self.last_manual_mode = None
+        self.loop_job = None
+        self.frame_job = None
+        self.persist_jobs = {}
+
+        self.boot = BootView(self)
+        self.boot.grid(row=0, column=0, sticky="nsew")
+        self.shell = None
+        self._start_boot()
+
+    def _maximize_window(self) -> None:
+        try:
+            self.state("zoomed")
+        except Exception:
+            try:
+                self.attributes("-zoomed", True)
+            except Exception:
+                pass
+
+    def _start_boot(self):
+        self.initializer, _, _ = create_initializer()
+
+        def task():
+            def progress(value):
+                messages = {
+                    25: "Carregando configuracoes",
+                    50: "Detectando cameras",
+                    75: "Verificando portas seriais",
+                    100: "Finalizando runtime",
+                }
+                self.after(0, lambda: self.boot.set_progress(value, messages.get(value, "Inicializando")))
+
+            try:
+                flags = self.initializer.prepare_initial_flags(progress_callback=progress)
+            except Exception as exc:  # noqa: BLE001 - boot must surface startup failures.
+                self.after(0, lambda: self.boot.show_error(str(exc)))
+                return
+            self.after(0, lambda: self._finish_boot(flags))
+
+        threading.Thread(target=task, daemon=True).start()
+
+    def _finish_boot(self, user_flags):
+        self.shared_controls, self.tk_controls, self.shared_frames, self.user_flags = create_runtime_state(
+            self.manager,
+            user_flags,
+        )
+        self.calibration_data = self.settings_store.load(CALIBRATION_FILE)
+        self.init_data = self.settings_store.load(DEFAULT_UI_PATH)
+        self.process_manager = build_process_manager(
+            shared_controls=self.shared_controls,
+            shared_frames=self.shared_frames,
+            tk_controls=self.tk_controls,
+            user_flags=user_flags,
+        )
+        self.processes = self.process_manager.create_backend_processes()
+
+        self.shell = DashboardShell(self, self)
+        self.shell.grid(row=0, column=0, sticky="nsew")
+        self.shell.tkraise()
+        self.boot.destroy()
+        self._tick_processes()
+        self._tick_frames()
+
+    def _tick_processes(self):
+        if not self.shared_controls or not self.shared_controls.is_running():
+            self.close()
+            return
+        current_webview = self.shared_controls.webview
+        current_manual_mode = self.shared_controls.manual_mode
+        _, self.last_webview = self.process_manager.handle_flask_process(current_webview, self.last_webview)
+        _, self.last_manual_mode = self.process_manager.handle_lane_object_processes(current_manual_mode, self.last_manual_mode)
+        if current_manual_mode and self.shell:
+            self.shell.views["Manual"].sync_car_info()
+        if self.shell:
+            self.shell.views["Home"].sync_dynamic_ranges()
+        self.loop_job = self.after(250, self._tick_processes)
+
+    def _tick_frames(self):
+        if self.shell:
+            active = self.shell.current
+            if active == "Home" and not self.tk_controls.manual_mode:
+                view = self.shell.views["Home"]
+                view.normal_video.update_state(
+                    self.shared_frames.normal_frame,
+                    webview=self.shared_controls.webview,
+                    safe_stop=self.shared_controls.safe_stop,
+                )
+                view.edges_video.update_state(
+                    self.shared_frames.edges_frame,
+                    webview=self.shared_controls.webview,
+                    safe_stop=self.shared_controls.safe_stop,
+                )
+                view.object_video.update_state(
+                    self.shared_frames.object_frame,
+                    webview=self.shared_controls.webview,
+                    object_safe_stop=self.shared_controls.object_safe_stop,
+                )
+            elif active == "Manual" and self.tk_controls.manual_mode:
+                self.shell.views["Manual"].video.update_state(self.shared_frames.tab2_frame)
+        self.frame_job = self.after(33 if self.shell and self.shell.current in {"Home", "Manual"} else 250, self._tick_frames)
+
+    def on_slider_value(self, key, value):
+        self.tk_controls[key] = value
+        if key in {"MANUAL_DIRECTION", "MANUAL_SPEED", "Side"}:
+            return
+        if key in self.persist_jobs:
+            self.after_cancel(self.persist_jobs[key])
+        self.persist_jobs[key] = self.after(250, lambda k=key, v=value: self._persist_slider(k, v))
+
+    def _persist_slider(self, key, value):
+        self.persist_jobs.pop(key, None)
+        self.settings_store.update({key: value}, CALIBRATION_FILE)
+
+    def set_manual_mode(self, active):
+        self.tk_controls.manual_mode = active
+        self.shared_controls.manual_mode = active
+        self.settings_store.update({"MANUAL_MD": active}, DEFAULT_UI_PATH)
+
+    def restore_defaults(self):
+        self.settings_store.load(DEFAULTS_FILE, update_target_if_exists=self.tk_controls)
+        for view_name in ("Home",):
+            view = self.shell.views[view_name]
+            for card in (view.filter_card, view.warp_card, view.pid_card, view.extras_card, view.object_card):
+                for key, value in self.tk_controls.items():
+                    card.set_value(key, value)
+        self.settings_store.update(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
+        self.show_status("Padroes restaurados", "success")
+
+    def open_settings(self):
+        specs = [
+            SliderSpec("BaseConf", "YOLO Confidence", 0, 10),
+            SliderSpec("CustomConf", "Custom YOLO Confidence", 0, 10),
+            SliderSpec("SemaforoConf", "Semaforo YOLO Confidence", 0, 10),
+            SliderSpec("Timestamp", "Timestamp", 0, 10),
+            SliderSpec("StopDecelerationStep", "Stop Deceleration Step", 1, 100),
+            SliderSpec("StopRampInterval", "Stop Ramp Interval (s)", 0.0, 1.0, 0.05),
+            SliderSpec("SEMAFORO_StopDecelerationStep", "Semaforo Stop Deceleration Step", 1, 100),
+            SliderSpec("SEMAFORO_StopRampInterval", "Semaforo Stop Ramp Interval (s)", 0.0, 1.0, 0.05),
+            SliderSpec("DeviationCounter", "Deviation Counter", 0, 5),
+        ]
+        modal = self._modal("Ajustes")
+        SliderCard(modal, "Ajustes", specs, self.tk_controls, self.calibration_data, self.on_slider_value).pack(
+            fill="both", expand=True, padx=12, pady=12
+        )
+
+    def open_defaults(self):
+        modal = self._modal("Padroes")
+        card = Card(modal, "Padroes")
+        card.pack(fill="both", expand=True, padx=12, pady=12)
+        ctk.CTkButton(card, text="Salvar padrao", **button_style(True), command=lambda: self._save_defaults(modal)).grid(
+            row=1, column=0, sticky="ew", padx=16, pady=(4, 8)
+        )
+        ctk.CTkButton(card, text="Restaurar padrao", **button_style(), command=lambda: self._restore_defaults_modal(modal)).grid(
+            row=2, column=0, sticky="ew", padx=16, pady=(0, 16)
+        )
+
+    def open_options(self):
+        modal = self._modal("Opcoes")
+        card = Card(modal, "Opcoes")
+        card.pack(fill="both", expand=True, padx=12, pady=12)
+        labels = ["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID", "SHOW_LINES"]
+        for index, label in enumerate(labels):
+            var = ctk.BooleanVar(value=bool(self.tk_controls.get(label, False)))
+            checkbox = ctk.CTkCheckBox(
+                card,
+                text=label,
+                variable=var,
+                command=lambda k=label, v=var: self._set_option(k, v.get()),
+            )
+            checkbox.grid(row=1 + index // 2, column=index % 2, sticky="w", padx=16, pady=8)
+
+    def _set_option(self, key, value):
+        self.tk_controls[key] = value
+        self.shared_controls[key] = value
+
+    def _save_defaults(self, modal):
+        self.settings_store.update(self.tk_controls, DEFAULTS_FILE, only_existing_keys=True)
+        modal.destroy()
+        self.show_status("Padrao salvo", "success")
+
+    def _restore_defaults_modal(self, modal):
+        self.restore_defaults()
+        modal.destroy()
+
+    def _modal(self, title):
+        modal = ctk.CTkToplevel(self)
+        modal.title(title)
+        modal.configure(fg_color=Theme.BG)
+        modal.transient(self)
+        modal.grab_set()
+        return modal
+
+    def show_status(self, message, tone="info"):
+        if self.shell:
+            self.shell.show_status(message, tone)
+
+    def close(self):
+        for job in (self.loop_job, self.frame_job, *self.persist_jobs.values()):
+            if job is not None:
+                try:
+                    self.after_cancel(job)
+                except Exception:
+                    pass
+        if self.shared_controls:
             self.shared_controls.webview = False
             self.shared_controls.manual_mode = False
             self.shared_controls.request_shutdown()
-            self.settings_store.update({"MANUAL_MD": False, "WEBVIEW": False}, DEFAULT_UI_PATH)
-            self.destroy()
-
-    def _build_home(self):
-        self.home_frame = HomeTab(
-            self,
-            self.tk_controls,
-            self.calibration_data,
-            self.shared_controls,
-            self.init_data,
-        )
-
-        self.tab_manager.create_tab(
-            "Home", self.home_frame, on_right=False, on_select=self.on_home_selected
-        )
-
-        self.floating_widget = self.home_frame.floating_widget
-        self.settings_widget = self.home_frame.settings_widget
-        self.normal_frame = self.home_frame.normal_frame
-        self.edges_frame = self.home_frame.edges_frame
-        self.object_frame = self.home_frame.object_frame
-        self.warp_controls = self.home_frame.warp_controls
-        self.pid_controls = self.home_frame.pid_controls
-        self.filters = self.home_frame.filters
-        self.sources_controls = self.home_frame.sources_controls
-        self.object_roi_controls = self.home_frame.object_roi_controls
-        self.extras_controls = self.home_frame.extras_controls
-
-    def _build_manual_tab(self):
-        self.manual_tab = ManualModeTab(
-            self,
-            self.tk_controls,
-            self.calibration_data,
-            self.shared_controls,
-            self.init_data,
-        )
-
-        def on_manual_selected(tab_name):
-            if not self.tk_controls.manual_mode:
-                box = CTkMessagebox(
-                    title="Atenção",
-                    message="Modo manual será ativo",
-                    icon="warning",
-                    option_1="OK",
-                    option_2="Cancelar",
-                )
-                response = box.get()
-                if response == "OK":
-                    self.tk_controls.manual_mode = True
-                    self.shared_controls.manual_mode = True
-                    self.settings_store.update({"MANUAL_MD": True}, DEFAULT_UI_PATH)
-                    self.tab_manager.select_tab(tab_name)
-                    self._sync_manual_controls()
-            else:
-                self.tab_manager.select_tab(tab_name)
-                self._sync_manual_controls()
-
-        self.tab_manager.create_tab(
-            "Manual Mode", self.manual_tab, on_right=True, on_select=on_manual_selected
-        )
-
-        self.central_video_frame_manual_tab = self.manual_tab.central_video_frame_manual_tab
-        self.lane_source_combo_manual_tab = self.manual_tab.lane_source_combo_manual_tab
-        self.manual_controls = self.manual_tab.manual_controls
-        self.toggles_section = self.manual_tab.toggles_section
-        self.steering_wheel = self.manual_tab.steering_wheel
+        if self.process_manager:
+            terminate_runtime_processes(self.processes, self.process_manager)
+        self.destroy()
 
 
-    def _build_task_manager_frame(self):
-        ctk.set_widget_scaling(1.0)
-        self.task_manager_frame = TaskManagerTab(self)
-        self.tab_manager.create_tab("Task Manager", self.task_manager_frame, on_right=True)
-
-    def apply_lane_source_manual_tab(self):
-        def clean_source(value):
-            if value.startswith("Camera "):
-                return value.replace("Camera ", "")
-            return value.replace("Câmera ", "") if value.startswith("Câmera ") else value
-
-        selected_source = clean_source(self.lane_source_combo_manual_tab.get())
-        self.tk_controls.lane_source_tab2 = selected_source
-        self.shared_controls["LANE_SOURCE_TAB2"] = selected_source
-
-        self.settings_store.update({
-            "LANE_SOURCE_TAB2": selected_source
-        }, DEFAULT_UI_PATH)
-
-    def refresh_sources_manual_tab(self):
-        current = self.lane_source_combo_manual_tab.get()
-
-        exclude = []
-        if current.startswith("Camera ") or current.startswith("Câmera "):
-            try:
-                exclude.append(int(current.replace("Camera ", "").replace("Câmera ", "")))
-            except ValueError:
-                pass
-
-        cameras = detect_camera_indices(exclude_indices=exclude)
-        videos = get_video_files_from_folder()
-        new_options = [f"Camera {i}" for i in cameras] + videos
-
-        if (current.startswith("Camera") or current.startswith("Câmera")) and current not in new_options:
-            new_options.append(current)
-
-        if not new_options:
-            return
-
-        self.lane_source_combo_manual_tab.configure(values=new_options)
-        if current not in new_options:
-            self.lane_source_combo_manual_tab.set(new_options[0])
-
-    def _sync_manual_controls(self):
-        last_data = self.shared_controls.car_info
-
-        direction = last_data.get("CAR_DIRECTION_DATA")
-        speed = last_data.get("CAR_SPEED_DATA")
-
-        if direction is not None:
-            self.manual_controls.set("MANUAL_DIRECTION", direction)
-            self.steering_wheel.set_angle(direction, trigger_command=False)
-        if speed is not None:
-            self.manual_controls.set("MANUAL_SPEED", speed)
-
-    def _on_wheel_change(self, angle: float):
-        self.manual_controls.set("MANUAL_DIRECTION", angle)
-
-    def _on_slider_direction_change(self, angle: float):
-        self.steering_wheel.set_angle(angle, trigger_command=False)
-
-    def on_tab_change(self, previous, current):
-        if previous == "Home" and current != "Home":
-            self.floating_widget.close_modal()
-            self.settings_widget.close_modal()
-        if hasattr(self, "task_manager_frame"):
-            self.task_manager_frame.set_active(current == "Task Manager")
-
-    def on_home_selected(self, tab_name):
-        if self.tk_controls.manual_mode:
-            box = CTkMessagebox(
-                title="Atenção",
-                message="O Modo manual será desativado",
-                icon="info",
-                option_1="OK",
-                option_2="Cancelar",
-            )
-            response = box.get()
-            if response == "OK":
-                self.tk_controls.manual_mode = False
-                self.shared_controls.manual_mode = False
-                self.settings_store.update({"MANUAL_MD": False}, DEFAULT_UI_PATH)
-                self.tab_manager.select_tab(tab_name)
-        else:
-            self.tab_manager.select_tab(tab_name)
-
-    def update_loop(self):
-        try:
-            shared_manual = self.shared_controls.manual_mode
-            tk_manual = self.tk_controls.manual_mode
-
-            if shared_manual != self._last_manual_mode:
-                self.settings_store.update({"MANUAL_MD": shared_manual}, DEFAULT_UI_PATH)
-                self._last_manual_mode = shared_manual
-
-            if shared_manual != tk_manual:
-                self.tk_controls.manual_mode = shared_manual
-                if shared_manual:
-                    self.tab_manager.select_tab("Manual Mode")
-                    self._sync_manual_controls()
-                else:
-                    self.tab_manager.select_tab("Home")
-
-            if self.tk_controls.manual_mode:
-                car_info = self.shared_controls.car_info
-                if car_info != getattr(self.manual_controls, "car_data", {}):
-                    self._sync_manual_controls()
-
-            active_tab = self.tab_manager.active
-            if active_tab == "Home" and not self.tk_controls.manual_mode:
-                self.normal_frame.update_image(self.shared_frames.normal_frame)
-                self.edges_frame.update_image(self.shared_frames.edges_frame)
-                self.object_frame.update_image(self.shared_frames.object_frame)
-            elif active_tab == "Manual Mode" and self.tk_controls.manual_mode:
-                self.central_video_frame_manual_tab.update_image(
-                    self.shared_frames.tab2_frame
-                )
-
-        except (KeyError, OSError, UnidentifiedImageError) as e:
-            logger.error(f"Erro ao atualizar frames: {e}")
-
-        interval_ms = 33 if self.tab_manager.active in {"Home", "Manual Mode"} else 250
-        self.after(interval_ms, self.update_loop)
-
-    def restore_defaults(self):
-        self.settings_store.load(self.DEFAULTS_FILE, update_target_if_exists=self.tk_controls)
-        sections = [
-            self.filters,
-            self.warp_controls,
-            self.object_roi_controls,
-            self.extras_controls,
-            self.pid_controls,
-        ]
-
-        for name, value in self.tk_controls.items():
-            for section in sections:
-                if name in section.sliders:
-                    section.set(name, value)
-        self.settings_store.update(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
-
-def launch_homepage(shared_frames, tk_controls, shared_controls, lane_queue):
-    app = MainApp(shared_frames, tk_controls, shared_controls, lane_queue)
-    app.resizable(False, False)
+def launch_application(manager):
+    app = AutodriveApp(manager)
     app.mainloop()

@@ -9,7 +9,6 @@ def _missing_target(*args, **kwargs):
 
 @dataclass(frozen=True)
 class ProcessTargets:
-    ui: Callable = _missing_target
     sender: Callable = _missing_target
     camera: Callable = _missing_target
     lane: Callable = _missing_target
@@ -54,30 +53,17 @@ class ProcessManager:
         self.lane_proc = None
         self.object_proc = None
         self.manual_proc = None
-        self.ui_proc = None
         self.sender_proc = None
         self.camera_proc = None
         self.logger = logger or self.targets.logger_factory("ProcessManager")
 
-    def create_all_processes(self):
+    def create_backend_processes(self):
         self.processes.clear()
-        self._add_ui_process()
         self._add_sender_process()
         return self.processes
 
-    def _add_ui_process(self):
-        self._start_process(
-            "ui_proc",
-            "tk",
-            self.targets.ui,
-            None,
-            shared_frames=self.shared_frames,
-            tk_controls=self.tk_controls,
-            shared_controls=self.shared_controls,
-            lane_queue=self.lane_queue,
-        )
-        if self.ui_proc:
-            self.processes.append(self.ui_proc)
+    def create_all_processes(self):
+        return self.create_backend_processes()
 
     def _add_sender_process(self):
         self._start_process(

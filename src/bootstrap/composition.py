@@ -3,13 +3,12 @@ from src.application.orchestration.process_manager import ProcessManager, Proces
 from src.application.state import RuntimeControls, SharedFrames, UiControls
 
 
-def create_runtime_state(manager):
+def create_initializer():
     from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
     from src.infrastructure.adapters.video.video_utility_process import detect_camera_indices
     from src.infrastructure.constants.colors_constants import RED, RESET
     from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
     from src.infrastructure.data.repository.calibration_repository import default_settings_store
-    from src.presentation.init_ui.init_ui_section import init_system
 
     initializer = SystemInitializer(
         settings_store=default_settings_store,
@@ -19,7 +18,14 @@ def create_runtime_state(manager):
         false_color=RED,
         reset_color=RESET,
     )
-    user_flags = init_system(initializer)
+    return initializer, default_settings_store, CALIBRATION_FILE
+
+
+def create_runtime_state(manager, user_flags):
+    from src.infrastructure.constants.ui_constants.file_constants import CALIBRATION_FILE
+    from src.infrastructure.data.repository.calibration_repository import default_settings_store
+
+    initializer, _, _ = create_initializer()
     calibrated_data = default_settings_store.load(CALIBRATION_FILE)
     initial_tk = {**calibrated_data, **user_flags}
 
@@ -44,10 +50,8 @@ def build_process_targets() -> ProcessTargets:
     from src.infrastructure.logging.logger import Logger
     from src.infrastructure.utils.priorities_processor import set_process_priority
     from src.presentation.lane_overlay_renderer import draw_overlays
-    from src.presentation.ui.main_app import launch_homepage
 
     return ProcessTargets(
-        ui=launch_homepage,
         sender=data_sender_process,
         camera=camera_capture_process,
         lane=lane_detection_process,
