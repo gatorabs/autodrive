@@ -44,6 +44,54 @@ processes and interacts with cameras and serial ports.
 On startup, the application detects available cameras, lists serial ports, loads
 settings from `config/`, and opens the main UI.
 
+## Optional WebView Frontend
+
+The desktop application can expose a Flask API/WebView backend that is consumed
+by the React frontend in `frontend/`. Use this flow when you want to run the web
+dashboard in the browser.
+
+### 1. Enable WebView in the desktop UI
+
+Open the desktop application, click **Options**, and enable **WEBVIEW**.
+
+![Options button in the desktop UI](docs/assets/webview-options-button.png)
+
+![WEBVIEW enabled in the Options modal](docs/assets/webview-options-modal.png)
+
+### 2. Copy the Flask address from PyCharm
+
+After enabling `WEBVIEW`, the PyCharm PowerShell console prints the Flask
+addresses. Copy the reachable network address, for example
+`http://192.168.15.7:5000`.
+
+![Flask address printed in the PyCharm PowerShell console](docs/assets/webview-flask-address.png)
+
+### 3. Point the frontend to the Flask API
+
+Open `frontend/src/config/api.ts` and set the API base URL to the address printed
+by Flask:
+
+```ts
+const DEFAULT_API_BASE_URL = "http://192.168.15.7:5000";
+```
+
+You can also use `VITE_API_BASE_URL` if you prefer environment-based
+configuration, but editing `api.ts` is the simplest local setup.
+
+### 4. Install and run the frontend
+
+From the `frontend/` directory:
+
+```powershell
+npm i
+npm run dev
+```
+
+Then open the Vite URL shown in the terminal. The web dashboard should connect
+to the Flask backend and render the live vehicle feeds and telemetry.
+
+![Web dashboard connected to the Flask backend](docs/assets/webview-dashboard.png)
+
 ## Runtime Features
 
 - Live dashboard with lane, edge, and object-detection video feeds.
