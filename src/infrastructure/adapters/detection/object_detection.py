@@ -15,6 +15,7 @@ from src.infrastructure.constants.video_constants import (
 )
 
 from .custom_model_utils import load_names_from_metadata, normalise_names_payload
+from .model_registry import load_active_model
 
 TARGET_CLASSES = {0, 9}
 DEFAULT_CUSTOM_MODEL_PATH = Path("runs/detect/train/weights/best.pt")
@@ -81,6 +82,7 @@ class ObjectDetector:
             self.inference_kwargs["imgsz"] = CPU_INFERENCE_IMG_SIZE
 
         self.custom_models = []
+        self.active_custom_model = None
         self.custom_default_label = DEFAULT_CUSTOM_LABEL
         self.custom_default_conf = DEFAULT_CUSTOM_CONFIDENCE
         self.traffic_light_default_conf = DEFAULT_TRAFFIC_LIGHT_CONFIDENCE
@@ -152,6 +154,12 @@ class ObjectDetector:
         return ordered_roots
 
     def _discover_custom_model_paths(self):
+        active_model = load_active_model()
+        if active_model is not None:
+            self.active_custom_model = active_model
+            return [active_model.path]
+
+        self.active_custom_model = None
         search_roots = self._candidate_search_roots()
         def add_path(path_obj, bucket, seen):
             try:
@@ -196,6 +204,12 @@ class ObjectDetector:
                     "Nenhum modelo customizado encontrado. Detecção extra desativada.")
             return
 
+        if self.active_custom_model is not None and self.logger:
+            self.logger.info(
+                "Modelo customizado ativo selecionado por manifesto: "
+                f"{self.active_custom_model.name} ({self.active_custom_model.path})"
+            )
+
         covered_classes = set()
 
         for model_path in model_paths:
@@ -207,6 +221,15 @@ class ObjectDetector:
                 names_payload = normalise_names_payload(getattr(model, "names", {}))
                 if not names_payload:
                     names_payload = load_names_from_metadata(model_path)
+                if (
+                    not names_payload
+                    and self.active_custom_model is not None
+                    and model_path == self.active_custom_model.path
+                ):
+                    names_payload = {
+                        idx: label
+                        for idx, label in enumerate(self.active_custom_model.classes)
+                    }
 
                 if isinstance(names_payload, dict):
                     names_iterable = names_payload.values()

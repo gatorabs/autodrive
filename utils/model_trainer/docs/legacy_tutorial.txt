@@ -8,15 +8,15 @@ Fluxo para coletar dados e treinar modelos customizados
    pip install opencv-contrib-python
    ```
 
-   Utilize o script `_capture_images.py` para gravar vídeos ou imagens já com as bounding boxes.
+   Utilize o script `cli/capture_images.py` para gravar vídeos ou imagens já com as bounding boxes.
    Agora é possível planejar vários objetos na mesma sessão:
 
    ```bash
    # Ex.: captura de três objetos salvando tudo dentro de datasets/
-   python utils/model_trainer/_capture_images.py --base-dir datasets --objects 3
+   python utils/model_trainer/cli/capture_images.py --base-dir datasets --objects 3
 
    # Para pular as perguntas interativas de nome:
-   python utils/model_trainer/_capture_images.py --base-dir datasets --class-names parafuso porca arruela
+   python utils/model_trainer/cli/capture_images.py --base-dir datasets --class-names parafuso porca arruela
    ```
 
    Durante a captura, `h` avança para o próximo objeto/classe mantendo as mesmas teclas de tracking (`t`), gravação (`s`) e
@@ -28,15 +28,15 @@ Fluxo para coletar dados e treinar modelos customizados
 
 2. **Organizar o dataset para cada modelo**
 
-   O script `_train_model.py` agora pode ser executado diretamente ou importado como função.
+   O preparo de dataset agora fica em `services/dataset_preparation.py` e é chamado pelo trainer.
    Exemplos:
 
    ```bash
    # usa o dataset padrão e gera yolo_data/
-   python utils/model_trainer/_train_model.py --classes objeto
+   python utils/model_trainer/services/dataset_preparation.py --classes objeto
 
    # dataset diferente e sem limpar a pasta de saída
-   python utils/model_trainer/_train_model.py \
+   python utils/model_trainer/services/dataset_preparation.py \
        --dataset datasets/cones \
        --output yolo_data/cones \
        --classes cone \
@@ -85,17 +85,17 @@ Fluxo para coletar dados e treinar modelos customizados
          device: 0
    ```
 
-   Ao usar o arquivo gerado automaticamente, basta executar o comando abaixo — o `train_models.py`
+   Ao usar o arquivo gerado automaticamente, basta executar o comando abaixo — o `cli/train_models.py`
    detecta `training_config.auto.yaml` sozinho. Se preferir um arquivo customizado, copie ou renomeie o exemplo
    para `training_config.yaml` (na mesma pasta onde pretende executar o comando) e ajuste as entradas conforme desejar.
    Em seguida, execute:
 
    ```bash
    # Se o arquivo estiver na pasta atual, não é necessário informar --config
-   python utils/model_trainer/train_models.py
+   python utils/model_trainer/cli/train_models.py
 
    # Ainda é possível apontar um caminho específico, se preferir
-   python utils/model_trainer/train_models.py --config outro_config.yaml
+   python utils/model_trainer/cli/train_models.py --config outro_config.yaml
    ```
 
    O script prepara cada dataset, gera seu próprio `data.yaml` e chama o comando `yolo detect train ...` para cada entrada.

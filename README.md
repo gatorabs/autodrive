@@ -144,9 +144,29 @@ to date.
 - Video sources are detected from the available camera indexes.
 - Test videos can be placed in `resources/test_videos`.
 - The base detector uses YOLO and can download/load `yolov8n.pt`.
-- Custom models are discovered from training outputs such as
-  `runs/detect/*/weights/best.pt`, including paths under
-  `utils/model_trainer`.
+- Custom object models can be trained with the local trainer entrypoint in
+  `utils/model_trainer/run_trainer.py`.
+- The trainer defaults to the composed model (`todos_objetos`) used by the car
+  and can promote one trained weight as the active model.
+- When `config/model_registry.json` points to a valid active model, Autodrive
+  loads only that custom model and ignores the other training outputs.
+- If no active model registry exists, Autodrive falls back to the legacy
+  discovery of `runs/detect/*/weights/best.pt`.
+
+## Training Custom Models
+
+Open `utils/model_trainer/run_trainer.py` in PyCharm and run it from the IDE.
+The trainer shows available datasets, validates image/label pairs, prepares a
+composed YOLO dataset, streams training logs, lists generated weights, and lets
+you promote one model as active for the main application.
+It also includes a camera capture panel where you can draw a bounding box,
+start tracking, record frames automatically, and save YOLO labels in real time.
+
+Training outputs remain local by default. Existing trained models are not
+overwritten: each new run receives a timestamped folder under
+`utils/model_trainer/yolo_runs`. Promoting a model only updates the local
+`config/model_registry.json` pointer; it does not copy, delete, or replace
+weight files.
 
 ## Main Flow
 

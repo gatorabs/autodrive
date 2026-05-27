@@ -402,7 +402,7 @@ if sessions:
 def generate_training_config(sessions: List[ObjectSession], base_dir: Path) -> Path:
     """Cria (ou atualiza) um arquivo ``training_config.auto.yaml`` com os modelos."""
 
-    config_dir = Path(__file__).resolve().parent
+    config_dir = Path(__file__).resolve().parents[1]
     config_path = config_dir / "training_config.auto.yaml"
 
     models = []
@@ -460,5 +460,5 @@ if sessions:
     config_file = generate_training_config(sessions, base_dir)
     print(
         "\nArquivo de configuração agregado gerado em "
-        f"{config_file}. Use-o diretamente com train_models.py."
+        f"{config_file}. Use-o diretamente com cli/train_models.py."
     )

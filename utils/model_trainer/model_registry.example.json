@@ -1,0 +1,12 @@
+{
+  "name": "todos_objetos",
+  "path": "utils/model_trainer/yolo_runs/todos_objetos/weights/best.pt",
+  "classes": [
+    "PLACA_PARE",
+    "PLACA_LOMBADA",
+    "PLACA_DESVIO",
+    "SEMAFORO"
+  ],
+  "promoted_at": "2026-05-27T00:00:00",
+  "source": "utils/model_trainer"
+}

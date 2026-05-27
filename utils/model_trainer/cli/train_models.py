@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import sys
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,10 +13,11 @@ from typing import Any, Dict, Iterable, List, Sequence
 
 import yaml
 
-if __package__ in (None, ""):
-    from _train_model import DatasetSummary, prepare_dataset, prepare_dataset_from_parts  # type: ignore
+if __package__ in (None, "", "cli"):
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
+    from services.dataset_preparation import DatasetSummary, prepare_dataset, prepare_dataset_from_parts  # type: ignore
 else:  # pragma: no cover - caminho utilizado quando importado como pacote
-    from ._train_model import DatasetSummary, prepare_dataset, prepare_dataset_from_parts
+    from ..services.dataset_preparation import DatasetSummary, prepare_dataset, prepare_dataset_from_parts
 
 
 DEFAULT_BASE_MODEL = "yolov8n.pt"
@@ -287,7 +289,7 @@ def _discover_datasets_in_root(root: Path) -> List[DiscoveredDataset]:
 
 
 def _auto_generate_config(base_dir: Path) -> Path | None:
-    script_dir = Path(__file__).resolve().parent
+    script_dir = Path(__file__).resolve().parents[1]
     candidate_roots = [
         base_dir / "dataset",
         base_dir / "datasets",
@@ -412,7 +414,7 @@ def _default_config_candidates(base: Path) -> List[Path]:
     """Retorna caminhos candidatos para o arquivo de configuração padrão."""
 
     cwd = base.resolve()
-    script_dir = Path(__file__).resolve().parent
+    script_dir = Path(__file__).resolve().parents[1]
 
     candidates = [
         cwd / "training_config.yaml",

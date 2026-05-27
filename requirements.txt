@@ -1,3 +1,4 @@
+oci-cli
 customtkinter
 CTkMessagebox
 Pillow
