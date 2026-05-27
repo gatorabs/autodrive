@@ -106,7 +106,7 @@ class BootView(ctk.CTkFrame):
         ).grid(row=0, column=0, pady=(44, 4))
         ctk.CTkLabel(
             shell,
-            text="Inicializando dashboard, processos e dispositivos",
+            text="Starting dashboard, processes, and devices",
             text_color=Theme.MUTED,
         ).grid(row=1, column=0, pady=(0, 26))
 
@@ -118,7 +118,7 @@ class BootView(ctk.CTkFrame):
         self.progress.grid(row=2, column=0, sticky="ew", padx=54)
         self.progress.set(0)
 
-        self.step_label = ctk.CTkLabel(shell, text="Preparando...", text_color=Theme.MUTED)
+        self.step_label = ctk.CTkLabel(shell, text="Preparing...", text_color=Theme.MUTED)
         self.step_label.grid(row=3, column=0, pady=(12, 28))
 
         self.state_slot = ctk.CTkFrame(shell, fg_color="transparent")
@@ -131,7 +131,7 @@ class BootView(ctk.CTkFrame):
     def show_error(self, message: str) -> None:
         for child in self.state_slot.winfo_children():
             child.destroy()
-        StateBlock(self.state_slot, "Falha na inicializacao", message, "error").pack(fill="x")
+        StateBlock(self.state_slot, "Startup failed", message, "error").pack(fill="x")
 
 
 class VideoTile(Card):
@@ -160,13 +160,13 @@ class VideoTile(Card):
 
     def update_state(self, frame, *, webview=False, safe_stop=False, object_safe_stop=False):
         if webview:
-            self._show_text("Webview ativo")
+            self._show_text("Webview active")
             return
         if self.error_key == "lane" and safe_stop:
-            self._show_text("Erro na transmissao")
+            self._show_text("Transmission error")
             return
         if self.error_key == "object" and object_safe_stop:
-            self._show_text("Erro na transmissao")
+            self._show_text("Transmission error")
             return
         if frame is None:
             self._show_text(self.placeholder)
@@ -338,23 +338,23 @@ class HomeView(ctk.CTkFrame):
         self.scroll.grid_columnconfigure((0, 1, 2), weight=1, uniform="home")
         self.scroll.grid_rowconfigure(0, weight=1, uniform="video-row")
 
-        self.normal_video = VideoTile(self.scroll, "Normal Frame", "Aguardando frame normal", "lane")
-        self.edges_video = VideoTile(self.scroll, "Edges Frame", "Aguardando frame edges", "lane")
-        self.object_video = VideoTile(self.scroll, "Object Frame", "Aguardando frame object", "object")
+        self.normal_video = VideoTile(self.scroll, "Normal Frame", "Waiting for normal frame", "lane")
+        self.edges_video = VideoTile(self.scroll, "Edges Frame", "Waiting for edges frame", "lane")
+        self.object_video = VideoTile(self.scroll, "Object Frame", "Waiting for object frame", "object")
         for col, tile in enumerate((self.normal_video, self.edges_video, self.object_video)):
             tile.grid(row=0, column=col, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
 
         self.warp_card = self._slider_card(
-            "Perspectiva da Pista",
+            "Road Perspective",
             [
-                SliderSpec("tl_x", "Topo Esq. X", 0, 640),
-                SliderSpec("tl_y", "Topo Esq. Y", 0, 480),
-                SliderSpec("tr_x", "Topo Dir. X", 0, 640),
-                SliderSpec("tr_y", "Topo Dir. Y", 0, 480),
-                SliderSpec("bl_x", "Base Esq. X", 0, 640),
-                SliderSpec("bl_y", "Base Esq. Y", 0, 480),
-                SliderSpec("br_x", "Base Dir. X", 0, 640),
-                SliderSpec("br_y", "Base Dir. Y", 0, 480),
+                SliderSpec("tl_x", "Top Left X", 0, 640),
+                SliderSpec("tl_y", "Top Left Y", 0, 480),
+                SliderSpec("tr_x", "Top Right X", 0, 640),
+                SliderSpec("tr_y", "Top Right Y", 0, 480),
+                SliderSpec("bl_x", "Bottom Left X", 0, 640),
+                SliderSpec("bl_y", "Bottom Left Y", 0, 480),
+                SliderSpec("br_x", "Bottom Right X", 0, 640),
+                SliderSpec("br_y", "Bottom Right Y", 0, 480),
             ],
             1,
             0,
@@ -363,41 +363,41 @@ class HomeView(ctk.CTkFrame):
 
         self._build_sources(row=1, column=1)
         self.filter_card = self._slider_card(
-            "Filtros de Imagem",
-            [SliderSpec("F_Canny", "Canny baixo", 0, 255), SliderSpec("S_Canny", "Canny alto", 0, 255)],
+            "Image Filters",
+            [SliderSpec("F_Canny", "Canny Low", 0, 255), SliderSpec("S_Canny", "Canny High", 0, 255)],
             2,
             1,
         )
         self.pid_card = self._slider_card(
-            "Controle PID",
+            "PID Control",
             [
-                SliderSpec("KP", "Proporcional", 0.0, 5.0, 0.01),
+                SliderSpec("KP", "Proportional", 0.0, 5.0, 0.01),
                 SliderSpec("KI", "Integral", 0.0, 10.0, 0.001),
-                SliderSpec("KD", "Derivativo", 0.0, 10.0, 0.001),
+                SliderSpec("KD", "Derivative", 0.0, 10.0, 0.001),
             ],
             3,
             1,
         )
         self.extras_card = self._slider_card(
-            "Operacao",
+            "Operation",
             [
-                SliderSpec("Lines", "Linhas", 0, 480),
-                SliderSpec("Distance", "Distancia", 0, 270),
-                SliderSpec("Speed", "Velocidade", 0, 255),
-                SliderSpec("Side", "Lado", 1, 2),
+                SliderSpec("Lines", "Lines", 0, 480),
+                SliderSpec("Distance", "Distance", 0, 270),
+                SliderSpec("Speed", "Speed", 0, 255),
+                SliderSpec("Side", "Side", 1, 2),
             ],
             1,
             2,
         )
         self.object_card = self._slider_card(
-            "Deteccao de Objetos",
+            "Object Detection",
             [
-                SliderSpec("Person", "Pessoa", 0, 240),
-                SliderSpec("SEMAFORO", "Semaforo", 0, 240),
-                SliderSpec("PeopleRegion", "Regiao Pessoa", 10, 100),
-                SliderSpec("PLACA_PARE", "Placa Pare", 0, 240),
-                SliderSpec("PLACA_DESVIO", "Placa Desvio", 0, 240),
-                SliderSpec("PLACA_LOMBADA", "Placa Lombada", 0, 240),
+                SliderSpec("Person", "Person", 0, 240),
+                SliderSpec("SEMAFORO", "Traffic Light", 0, 240),
+                SliderSpec("PeopleRegion", "Person Region", 10, 100),
+                SliderSpec("PLACA_PARE", "Stop Sign", 0, 240),
+                SliderSpec("PLACA_DESVIO", "Detour Sign", 0, 240),
+                SliderSpec("PLACA_LOMBADA", "Speed Bump Sign", 0, 240),
             ],
             2,
             2,
@@ -405,7 +405,7 @@ class HomeView(ctk.CTkFrame):
         )
 
     def _build_sources(self, row, column):
-        card = Card(self.scroll, "Entrada e Comunicacao")
+        card = Card(self.scroll, "Input and Communication")
         card.grid(row=row, column=column, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
 
         self.refresh_source_options()
@@ -419,24 +419,24 @@ class HomeView(ctk.CTkFrame):
         self.security_com = ctk.StringVar(value=self.app.shared_controls.security_com)
         self.sender_com = ctk.StringVar(value=self.app.shared_controls.sender_com)
 
-        self.lane_combo = self._combo_row(card, 1, "Camera pista", self.sources, self.lane_source)
-        self.object_combo = self._combo_row(card, 2, "Camera objetos", self.sources, self.object_source)
-        self.security_combo = self._combo_row(card, 3, "COM seguranca", self.com_ports, self.security_com)
-        self.sender_combo = self._combo_row(card, 4, "COM envio", self.com_ports, self.sender_com)
+        self.lane_combo = self._combo_row(card, 1, "Lane camera", self.sources, self.lane_source)
+        self.object_combo = self._combo_row(card, 2, "Object camera", self.sources, self.object_source)
+        self.security_combo = self._combo_row(card, 3, "Safety COM", self.com_ports, self.security_com)
+        self.sender_combo = self._combo_row(card, 4, "Sender COM", self.com_ports, self.sender_com)
 
         buttons = ctk.CTkFrame(card, fg_color="transparent")
         buttons.grid(row=5, column=0, sticky="ew", padx=14, pady=(8, 10))
         buttons.grid_columnconfigure((0, 1), weight=1)
-        ctk.CTkButton(buttons, text="Aplicar fontes", **button_style(True), command=self.apply_sources).grid(
+        ctk.CTkButton(buttons, text="Apply sources", **button_style(True), command=self.apply_sources).grid(
             row=0, column=0, sticky="ew", padx=(0, 4), pady=3
         )
-        ctk.CTkButton(buttons, text="Atualizar fontes", **button_style(), command=self.update_sources).grid(
+        ctk.CTkButton(buttons, text="Refresh sources", **button_style(), command=self.update_sources).grid(
             row=0, column=1, sticky="ew", padx=(4, 0), pady=3
         )
-        ctk.CTkButton(buttons, text="Aplicar COMs", **button_style(True), command=self.apply_coms).grid(
+        ctk.CTkButton(buttons, text="Apply COMs", **button_style(True), command=self.apply_coms).grid(
             row=1, column=0, sticky="ew", padx=(0, 4), pady=3
         )
-        ctk.CTkButton(buttons, text="Atualizar portas", **button_style(), command=self.update_coms).grid(
+        ctk.CTkButton(buttons, text="Refresh ports", **button_style(), command=self.update_coms).grid(
             row=1, column=1, sticky="ew", padx=(4, 0), pady=3
         )
 
@@ -482,7 +482,7 @@ class HomeView(ctk.CTkFrame):
         videos = get_video_files_from_folder()
         self.sources = [f"Camera {i}" for i in cameras] + videos
         if not self.sources:
-            self.app.show_status("Nenhuma fonte encontrada", "warning")
+            self.app.show_status("No sources found", "warning")
             return
         self.lane_combo.configure(values=self.sources)
         self.object_combo.configure(values=self.sources)
@@ -492,7 +492,7 @@ class HomeView(ctk.CTkFrame):
         self.security_combo.configure(values=self.com_ports)
         self.sender_combo.configure(values=self.com_ports)
         if not self.com_ports:
-            self.app.show_status("Nenhuma porta COM encontrada", "warning")
+            self.app.show_status("No COM ports found", "warning")
 
     def apply_sources(self):
         lane = self._clean_source(self.lane_combo.get())
@@ -500,7 +500,7 @@ class HomeView(ctk.CTkFrame):
         self.app.tk_controls.lane_source = lane
         self.app.tk_controls.object_source = obj
         self.app.settings_store.update({"LANE_SOURCE": lane, "OBJECT_SOURCE": obj}, DEFAULT_UI_PATH)
-        self.app.show_status("Fontes aplicadas", "success")
+        self.app.show_status("Sources applied", "success")
 
     def apply_coms(self):
         sender = self.sender_combo.get()
@@ -509,14 +509,14 @@ class HomeView(ctk.CTkFrame):
         self.app.shared_controls.sender_com = sender
         self.app.shared_controls.security_com = security
         self.app.settings_store.update({"SENDER_COM": sender, "SECURITY_COM": security}, DEFAULT_UI_PATH)
-        self.app.show_status("Portas COM aplicadas", "success")
+        self.app.show_status("COM ports applied", "success")
 
     def sync_dynamic_ranges(self):
         max_height = self.app.shared_controls.get("MAX_HEIGHT")
         if isinstance(max_height, (int, float)) and max_height > 0:
             control = self.extras_card.controls.get("Lines")
             if control and control.spec.max_value != max_height:
-                control.spec = SliderSpec("Lines", "Linhas", 0, max_height)
+                control.spec = SliderSpec("Lines", "Lines", 0, max_height)
                 control.slider.configure(to=max_height, number_of_steps=max(1, int(max_height)))
 
     @staticmethod
@@ -538,10 +538,10 @@ class ManualView(ctk.CTkFrame):
         scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=8)
         scroll.grid_columnconfigure((0, 1), weight=1, uniform="manual")
 
-        self.video = VideoTile(scroll, "Video Manual", "Aguardando frame manual", "lane")
+        self.video = VideoTile(scroll, "Manual Video", "Waiting for manual frame", "lane")
         self.video.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=6, pady=6)
 
-        source_card = Card(scroll, "Fonte Manual")
+        source_card = Card(scroll, "Manual Source")
         source_card.grid(row=1, column=0, sticky="new", padx=6, pady=6)
         source_card.grid_columnconfigure(0, weight=1)
 
@@ -554,19 +554,19 @@ class ManualView(ctk.CTkFrame):
         row = ctk.CTkFrame(source_card, fg_color="transparent")
         row.grid(row=2, column=0, sticky="ew", padx=16, pady=(4, 16))
         row.grid_columnconfigure((0, 1), weight=1)
-        ctk.CTkButton(row, text="Aplicar", **button_style(True), command=self.apply_source).grid(
+        ctk.CTkButton(row, text="Apply", **button_style(True), command=self.apply_source).grid(
             row=0, column=0, sticky="ew", padx=(0, 4)
         )
-        ctk.CTkButton(row, text="Atualizar", **button_style(), command=self.refresh_sources).grid(
+        ctk.CTkButton(row, text="Refresh", **button_style(), command=self.refresh_sources).grid(
             row=0, column=1, sticky="ew", padx=(4, 0)
         )
 
         self.control_card = SliderCard(
             scroll,
-            "Controle Manual",
+            "Manual Control",
             [
-                SliderSpec("MANUAL_DIRECTION", "Direcao", 0, 180),
-                SliderSpec("MANUAL_SPEED", "Velocidade", 0, 255),
+                SliderSpec("MANUAL_DIRECTION", "Direction", 0, 180),
+                SliderSpec("MANUAL_SPEED", "Speed", 0, 255),
             ],
             self.app.tk_controls,
             self.app.calibration_data,
@@ -574,7 +574,7 @@ class ManualView(ctk.CTkFrame):
         )
         self.control_card.grid(row=1, column=1, sticky="new", padx=6, pady=6)
 
-        self.wheel_card = Card(scroll, "Volante")
+        self.wheel_card = Card(scroll, "Steering Wheel")
         self.wheel_card.grid(row=2, column=0, columnspan=2, sticky="n", padx=6, pady=6)
         self.wheel = ctk.CTkCanvas(self.wheel_card, width=170, height=170, bg=Theme.PANEL, highlightthickness=0)
         self.wheel.grid(row=1, column=0, padx=24, pady=(0, 20))
@@ -586,7 +586,7 @@ class ManualView(ctk.CTkFrame):
         self.app.tk_controls.lane_source_tab2 = selected
         self.app.shared_controls["LANE_SOURCE_TAB2"] = selected
         self.app.settings_store.update({"LANE_SOURCE_TAB2": selected}, DEFAULT_UI_PATH)
-        self.app.show_status("Fonte manual aplicada", "success")
+        self.app.show_status("Manual source applied", "success")
 
     def refresh_sources(self):
         current = self.source_combo.get()
@@ -598,7 +598,7 @@ class ManualView(ctk.CTkFrame):
                 pass
         sources = [f"Camera {i}" for i in detect_camera_indices(exclude_indices=exclude)] + get_video_files_from_folder()
         if not sources:
-            self.app.show_status("Nenhuma fonte manual encontrada", "warning")
+            self.app.show_status("No manual sources found", "warning")
             return
         self.source_combo.configure(values=sources)
 
@@ -667,9 +667,9 @@ class TaskManagerView(ctk.CTkFrame):
         header = ctk.CTkFrame(card, fg_color="transparent")
         header.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 8))
         header.grid_columnconfigure(0, weight=1)
-        self.summary = ctk.CTkLabel(header, text="Aguardando leitura...", text_color=Theme.MUTED)
+        self.summary = ctk.CTkLabel(header, text="Waiting for data...", text_color=Theme.MUTED)
         self.summary.grid(row=0, column=0, sticky="w")
-        ctk.CTkSwitch(header, text="Compacto", variable=self.compact, command=self._toggle_compact).grid(
+        ctk.CTkSwitch(header, text="Compact", variable=self.compact, command=self._toggle_compact).grid(
             row=0, column=1, sticky="e"
         )
 
@@ -748,7 +748,7 @@ class TaskManagerView(ctk.CTkFrame):
         if values:
             self.ax.barh(labels, values)
         else:
-            self.ax.text(0.5, 0.5, "Nenhum processo Python encontrado", color=Theme.MUTED, ha="center")
+            self.ax.text(0.5, 0.5, "No Python processes found", color=Theme.MUTED, ha="center")
         self.ax.set_xlabel(xlabel, color=Theme.TEXT)
         self.ax.tick_params(axis="x", colors=Theme.TEXT)
         self.ax.tick_params(axis="y", colors=Theme.TEXT)
@@ -802,9 +802,9 @@ class DashboardShell(ctk.CTkFrame):
             self.buttons[name] = ctk.CTkButton(nav, text=name, **button_style(), command=lambda n=name: self.select(n))
             self.buttons[name].pack(side="left", padx=4)
         for text, command in (
-            ("Ajustes", app.open_settings),
-            ("Padroes", app.open_defaults),
-            ("Opcoes", app.open_options),
+            ("Settings", app.open_settings),
+            ("Defaults", app.open_defaults),
+            ("Options", app.open_options),
         ):
             ctk.CTkButton(nav, text=text, **button_style(), command=command).pack(side="left", padx=4)
 
@@ -812,7 +812,7 @@ class DashboardShell(ctk.CTkFrame):
         self.content.grid(row=1, column=0, sticky="nsew")
         self.content.grid_rowconfigure(0, weight=1)
         self.content.grid_columnconfigure(0, weight=1)
-        self.status = ctk.CTkLabel(self, text="Pronto", text_color=Theme.MUTED, anchor="w")
+        self.status = ctk.CTkLabel(self, text="Ready", text_color=Theme.MUTED, anchor="w")
         self.status.grid(row=2, column=0, sticky="ew", padx=18, pady=(0, 8))
 
         self.views = {
@@ -826,12 +826,12 @@ class DashboardShell(ctk.CTkFrame):
 
     def select(self, name):
         if name == "Manual" and not self.app.shared_controls.manual_mode:
-            box = CTkMessagebox(title="Atencao", message="Modo manual sera ativo", icon="warning", option_1="OK", option_2="Cancelar")
+            box = CTkMessagebox(title="Attention", message="Manual mode will be enabled", icon="warning", option_1="OK", option_2="Cancel")
             if box.get() != "OK":
                 return
             self.app.set_manual_mode(True)
         elif name == "Home" and self.app.shared_controls.manual_mode:
-            box = CTkMessagebox(title="Atencao", message="O modo manual sera desativado", icon="info", option_1="OK", option_2="Cancelar")
+            box = CTkMessagebox(title="Attention", message="Manual mode will be disabled", icon="info", option_1="OK", option_2="Cancel")
             if box.get() != "OK":
                 return
             self.app.set_manual_mode(False)
@@ -900,12 +900,12 @@ class AutodriveApp(ctk.CTk):
         def task():
             def progress(value):
                 messages = {
-                    25: "Carregando configuracoes",
-                    50: "Detectando cameras",
-                    75: "Verificando portas seriais",
-                    100: "Finalizando runtime",
+                    25: "Loading settings",
+                    50: "Detecting cameras",
+                    75: "Checking serial ports",
+                    100: "Finalizing runtime",
                 }
-                self.after(0, lambda: self.boot.set_progress(value, messages.get(value, "Inicializando")))
+                self.after(0, lambda: self.boot.set_progress(value, messages.get(value, "Initializing")))
 
             try:
                 flags = self.initializer.prepare_initial_flags(progress_callback=progress)
@@ -1001,39 +1001,39 @@ class AutodriveApp(ctk.CTk):
                 for key, value in self.tk_controls.items():
                     card.set_value(key, value)
         self.settings_store.update(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
-        self.show_status("Padroes restaurados", "success")
+        self.show_status("Defaults restored", "success")
 
     def open_settings(self):
         specs = [
             SliderSpec("BaseConf", "YOLO Confidence", 0, 10),
             SliderSpec("CustomConf", "Custom YOLO Confidence", 0, 10),
-            SliderSpec("SemaforoConf", "Semaforo YOLO Confidence", 0, 10),
+            SliderSpec("SemaforoConf", "Traffic Light YOLO Confidence", 0, 10),
             SliderSpec("Timestamp", "Timestamp", 0, 10),
             SliderSpec("StopDecelerationStep", "Stop Deceleration Step", 1, 100),
             SliderSpec("StopRampInterval", "Stop Ramp Interval (s)", 0.0, 1.0, 0.05),
-            SliderSpec("SEMAFORO_StopDecelerationStep", "Semaforo Stop Deceleration Step", 1, 100),
-            SliderSpec("SEMAFORO_StopRampInterval", "Semaforo Stop Ramp Interval (s)", 0.0, 1.0, 0.05),
+            SliderSpec("SEMAFORO_StopDecelerationStep", "Traffic Light Stop Deceleration Step", 1, 100),
+            SliderSpec("SEMAFORO_StopRampInterval", "Traffic Light Stop Ramp Interval (s)", 0.0, 1.0, 0.05),
             SliderSpec("DeviationCounter", "Deviation Counter", 0, 5),
         ]
-        modal = self._modal("Ajustes")
-        SliderCard(modal, "Ajustes", specs, self.tk_controls, self.calibration_data, self.on_slider_value).pack(
+        modal = self._modal("Settings")
+        SliderCard(modal, "Settings", specs, self.tk_controls, self.calibration_data, self.on_slider_value).pack(
             fill="both", expand=True, padx=12, pady=12
         )
 
     def open_defaults(self):
-        modal = self._modal("Padroes")
-        card = Card(modal, "Padroes")
+        modal = self._modal("Defaults")
+        card = Card(modal, "Defaults")
         card.pack(fill="both", expand=True, padx=12, pady=12)
-        ctk.CTkButton(card, text="Salvar padrao", **button_style(True), command=lambda: self._save_defaults(modal)).grid(
+        ctk.CTkButton(card, text="Save default", **button_style(True), command=lambda: self._save_defaults(modal)).grid(
             row=1, column=0, sticky="ew", padx=16, pady=(4, 8)
         )
-        ctk.CTkButton(card, text="Restaurar padrao", **button_style(), command=lambda: self._restore_defaults_modal(modal)).grid(
+        ctk.CTkButton(card, text="Restore default", **button_style(), command=lambda: self._restore_defaults_modal(modal)).grid(
             row=2, column=0, sticky="ew", padx=16, pady=(0, 16)
         )
 
     def open_options(self):
-        modal = self._modal("Opcoes")
-        card = Card(modal, "Opcoes")
+        modal = self._modal("Options")
+        card = Card(modal, "Options")
         card.pack(fill="both", expand=True, padx=12, pady=12)
         labels = ["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID", "SHOW_LINES"]
         for index, label in enumerate(labels):
@@ -1053,7 +1053,7 @@ class AutodriveApp(ctk.CTk):
     def _save_defaults(self, modal):
         self.settings_store.update(self.tk_controls, DEFAULTS_FILE, only_existing_keys=True)
         modal.destroy()
-        self.show_status("Padrao salvo", "success")
+        self.show_status("Default saved", "success")
 
     def _restore_defaults_modal(self, modal):
         self.restore_defaults()

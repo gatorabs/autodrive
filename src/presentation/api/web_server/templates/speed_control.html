@@ -1,27 +1,27 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
   >
-  <title>Controle de Velocidade</title>
+  <title>Speed Control</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='speed_control.css') }}">
 </head>
 <body>
   <main>
     <header>
-      <h1>Controle de Velocidade</h1>
+      <h1>Speed Control</h1>
     </header>
     <section class="slider-group">
       <label for="speedSlider">
-        Nível atual
+        Current level
         <span class="value"><span id="speedValue">0</span>/255</span>
       </label>
       <input id="speedSlider" type="range" min="0" max="255" value="0" step="1">
     </section>
-    <button type="button" id="sendSpeedButton">Enviar velocidade</button>
+    <button type="button" id="sendSpeedButton">Send speed</button>
   </main>
 
   <script src="{{ url_for('static', filename='speed_control.js') }}" defer></script>

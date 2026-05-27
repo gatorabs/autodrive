@@ -26,7 +26,7 @@ async function syncSpeedFromCar() {
       updateDisplay(clamped);
     }
   } catch (error) {
-    console.warn("Não foi possível sincronizar a velocidade:", error);
+    console.warn("Could not sync speed:", error);
   }
 }
 
@@ -49,7 +49,7 @@ async function sendSpeed() {
       alert(data.error);
     }
   } catch (error) {
-    alert("Erro ao enviar velocidade: " + error);
+    alert("Error sending speed: " + error);
   }
 }
 
