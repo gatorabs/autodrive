@@ -78,7 +78,7 @@ class HomeTab(ctk.CTkFrame):
         col0.grid(row=1, column=0, sticky="nsew")
         self.sources_controls = _make_section(
             col0,
-            230,
+            250,
             SourceAndSerialControls,
             tk_controls,
             calibration_data,
@@ -89,8 +89,8 @@ class HomeTab(ctk.CTkFrame):
 
         col1 = ctk.CTkFrame(self, fg_color="transparent")
         col1.grid(row=1, column=1, sticky="nsew")
-        self.warp_controls = _make_section(col1, 270, WarpControls, tk_controls, calibration_data)
-        self.pid_controls = _make_section(col1, 130, PIDSection, tk_controls, calibration_data)
+        self.warp_controls = _make_section(col1, 300, WarpControls, tk_controls, calibration_data)
+        self.pid_controls = _make_section(col1, 120, PIDSection, tk_controls, calibration_data)
 
         col2 = ctk.CTkFrame(self, fg_color="transparent")
         col2.grid(row=1, column=2, sticky="nsew")

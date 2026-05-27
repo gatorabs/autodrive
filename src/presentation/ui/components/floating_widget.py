@@ -32,13 +32,17 @@ def _calculate_modal_geometry(
     x_offset: int = 0,
     y_offset: int = 0,
 ) -> str:
-    parent.update_idletasks()
-    parent_x = parent.winfo_rootx()
-    parent_y = parent.winfo_rooty()
-    button_x = button.winfo_rootx() - parent_x
-    button_y = button.winfo_rooty() - parent_y
-    modal_x = parent_x + button_x - width + x_offset
-    modal_y = parent_y + button_y - height + y_offset
+    root = parent.winfo_toplevel()
+    root.update_idletasks()
+    button.update_idletasks()
+
+    modal_x = button.winfo_rootx() + x_offset
+    modal_y = button.winfo_rooty() + button.winfo_height() + 8 + y_offset
+
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    modal_x = max(8, min(modal_x, screen_width - width - 8))
+    modal_y = max(32, min(modal_y, screen_height - height - 48))
     return f"{width}x{height}+{modal_x}+{modal_y}"
 
 
@@ -87,14 +91,14 @@ class FloatingWidget(ctk.CTkFrame):
         self.checkboxes_button = ctk.CTkButton(
             buttons_row,
             text="Opcoes",
-            width=92,
+            width=118,
             height=34,
             corner_radius=8,
-            font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#242424",
             border_width=1,
             border_color="#343434",
             hover_color="#303030",
+            text_color="#fff",
             command=self.toggle_checkbox_modal,
         )
         self.checkboxes_button.pack(side="right")
@@ -102,14 +106,14 @@ class FloatingWidget(ctk.CTkFrame):
         self.floating_button = ctk.CTkButton(
             buttons_row,
             text="Padroes",
-            width=92,
+            width=118,
             height=34,
             corner_radius=8,
-            font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#242424",
             border_width=1,
             border_color="#343434",
             hover_color="#303030",
+            text_color="#fff",
             command=self.toggle_save_modal,
         )
         self.floating_button.pack(side="right", padx=(0, 8))
@@ -331,14 +335,14 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         self.settings_button = ctk.CTkButton(
             button_row,
             text="Ajustes",
-            width=92,
+            width=118,
             height=34,
             corner_radius=8,
-            font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#242424",
             border_width=1,
             border_color="#343434",
             hover_color="#303030",
+            text_color="#fff",
             command=self.toggle_settings_modal,
         )
         self.settings_button.pack(side="right")
@@ -368,7 +372,7 @@ class SettingsFloatingWidget(ctk.CTkFrame):
         )
         self.settings_modal = ctk.CTkToplevel(self.master)
         self.settings_modal.title("Configurações")
-        self.settings_modal.resizable(False, False)
+        self.settings_modal.resizable(False, True)
         self.settings_modal.configure(fg_color="#2b2b2b")
         self.settings_modal.geometry(
             _calculate_modal_geometry(

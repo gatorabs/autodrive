@@ -89,45 +89,30 @@ class SourceAndSerialControls(ctk.CTkFrame):
         )
 
     def _create_action_buttons(self):
-        row = ctk.CTkFrame(self, fg_color="transparent")
-        row.pack(fill="x", padx=18, pady=(8, 10))
+        source_row = ctk.CTkFrame(self, fg_color="transparent")
+        source_row.pack(fill="x", padx=18, pady=(8, 3))
 
+        self._create_action_button(source_row, "Aplicar fontes", self.apply_sources, primary=True)
+        self._create_action_button(source_row, "Atualizar fontes", self.refresh_sources)
+
+        serial_row = ctk.CTkFrame(self, fg_color="transparent")
+        serial_row.pack(fill="x", padx=18, pady=(3, 10))
+
+        self._create_action_button(serial_row, "Aplicar COMs", self.apply_sender_com, primary=True)
+        self._create_action_button(serial_row, "Atualizar portas", self.refresh_com_ports)
+
+    def _create_action_button(self, parent, text, command, *, primary=False):
+        siblings = len(parent.winfo_children())
         ctk.CTkButton(
-            row,
-            text="Fontes",
-            width=68,
+            parent,
+            text=text,
+            width=0,
             height=28,
-            fg_color="#2563eb",
-            hover_color="#1d4ed8",
-            command=self.apply_sources,
-        ).pack(side="left")
-        ctk.CTkButton(
-            row,
-            text="Lista",
-            width=68,
-            height=28,
-            fg_color="#334155",
-            hover_color="#475569",
-            command=self.refresh_sources,
-        ).pack(side="left", padx=(8, 0))
-        ctk.CTkButton(
-            row,
-            text="COM",
-            width=68,
-            height=28,
-            fg_color="#2563eb",
-            hover_color="#1d4ed8",
-            command=self.apply_sender_com,
-        ).pack(side="left", padx=(8, 0))
-        ctk.CTkButton(
-            row,
-            text="Portas",
-            width=68,
-            height=28,
-            fg_color="#334155",
-            hover_color="#475569",
-            command=self.refresh_com_ports,
-        ).pack(side="left", padx=(8, 0))
+            corner_radius=8,
+            fg_color="#2563eb" if primary else "#334155",
+            hover_color="#1d4ed8" if primary else "#475569",
+            command=command,
+        ).pack(side="left", fill="x", expand=True, padx=((8, 0) if siblings else 0))
 
     def _create_combo_row(self, label_text, values, variable, command=None):
         row = ctk.CTkFrame(self, fg_color="transparent")
