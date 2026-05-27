@@ -1,8 +1,8 @@
 # Autodrive
 
-Aplicacao Python para controle e monitoramento de um carro autonomo com UI em
-CustomTkinter, processamento de video com OpenCV/YOLO, comunicacao serial com o
-microcontrolador e painel web opcional via Flask.
+Python application for controlling and monitoring an autonomous car, with a
+CustomTkinter desktop UI, OpenCV/YOLO video processing, serial communication
+with the microcontroller, and an optional Flask web panel.
 
 ## Demo
 
@@ -14,14 +14,14 @@ microcontrolador e painel web opcional via Flask.
 
 ![Autodrive desktop interface running with live video feeds](docs/assets/autodrive-ui.gif)
 
-## Requisitos
+## Requirements
 
-- Python 3.10+ recomendado.
-- Camera USB ou arquivo de video em `resources/test_videos`.
-- Porta serial disponivel quando o envio para o microcontrolador estiver ativo.
-- Modelos YOLO baixados/carregados localmente conforme necessidade.
+- Python 3.10+ recommended.
+- USB camera or video file in `resources/test_videos`.
+- Available serial port when microcontroller transmission is enabled.
+- YOLO models downloaded/loaded locally as needed.
 
-Instalacao das dependencias:
+Install dependencies:
 
 ```powershell
 python -m venv .venv
@@ -29,70 +29,71 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Como Rodar
+## How To Run
 
 ```powershell
 python main.py
 ```
 
-Na inicializacao, a aplicacao detecta cameras disponiveis, lista portas seriais,
-carrega configuracoes de `config/` e abre a UI principal.
+On startup, the application detects available cameras, lists serial ports, loads
+settings from `config/`, and opens the main UI.
 
-## Portas E Interfaces
+## Ports And Interfaces
 
-- UI desktop: CustomTkinter, iniciada pelo processo principal da aplicacao.
-- Web server: Flask em `http://localhost:5000`, ativado quando `WEBVIEW` estiver
-  ligado na UI/configuracao.
+- Desktop UI: CustomTkinter, started by the main application process.
+- Web server: Flask at `http://localhost:5000`, enabled when `WEBVIEW` is turned
+  on in the UI/settings.
 - Shutdown Flask: `http://localhost:5000/shutdown`.
-- Serial: porta selecionada pela UI/configuracao, normalmente `SENDER_COM`.
+- Serial: port selected through the UI/settings, usually `SENDER_COM`.
 
-## Cameras, Videos E Modelos
+## Cameras, Videos And Models
 
-- Fontes de video sao detectadas a partir dos indices de camera disponiveis.
-- Videos de teste podem ficar em `resources/test_videos`.
-- O detector base usa YOLO e pode baixar/carregar `yolov8n.pt`.
-- Modelos customizados sao procurados em saidas de treino como
-  `runs/detect/*/weights/best.pt`, incluindo caminhos dentro de
+- Video sources are detected from the available camera indexes.
+- Test videos can be placed in `resources/test_videos`.
+- The base detector uses YOLO and can download/load `yolov8n.pt`.
+- Custom models are discovered from training outputs such as
+  `runs/detect/*/weights/best.pt`, including paths under
   `utils/model_trainer`.
 
-## Fluxo Principal
+## Main Flow
 
-1. `main.py` cria controles compartilhados com `multiprocessing.Manager`.
-2. A UI inicial coleta flags e calibracoes.
-3. `ProcessManager` inicia UI e envio serial.
-4. Conforme as flags, sao iniciados/parados processos de camera, deteccao de
-   faixa, deteccao de objetos, modo manual e Flask.
-5. Frames e telemetria circulam por dicionarios compartilhados e filas.
-6. O envio serial publica direcao, velocidade e estado do semaforo para o
-   microcontrolador.
+1. `main.py` creates shared controls with `multiprocessing.Manager`.
+2. The UI prepares startup flags and calibration values.
+3. `ProcessManager` starts backend processes and serial transmission.
+4. Based on the flags, camera, lane detection, object detection, manual mode,
+   and Flask processes are started or stopped.
+5. Frames and telemetry move through shared dictionaries and queues.
+6. Serial transmission publishes direction, speed, and traffic light state to
+   the microcontroller.
 
-## Organizacao
+## Organization
 
-- `src/application`: casos de uso, inicializacao e orquestracao de processos.
-- `src/domain`: modelos, constantes e regras de decisao sem dependencia de IO.
-- `src/infrastructure`: adapters, fachadas de compatibilidade, persistencia,
-  logging e integracoes com camera, serial, Flask, OpenCV e YOLO.
-- `src/presentation`: UI desktop e elementos visuais.
-- `utils/model_trainer`: scripts e artefatos de treino YOLO.
-- `microcontroller`: codigo do microcontrolador.
+- `src/application`: use cases, startup flow, and process orchestration.
+- `src/domain`: models, constants, and decision rules without IO dependencies.
+- `src/infrastructure`: adapters, compatibility facades, persistence, logging,
+  and integrations with camera, serial, Flask, OpenCV, and YOLO.
+- `src/presentation`: desktop UI and visual elements.
+- `utils/model_trainer`: YOLO training scripts and artifacts.
+- `microcontroller`: microcontroller code.
 
-## Arquitetura
+## Architecture
 
-Este projeto segue uma arquitetura Clean/Hexagonal pragmatica com dominio leve:
+This project follows a pragmatic Clean/Hexagonal architecture with a lightweight
+domain:
 
-- `domain` concentra decisoes puras do carro, como parada, retomada, lombada,
-  desvio e semaforo.
-- `application` coordena processos, inicializacao e estado compartilhado.
-- `infrastructure` integra IO e frameworks: camera, serial, Flask, OpenCV, YOLO,
-  JSON e logging.
-- `presentation` concentra a UI desktop e renderizacao visual.
+- `domain` contains pure car decisions, such as stop, resume, speed bump,
+  detour, and traffic light behavior.
+- `application` coordinates processes, startup, and shared state.
+- `infrastructure` integrates IO and frameworks: camera, serial, Flask, OpenCV,
+  YOLO, JSON, and logging.
+- `presentation` contains the desktop UI and visual rendering.
 
-O estado compartilhado ainda usa `multiprocessing.Manager().dict()`, mas o acesso
-deve passar gradualmente pelos wrappers em `src/application/state` para reduzir
-chaves string espalhadas pelo codigo.
+Shared state still uses `multiprocessing.Manager().dict()`, but access should
+gradually go through the wrappers in `src/application/state` to reduce scattered
+string keys across the codebase.
 
-## Observacoes De Versionamento
+## Versioning Notes
 
-Os diretorios de treino em `utils/model_trainer/runs`, `yolo_runs` e `dataset`
-sao ignorados para evitar novos artefatos grandes no Git. Se algum peso ou
-dataset especifico precisar ser versionado, adicione-o de forma explicita.
+Training directories under `utils/model_trainer/runs`, `yolo_runs`, and
+`dataset` are ignored to avoid adding new large artifacts to Git. If a specific
+weight file or dataset must be versioned, add it explicitly.
