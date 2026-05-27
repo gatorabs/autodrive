@@ -89,7 +89,7 @@ class HomeTab(ctk.CTkFrame):
 
         col1 = ctk.CTkFrame(self, fg_color="transparent")
         col1.grid(row=1, column=1, sticky="nsew")
-        self.warp_controls = _make_section(col1, 300, WarpControls, tk_controls, calibration_data)
+        self.warp_controls = _make_section(col1, 265, WarpControls, tk_controls, calibration_data)
         self.pid_controls = _make_section(col1, 120, PIDSection, tk_controls, calibration_data)
 
         col2 = ctk.CTkFrame(self, fg_color="transparent")
