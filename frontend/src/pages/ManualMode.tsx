@@ -1,143 +1,108 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import PerformanceMonitor from '@/components/PerformanceMonitor';
-import ManualControls, { ManualControlData } from '@/components/ManualControls';
-import DisableManualModeModal from '@/components/DisableManualModeModal';
-import { endpoints } from '@/config/api';
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Gauge, Route, Timer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AppShell } from "@/components/layout/AppShell";
+import { Panel } from "@/components/common/Panel";
+import { MetricCard } from "@/components/dashboard/MetricCard";
+import { VideoFeedCard } from "@/components/dashboard/VideoFeedCard";
+import { ManualDriveControls } from "@/components/manual/ManualDriveControls";
+import { ManualModeDialog } from "@/components/modals/ManualModeDialog";
+import { endpoints } from "@/config/api";
+import { useCarTelemetry } from "@/hooks/useCarTelemetry";
+import type { ManualControlData } from "@/types/telemetry";
 
-const ManualMode = () => {
-    const navigate = useNavigate();
-    const [controlData, setControlData] = useState<ManualControlData>({ x: 0, y: 0 });
-    const [fps, setFps] = useState(0);
-    const [frameTime, setFrameTime] = useState(0);
+export default function ManualMode() {
+  const navigate = useNavigate();
+  const { telemetry, isConnected } = useCarTelemetry();
+  const [controlData, setControlData] = useState<ManualControlData>({ x: 0, y: 0 });
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
 
-    const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const fps = Number(telemetry.time_info?.fps ?? 0);
+  const frameTime = Number(telemetry.time_info?.total_processing_time ?? 0);
 
-    const handleBackConfirm = async () => {
-        setIsExitModalOpen(false);
-        try {
-            await fetch(endpoints.manualMode, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ active: false })
-            });
-        } catch (err) {
-            console.error('Erro ao desativar modo manual:', err);
-        }
-        navigate('/');
-    };
-    const handleBack = () => setIsExitModalOpen(true);
+  useEffect(() => {
+    if (!telemetry.manual_mode && telemetry.webview) {
+      navigate("/");
+    }
+  }, [navigate, telemetry.manual_mode, telemetry.webview]);
 
-    const handleControlChange = useCallback((data: ManualControlData) => {
-        setControlData(data);
-        fetch(endpoints.manualControls, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        }).catch(err => console.error('Erro ao enviar controles manuais:', err));
-    }, []);
+  const handleControlChange = useCallback((data: ManualControlData) => {
+    setControlData(data);
+    fetch(endpoints.manualControls, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).catch((error) => console.error("Error sending manual controls:", error));
+  }, []);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            fetch(endpoints.carInfo)
-                .then(res => res.json())
-                .then(data => {
-                    if (!data.manual_mode && data.webview) {
-                        navigate('/');
-                        return;
-                    }
-                    if (data.time_info) {
-                        setFps(data.time_info.fps);
-                        setFrameTime(data.time_info.total_processing_time);
-                    }
-                })
-                .catch(() => {
-                    setFps(0);
-                    setFrameTime(0);
-                });
-        }, 500);
+  const disableManualMode = async () => {
+    setExitDialogOpen(false);
+    try {
+      await fetch(endpoints.manualMode, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: false }),
+      });
+    } catch (error) {
+      console.error("Error disabling manual mode:", error);
+    }
+    navigate("/");
+  };
 
-        return () => clearInterval(interval);
-    }, [navigate]);
+  const steeringLabel = controlData.x > 0.1 ? "Right" : controlData.x < -0.1 ? "Left" : "Center";
+  const throttleLabel = controlData.y > 0.1 ? "Forward" : "Stopped";
 
-    return (
-        <div className="min-h-screen bg-gray-900 text-white">
-            <div className="container mx-auto p-4">
-                {/* Header */}
-                <header className="mb-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleBack}
-                                className="bg-gray-700 text-gray-300 hover:bg-gray-700"
-                            >
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Voltar
-                            </Button>
-                        </div>
+  return (
+    <AppShell
+      title="Manual Mode"
+      eyebrow="Direct vehicle control"
+      actions={
+        <Button className="bg-slate-800 text-white hover:bg-slate-700" onClick={() => setExitDialogOpen(true)}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Return To Dashboard
+        </Button>
+      }
+    >
+      <section className="grid gap-3 sm:grid-cols-3">
+        <MetricCard label="Throttle" value={`${Math.round(controlData.y * 100)}%`} detail={throttleLabel} icon={<Gauge className="h-5 w-5" />} tone="blue" />
+        <MetricCard label="Steering" value={steeringLabel} detail={`${Math.round(controlData.x * 45)} deg`} icon={<Route className="h-5 w-5" />} tone="orange" />
+        <MetricCard label="Performance" value={`${fps} FPS`} detail={`${frameTime} ms frame time`} icon={<Timer className="h-5 w-5" />} tone="green" />
+      </section>
 
-                        <PerformanceMonitor fps={fps} frameTime={frameTime} />
-                    </div>
-                </header>
+      <section className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <VideoFeedCard title="Manual Camera" frameKey="TAB2_FRAME" connected={isConnected} />
 
-                {/* Main Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-gray-800 rounded-lg p-6">
-                        <h3 className="text-lg font-semibold mb-4 text-center">Controles</h3>
+        <Panel title="Drive Controls" subtitle="Commands are sent to /api/v2/manual-controls">
+          <ManualDriveControls onChange={handleControlChange} />
+        </Panel>
+      </section>
 
-                        <div className="flex flex-col items-center space-y-4">
-                            <ManualControls onControlChange={handleControlChange} />
+      <section className="mt-4">
+        <Panel title="Manual Runtime" subtitle="Current control payload">
+          <div className="grid gap-3 text-sm text-slate-300 sm:grid-cols-3">
+            <Info label="Mode" value="Manual" />
+            <Info label="Payload X" value={controlData.x.toFixed(2)} />
+            <Info label="Payload Y" value={controlData.y.toFixed(2)} />
+          </div>
+        </Panel>
+      </section>
 
-                            <div className="text-sm text-gray-400 text-center w-full">
-                                <div className="grid grid-cols-2 gap-4 mt-4">
-                                    <div>
-                                        <div className="font-semibold text-white">Direção</div>
-                                        <div>{controlData.x > 0.1 ? 'Direita' : controlData.x < -0.1 ? 'Esquerda' : 'Centro'}</div>
-                                    </div>
-                                    <div>
-                                        <div className="font-semibold text-white">Velocidade</div>
-                                        <div>{controlData.y > 0.1 ? 'Frente' : 'Parado'}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+      <ManualModeDialog
+        open={exitDialogOpen}
+        mode="disable"
+        onOpenChange={setExitDialogOpen}
+        onConfirm={disableManualMode}
+      />
+    </AppShell>
+  );
+}
 
-                    <div className="space-y-6">
-                        <div className="bg-gray-800 rounded-lg p-6">
-                            <h3 className="text-lg font-semibold mb-4">Status do Veículo</h3>
-
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-400">Modo:</span>
-                                    <span className="text-orange-300 font-semibold">Manual</span>
-                                </div>
-
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-400">Velocidade:</span>
-                                    <span className="text-white">{(controlData.y * 100).toFixed(0)}%</span>
-                                </div>
-
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-400">Direção:</span>
-                                    <span className="text-white">{(controlData.x * 45).toFixed(0)}°</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <DisableManualModeModal
-                isOpen={isExitModalOpen}
-                onClose={() => setIsExitModalOpen(false)}
-                onConfirm={handleBackConfirm}
-            />
-        </div>
-    );
-};
-
-export default ManualMode;
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</p>
+      <p className="mt-2 text-lg font-semibold text-white">{value}</p>
+    </div>
+  );
+}
