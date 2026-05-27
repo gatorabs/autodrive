@@ -162,6 +162,29 @@ you promote one model as active for the main application.
 It also includes a camera capture panel where you can draw a bounding box,
 start tracking, record frames automatically, and save YOLO labels in real time.
 
+![Autodrive model trainer with capture, datasets, training, and model promotion](docs/assets/model-trainer.png)
+
+Recommended flow:
+
+1. Run `utils/model_trainer/run_trainer.py` from PyCharm.
+2. In **Capture Images**, set the camera index, class name, class ID, and auto
+   capture FPS.
+3. Click **Open camera**.
+4. Draw a bounding box over the object in the camera preview.
+5. Click **Start tracking** to keep the bounding box following the object.
+6. Use **Save frame** for manual captures or **Toggle recording** for automatic
+   image/label capture.
+7. Repeat the capture for every class the car should detect, such as
+   `PLACA_PARE`, `PLACA_LOMBADA`, `PLACA_DESVIO`, and `SEMAFORO`.
+8. Click **Refresh datasets** and confirm the datasets are valid.
+9. In **Training**, keep the default composed model settings or adjust YOLO
+   parameters, then click **Train composed model**.
+10. In **Models**, select the generated weight and click **Promote as active**.
+
+After promotion, Autodrive writes `config/model_registry.json` locally. On the
+next application run, the object detector loads only that active custom model;
+if the registry is missing or invalid, it falls back to legacy model discovery.
+
 Training outputs remain local by default. Existing trained models are not
 overwritten: each new run receives a timestamped folder under
 `utils/model_trainer/yolo_runs`. Promoting a model only updates the local

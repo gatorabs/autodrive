@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -10,11 +9,7 @@ import cv2
 import numpy as np
 import yaml
 
-
-def slugify(value: str, fallback: str) -> str:
-    value = re.sub(r"[^0-9a-zA-Z_-]+", "-", value.strip())
-    value = re.sub(r"-+", "-", value).strip("-_")
-    return value or fallback
+from .metadata_service import slugify
 
 
 def bbox_to_yolo(x: int, y: int, width: int, height: int, img_width: int, img_height: int):

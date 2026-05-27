@@ -5,10 +5,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-import yaml
+from .metadata_service import load_names_from_yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+TRAINER_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = REPO_ROOT / "config" / "model_registry.json"
 
 
@@ -27,38 +28,17 @@ def relpath(path: Path, base: Path = REPO_ROOT) -> str:
         return path.resolve().as_posix()
 
 
-def _load_classes_from_yaml(path: Path) -> tuple[str, ...]:
-    if not path.exists():
-        return ()
-    try:
-        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except Exception:
-        return ()
-    names = payload.get("names") if isinstance(payload, dict) else None
-    if isinstance(names, dict):
-        parsed = []
-        for key, value in names.items():
-            try:
-                parsed.append((int(key), str(value)))
-            except (TypeError, ValueError):
-                continue
-        return tuple(value for _, value in sorted(parsed))
-    if isinstance(names, list):
-        return tuple(str(value) for value in names)
-    return ()
-
-
 def model_classes(model_path: Path) -> tuple[str, ...]:
     run_dir = model_path.parent.parent
     for candidate in (run_dir / "args.yaml", run_dir / "data.yaml", run_dir / "opt.yaml"):
-        classes = _load_classes_from_yaml(candidate)
+        classes = load_names_from_yaml(candidate)
         if classes:
             return classes
     return ()
 
 
 def discover_trained_models(root: Path | None = None) -> list[TrainedModel]:
-    search_root = root or (Path(__file__).resolve().parent / "yolo_runs")
+    search_root = root or (TRAINER_ROOT / "yolo_runs")
     if not search_root.exists():
         return []
 

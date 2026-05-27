@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import sys
 import subprocess
 from dataclasses import dataclass, field
@@ -16,8 +15,10 @@ import yaml
 if __package__ in (None, "", "cli"):
     sys.path.append(str(Path(__file__).resolve().parents[1]))
     from services.dataset_preparation import DatasetSummary, prepare_dataset, prepare_dataset_from_parts  # type: ignore
+    from services.metadata_service import collect_label_class_ids, load_names_from_yaml, slugify  # type: ignore
 else:  # pragma: no cover - caminho utilizado quando importado como pacote
     from ..services.dataset_preparation import DatasetSummary, prepare_dataset, prepare_dataset_from_parts
+    from ..services.metadata_service import collect_label_class_ids, load_names_from_yaml, slugify
 
 
 DEFAULT_BASE_MODEL = "yolov8n.pt"
@@ -169,12 +170,6 @@ def _run_command(command: Sequence[str], dry_run: bool) -> None:
         )
 
 
-def _slugify(value: str, fallback: str) -> str:
-    value = re.sub(r"[^0-9a-zA-Z_-]+", "-", value.strip())
-    value = re.sub(r"-+", "-", value).strip("-_")
-    return value or fallback
-
-
 def _relpath_for_config(path: Path, base: Path) -> str:
     try:
         return str(path.relative_to(base))
@@ -185,58 +180,6 @@ def _relpath_for_config(path: Path, base: Path) -> str:
         return os.path.relpath(path, base)
     except (ValueError, OSError):
         return str(path.resolve())
-
-
-def _collect_label_ids(labels_dir: Path) -> List[int]:
-    ids: set[int] = set()
-    for label_file in labels_dir.glob("*.txt"):
-        try:
-            with label_file.open("r", encoding="utf-8") as fh:
-                lines = fh.readlines()
-        except OSError:
-            continue
-
-        for raw_line in lines:
-            stripped = raw_line.strip()
-            if not stripped:
-                continue
-            parts = stripped.split()
-            if not parts:
-                continue
-            try:
-                class_id = int(float(parts[0]))
-            except ValueError:
-                continue
-            ids.add(class_id)
-    return sorted(ids)
-
-
-def _load_names_from_yaml(dataset_dir: Path) -> List[str]:
-    yaml_path = dataset_dir / "data.yaml"
-    if not yaml_path.exists():
-        return []
-
-    try:
-        with yaml_path.open("r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
-    except OSError:
-        return []
-
-    names_field = data.get("names") if isinstance(data, dict) else None
-    if isinstance(names_field, dict):
-        items = []
-        for key, value in names_field.items():
-            try:
-                idx = int(key)
-            except (TypeError, ValueError):
-                continue
-            items.append((idx, str(value)))
-        return [name for _, name in sorted(items, key=lambda item: item[0])]
-    if isinstance(names_field, list):
-        return [str(name) for name in names_field]
-    if isinstance(names_field, (str, bytes)):
-        return [str(names_field)]
-    return []
 
 
 def _discover_datasets_in_root(root: Path) -> List[DiscoveredDataset]:
@@ -259,8 +202,8 @@ def _discover_datasets_in_root(root: Path) -> List[DiscoveredDataset]:
             continue
         seen.add(resolved)
 
-        label_ids = _collect_label_ids(candidate / "labels")
-        raw_names = _load_names_from_yaml(candidate)
+        label_ids = list(collect_label_class_ids(candidate / "labels"))
+        raw_names = list(load_names_from_yaml(candidate / "data.yaml"))
 
         if not label_ids and raw_names:
             label_ids = list(range(len(raw_names)))
@@ -316,7 +259,7 @@ def _auto_generate_config(base_dir: Path) -> Path | None:
     models: List[dict[str, Any]] = []
     for ds in datasets:
         dataset_ref = _relpath_for_config(ds.path, config_dir)
-        model_name = _slugify(ds.display_name, ds.path.name)
+        model_name = slugify(ds.display_name, ds.path.name)
         models.append(
             {
                 "name": model_name,
@@ -334,7 +277,7 @@ def _auto_generate_config(base_dir: Path) -> Path | None:
     ]
     single_class.sort(key=lambda ds: ds.class_ids[0])
     if len(single_class) > 1:
-        combined_name = _slugify("todos_objetos", "modelo_agregado")
+        combined_name = slugify("todos_objetos", "modelo_agregado")
         models.append(
             {
                 "name": combined_name,

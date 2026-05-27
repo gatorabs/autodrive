@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from utils.model_trainer.services.dataset_service import discover_datasets
+from utils.model_trainer.services.model_registry_service import discover_trained_models
 from utils.model_trainer.services.training_service import TrainingRequest, run_training
 
 
@@ -55,6 +56,23 @@ class ModelTrainerServicesTest(unittest.TestCase):
         self.assertIn("PLACA_PARE", payload)
         self.assertIn("PLACA_LOMBADA", payload)
         self.assertFalse(result.best_weights.exists())
+
+    def test_discovers_trained_models_from_given_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            weight = root / "todos_objetos" / "weights" / "best.pt"
+            weight.parent.mkdir(parents=True)
+            weight.write_bytes(b"fake weight")
+            (root / "todos_objetos" / "data.yaml").write_text(
+                "names:\n  0: PLACA_PARE\n",
+                encoding="utf-8",
+            )
+
+            models = discover_trained_models(root)
+
+        self.assertEqual(len(models), 1)
+        self.assertEqual(models[0].name, "todos_objetos")
+        self.assertEqual(models[0].classes, ("PLACA_PARE",))
 
 
 if __name__ == "__main__":

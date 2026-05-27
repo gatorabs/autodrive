@@ -3,10 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-import yaml
-
-
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
+from .metadata_service import IMAGE_EXTENSIONS, collect_label_class_ids, load_names_from_yaml
 
 
 @dataclass(frozen=True)
@@ -25,48 +22,6 @@ class DatasetInventory:
         return self.paired_count > 0 and self.images_without_labels == 0
 
 
-def _load_names(dataset_dir: Path) -> list[str]:
-    data_yaml = dataset_dir / "data.yaml"
-    if not data_yaml.exists():
-        return []
-
-    try:
-        payload = yaml.safe_load(data_yaml.read_text(encoding="utf-8"))
-    except Exception:
-        return []
-
-    names = payload.get("names") if isinstance(payload, dict) else None
-    if isinstance(names, dict):
-        parsed = []
-        for key, value in names.items():
-            try:
-                parsed.append((int(key), str(value)))
-            except (TypeError, ValueError):
-                continue
-        return [value for _, value in sorted(parsed)]
-    if isinstance(names, list):
-        return [str(value) for value in names]
-    return []
-
-
-def _collect_class_ids(labels_dir: Path) -> tuple[int, ...]:
-    ids: set[int] = set()
-    for label_file in labels_dir.glob("*.txt"):
-        try:
-            lines = label_file.read_text(encoding="utf-8").splitlines()
-        except OSError:
-            continue
-        for line in lines:
-            parts = line.strip().split()
-            if not parts:
-                continue
-            try:
-                ids.add(int(float(parts[0])))
-            except ValueError:
-                continue
-    return tuple(sorted(ids))
-
-
 def inspect_dataset(dataset_dir: str | Path) -> DatasetInventory | None:
     path = Path(dataset_dir)
     images_dir = path / "images"
@@ -80,8 +35,8 @@ def inspect_dataset(dataset_dir: str | Path) -> DatasetInventory | None:
         if item.is_file() and item.suffix.lower() in IMAGE_EXTENSIONS
     }
     label_stems = {item.stem for item in labels_dir.glob("*.txt") if item.is_file()}
-    class_ids = _collect_class_ids(labels_dir)
-    names = _load_names(path)
+    class_ids = collect_label_class_ids(labels_dir)
+    names = load_names_from_yaml(path / "data.yaml")
 
     if class_ids and names and class_ids[0] < len(names):
         class_name = names[class_ids[0]]

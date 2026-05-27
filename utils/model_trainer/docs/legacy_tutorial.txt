@@ -8,15 +8,15 @@ Fluxo para coletar dados e treinar modelos customizados
    pip install opencv-contrib-python
    ```
 
-   Utilize o script `cli/capture_images.py` para gravar vídeos ou imagens já com as bounding boxes.
+   Use `run_trainer.py` para capturar imagens pela UI com bounding box e tracking.
    Agora é possível planejar vários objetos na mesma sessão:
 
    ```bash
    # Ex.: captura de três objetos salvando tudo dentro de datasets/
-   python utils/model_trainer/cli/capture_images.py --base-dir datasets --objects 3
+   python utils/model_trainer/run_trainer.py
 
    # Para pular as perguntas interativas de nome:
-   python utils/model_trainer/cli/capture_images.py --base-dir datasets --class-names parafuso porca arruela
+   python utils/model_trainer/run_trainer.py
    ```
 
    Durante a captura, `h` avança para o próximo objeto/classe mantendo as mesmas teclas de tracking (`t`), gravação (`s`) e

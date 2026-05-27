@@ -18,8 +18,8 @@ the active model used by Autodrive.
 - `app/`: CustomTkinter UI.
 - `services/`: camera capture, dataset inspection, dataset preparation,
   training, and model registry logic.
-- `cli/`: auxiliary command-line scripts for capture, legacy training, and
-  webcam inference tests.
+- `cli/`: optional command-line tools for dataset preparation, legacy training,
+  and webcam inference tests. The main capture flow lives in the trainer UI.
 - `dataset/`: local datasets, ignored by Git.
 - `yolo_runs/` and `runs/`: local training outputs, ignored by Git.
 
