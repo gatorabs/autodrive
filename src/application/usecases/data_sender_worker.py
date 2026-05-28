@@ -3,7 +3,7 @@ from queue import Empty
 from typing import Callable
 
 from src.application.ports import LoggerPort, SerialSender
-from src.infrastructure.services.data_sender_service import (
+from src.application.services.serial_pipeline import (
     publish,
     handle_object_queue,
     change_serial_port,

@@ -3,7 +3,7 @@ import time
 from typing import Callable
 
 from src.application.ports import LoggerPort, SerialSender
-from src.infrastructure.services.data_sender_service import change_serial_port
+from src.application.services.serial_pipeline import change_serial_port
 
 def security_process(
     shared_controls,

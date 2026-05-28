@@ -1,17 +1,37 @@
+from concurrent.futures import ThreadPoolExecutor
 import math
 
-from src.infrastructure.adapters.detection.lane_detection import calculate_center_distance
 import cv2 as cv
-import numpy as np
-from concurrent.futures import ThreadPoolExecutor
 
-from src.infrastructure.adapters.video.video_process import VideoProcessor
-from src.infrastructure.mappers.direction_mapper import map_direction
-from src.infrastructure.utils.frame_utils import encode_frame
 from src.domain.constants.pid_constants import FALLBACK_PID_INPUT, FALLBACK_PID_OUTPUT
 from src.domain.services.detour_service import reset_detour_mode
+from src.infrastructure.adapters.detection.lane_detection import calculate_center_distance
+from src.infrastructure.mappers.direction_mapper import map_direction
+from src.infrastructure.media.frame_codec import encode_frame
+from src.infrastructure.vision.perspective_transform import (
+    bird_eye_full,
+    get_warp_points_from_controls,
+)
 
 _encoder_pool = ThreadPoolExecutor(max_workers=2)
+
+
+def preprocess(frame, tk_controls, morph_kernel):
+    canny_1 = tk_controls.get("F_Canny")
+    canny_2 = tk_controls.get("S_Canny")
+    side = tk_controls.get("Side", 1)
+    num_lines = tk_controls.get("Lines", 10)
+
+    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+    blur = cv.GaussianBlur(gray, (5, 5), 0)
+    edges = cv.Canny(blur, canny_1, canny_2)
+    edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, morph_kernel)
+
+    warp_points = get_warp_points_from_controls(tk_controls)
+    warped_roi, max_height, _ = bird_eye_full(edges, warp_points, draw_on=frame)
+
+    return edges, warp_points, warped_roi, side, num_lines, max_height
+
 
 def publish(frame_display,
             edges,

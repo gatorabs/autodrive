@@ -21,19 +21,17 @@ from src.bootstrap import (
     create_runtime_state,
     terminate_runtime_processes,
 )
-from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
-from src.infrastructure.adapters.video.video_utility_process import (
-    detect_camera_indices,
-    get_video_files_from_folder,
-)
+from src.infrastructure.adapters.serial.serial_communicator import SerialCommunicator
 from src.infrastructure.constants.path_constants import (
     CALIBRATION_FILE,
     DEFAULTS_FILE,
     DEFAULT_UI_PATH,
 )
 from src.infrastructure.data.repository.calibration_repository import default_settings_store
+from src.infrastructure.hardware.process_monitor import get_active_python_processes
 from src.infrastructure.logging.logger import Logger
-from src.infrastructure.services.python_process_service import get_active_python_processes
+from src.infrastructure.vision.camera_discovery import detect_camera_indices
+from src.infrastructure.vision.video_files import get_video_files_from_folder
 from src.presentation.ui.theme import Theme, button_style, card_style, font, input_style
 
 logger = Logger("MainUI")

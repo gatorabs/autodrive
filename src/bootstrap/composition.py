@@ -4,11 +4,11 @@ from src.application.state import RuntimeControls, SharedFrames, UiControls
 
 
 def create_initializer():
-    from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
-    from src.infrastructure.adapters.video.video_utility_process import detect_camera_indices
+    from src.infrastructure.adapters.serial.serial_communicator import SerialCommunicator
     from src.infrastructure.constants.colors_constants import RED, RESET
     from src.infrastructure.constants.path_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
     from src.infrastructure.data.repository.calibration_repository import default_settings_store
+    from src.infrastructure.vision.camera_discovery import detect_camera_indices
 
     initializer = SystemInitializer(
         settings_store=default_settings_store,
@@ -37,18 +37,18 @@ def create_runtime_state(manager, user_flags):
 
 
 def build_process_targets() -> ProcessTargets:
-    from src.application.usecases.camera_capture_multiprocess import camera_capture_process
-    from src.application.usecases.data_sender_multiprocess import data_sender_process
-    from src.application.usecases.lane_detection_multiprocess import lane_detection_process
-    from src.application.usecases.manual_mode_multiprocess import manual_video_process
-    from src.application.usecases.object_detector_multiprocess import object_detection_process
+    from src.application.usecases.camera_capture_worker import camera_capture_process
+    from src.application.usecases.data_sender_worker import data_sender_process
+    from src.application.usecases.lane_detection_worker import lane_detection_process
+    from src.application.usecases.manual_mode_worker import manual_video_process
+    from src.application.usecases.object_detection_worker import object_detection_process
+    from src.infrastructure.hardware.process_priority import set_process_priority
     from src.infrastructure.adapters.detection.object_detection import ObjectDetector
-    from src.infrastructure.adapters.serial.serial_comm import SerialCommunicator
-    from src.infrastructure.adapters.video.video_manager_process import VideoSourceManager
+    from src.infrastructure.adapters.serial.serial_communicator import SerialCommunicator
+    from src.infrastructure.adapters.video.video_source_manager import VideoSourceManager
     from src.presentation.api.web_server.app import start_flask_server
     from src.presentation.api.web_server.lifecycle import shutdown_flask_server
     from src.infrastructure.logging.logger import Logger
-    from src.infrastructure.utils.priorities_processor import set_process_priority
     from src.presentation.lane_overlay_renderer import draw_overlays
 
     return ProcessTargets(
@@ -84,7 +84,7 @@ def build_process_manager(shared_controls, shared_frames, tk_controls, user_flag
 
 
 def terminate_runtime_processes(processes, manager_instance) -> None:
-    from src.infrastructure.utils.process_utils import terminate_if_alive
+    from src.infrastructure.hardware.process_lifecycle import terminate_if_alive
 
     for process in processes:
         terminate_if_alive(process)

@@ -1,13 +1,8 @@
 import cv2
 import numpy as np
-from src.infrastructure.adapters.video.video_process import VideoProcessor
-from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT
-from src.infrastructure.utils.frame_utils import encode_frame
-from src.domain.constants.object_detection_constants import (
-    CUSTOM_OBJECT_CODE_BY_LABEL,
-    CUSTOM_OBJECT_LABEL_BY_CODE,
-    CUSTOM_OBJECT_PRIORITY,
-)
+
+from src.domain.constants.object_detection_constants import CUSTOM_OBJECT_PRIORITY
+from src.infrastructure.media.frame_codec import encode_frame
 
 def process_traffic_light_roi(roi):
     active_color = "Unknown"

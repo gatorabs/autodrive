@@ -1,5 +1,5 @@
 import time
-from src.infrastructure.adapters.video.video_process import VideoProcessor
+from src.infrastructure.adapters.video.video_capture import VideoProcessor
 
 
 class VideoSourceManager:

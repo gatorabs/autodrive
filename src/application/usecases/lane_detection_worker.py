@@ -3,22 +3,22 @@ import time
 from typing import Callable
 
 from src.application.ports import LoggerPort
+from src.application.monitoring.frame_timing import update_processing_time
 from src.domain.constants.pid_constants import KP, KD, KI, TARGET_CENTER_DISTANCE
-from src.infrastructure.adapters.video.video_utility_process import (
-    toggle_named_window,
-    preprocess,
-)
-from src.infrastructure.services.lane_detection_service import (
+from src.application.services.lane_pipeline import (
     compute_distances,
     publish,
-    compute_speed_and_direction, define_and_calculate_side, apply_speed_override,
+    compute_speed_and_direction,
+    define_and_calculate_side,
+    apply_speed_override,
+    preprocess,
 )
-from src.infrastructure.services.pid_service import (
+from src.application.services.pid_factory import (
     update_pid_from_controls,
     pid_setup,
     check_and_update_pid,
 )
-from src.infrastructure.utils.update_time_processor import update_processing_time
+from src.infrastructure.vision.opencv_windows import toggle_named_window
 
 
 def lane_detection_process(lane_queue,

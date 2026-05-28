@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 
-from src.infrastructure.utils.lane_utils import bird_eye_full
+from src.infrastructure.vision.perspective_transform import bird_eye_full
 
 
 def draw_overlays(frame, distances, warp_points=None, edges=None,

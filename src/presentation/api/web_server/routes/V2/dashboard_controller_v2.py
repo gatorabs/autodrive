@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from src.infrastructure.services.python_process_service import get_active_python_processes
+from src.infrastructure.hardware.process_monitor import get_active_python_processes
 from src.infrastructure.mappers.direction_mapper import map_range
 
 

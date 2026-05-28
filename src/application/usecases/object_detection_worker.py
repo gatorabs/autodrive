@@ -1,8 +1,10 @@
 from typing import Callable
 
 from src.application.ports import LoggerPort, VideoSourceManager
-from src.infrastructure.services.object_detection_service import (
-    force_default_object_data, try_capture_or_mark_for_reopen, publish_results,
+from src.application.services.object_pipeline import (
+    force_default_object_data,
+    try_capture_or_mark_for_reopen,
+    publish_results,
 )
 
 def object_detection_process(object_queue,

@@ -1,9 +1,9 @@
 import time
 from typing import Callable
 
+from src.application.monitoring.frame_timing import update_processing_time
 from src.application.ports import LoggerPort
-from src.infrastructure.services.manual_mode_service import publish
-from src.infrastructure.utils.update_time_processor import update_processing_time
+from src.application.services.manual_mode_pipeline import publish
 
 
 def manual_video_process(

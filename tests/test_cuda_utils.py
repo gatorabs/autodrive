@@ -1,6 +1,6 @@
 import unittest
 
-from src.infrastructure.utils.cuda_utils import detect_cuda_status
+from src.infrastructure.hardware.cuda_status import detect_cuda_status
 
 
 class _FakeCuda:

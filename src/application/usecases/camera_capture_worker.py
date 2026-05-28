@@ -2,7 +2,16 @@ import cv2 as cv
 from typing import Callable
 
 from src.application.ports import LoggerPort, VideoSourceManager
-from src.infrastructure.services.camera_capture_service import publish, camera_safe_stop
+
+
+def publish(shared_frames, shared_controls, frame):
+    shared_frames.camera_frame = frame
+    shared_controls.safe_stop = False
+
+
+def camera_safe_stop(_, shared_controls, logger, reason="CAMERA_ERROR"):
+    shared_controls.safe_stop = True
+    logger.warning(f"SAFE-STOP ativado ({reason}).")
 
 def camera_capture_process(shared_frames,
                            shared_controls,
