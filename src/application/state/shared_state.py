@@ -1,6 +1,6 @@
 from collections.abc import MutableMapping
 
-from src.infrastructure.constants import control_keys as keys
+from src.application.state import control_keys as keys
 
 _MISSING = object()
 

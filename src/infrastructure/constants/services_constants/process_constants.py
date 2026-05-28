@@ -1,1 +1,0 @@
-shutdown_endpoint = "http://localhost:5000/shutdown"

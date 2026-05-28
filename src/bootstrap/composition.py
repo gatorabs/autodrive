@@ -5,8 +5,8 @@ from src.application.state import RuntimeControls, SharedFrames, UiControls
 
 def create_initializer():
     from src.infrastructure.adapters.serial.serial_communicator import SerialCommunicator
-    from src.infrastructure.constants.colors_constants import RED, RESET
     from src.infrastructure.constants.path_constants import CALIBRATION_FILE, DEFAULT_UI_PATH
+    from src.infrastructure.constants.runtime import ANSI_RED, ANSI_RESET
     from src.infrastructure.data.repository.calibration_repository import default_settings_store
     from src.infrastructure.vision.camera_discovery import detect_camera_indices
 
@@ -15,8 +15,8 @@ def create_initializer():
         default_ui_path=DEFAULT_UI_PATH,
         camera_indices_detector=detect_camera_indices,
         serial_ports_lister=SerialCommunicator.list_available_ports,
-        false_color=RED,
-        reset_color=RESET,
+        false_color=ANSI_RED,
+        reset_color=ANSI_RESET,
     )
     return initializer, default_settings_store, CALIBRATION_FILE
 
@@ -69,7 +69,7 @@ def build_process_targets() -> ProcessTargets:
 
 
 def build_process_manager(shared_controls, shared_frames, tk_controls, user_flags) -> ProcessManager:
-    from src.infrastructure.constants.services_constants.process_constants import shutdown_endpoint
+    from src.infrastructure.constants.runtime import FLASK_SHUTDOWN_URL
     from src.infrastructure.logging.logger import Logger
 
     return ProcessManager(
@@ -78,7 +78,7 @@ def build_process_manager(shared_controls, shared_frames, tk_controls, user_flag
         tk_controls=tk_controls,
         user_flags=user_flags,
         targets=build_process_targets(),
-        shutdown_url=shutdown_endpoint,
+        shutdown_url=FLASK_SHUTDOWN_URL,
         logger=Logger("ProcessManager"),
     )
 

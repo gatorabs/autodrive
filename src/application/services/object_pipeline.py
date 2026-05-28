@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from src.domain.constants.object_detection_constants import CUSTOM_OBJECT_PRIORITY
+from src.domain.models.data.detection_result import DetectionResult
 from src.domain.models.data.object_data import ObjectData
 from src.infrastructure.media.frame_codec import encode_frame
 
@@ -64,47 +64,25 @@ def process_traffic_light_roi(roi):
 def publish_results(
     shared_serial_data,
     shared_frames,
-    person_detected,
-    traffic_light_state,
+    detection_result: DetectionResult,
     object_queue,
     frame,
     logger,
-    detected_custom_objects=None,
 ):
-    shared_serial_data[2] = 1 if person_detected else 0
-    shared_serial_data[1] = traffic_light_state
-
-    if detected_custom_objects is None:
-        detected_custom_objects = set()
-    else:
-        detected_custom_objects = set(detected_custom_objects)
-
-    custom_label = ""
-    custom_serial_value = 0
-    for label, code in CUSTOM_OBJECT_PRIORITY:
-        if label in detected_custom_objects:
-            custom_label = label
-            custom_serial_value = code
-            break
+    object_data = detection_result.to_object_data()
+    shared_serial_data[2] = object_data.object_person_data
+    shared_serial_data[1] = object_data.traffic_light_data
 
     if len(shared_serial_data) > 0:
-        shared_serial_data[0] = custom_serial_value
+        shared_serial_data[0] = object_data.custom_object_data
 
     try:
         shared_frames.object_frame = encode_frame(frame)
     except Exception as e:
         logger.error(f"Erro ao codificar frames: {e}")
 
-    object_data = ObjectData(
-        object_person_data=shared_serial_data[2],
-        traffic_light_data=shared_serial_data[1],
-        custom_object_data=(
-            shared_serial_data[0] if len(shared_serial_data) > 0 else custom_serial_value
-        ),
-        custom_object_label=custom_label,
-    ).to_payload()
     if not object_queue.full():
-        object_queue.put(object_data)
+        object_queue.put(object_data.to_payload())
 
 def force_default_object_data(object_queue, shared_serial_data, shared_controls, logger, reason="CAMERA_ERROR"):
     custom_serial_value = 0

@@ -7,11 +7,12 @@ import torch
 from src.application.services.object_pipeline import (
     process_traffic_light_roi,
 )
+from src.domain.models.data.detection_result import DetectionResult
 from src.infrastructure.adapters.video.video_capture import VideoCapture
-from src.infrastructure.constants.video_constants import (
-    FRAME_WIDTH,
-    FRAME_HEIGHT,
-    CPU_INFERENCE_IMG_SIZE,
+from src.infrastructure.constants.runtime import (
+    CPU_INFERENCE_IMAGE_SIZE,
+    DISPLAY_FRAME_HEIGHT,
+    DISPLAY_FRAME_WIDTH,
 )
 
 from src.infrastructure.data.repository.model_registry_repository import load_active_model
@@ -57,8 +58,8 @@ class YoloObjectDetector:
         if self.video_processor is None and camera_source is not None:
             self.video_processor = VideoCapture(
                 video_source=camera_source,
-                frame_width=FRAME_WIDTH,
-                frame_height=FRAME_HEIGHT,
+                frame_width=DISPLAY_FRAME_WIDTH,
+                frame_height=DISPLAY_FRAME_HEIGHT,
             )
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -80,7 +81,7 @@ class YoloObjectDetector:
         if self.device == "cuda":
             self.inference_kwargs["half"] = True  # FP16 na GPU
         else:
-            self.inference_kwargs["imgsz"] = CPU_INFERENCE_IMG_SIZE
+            self.inference_kwargs["imgsz"] = CPU_INFERENCE_IMAGE_SIZE
 
         self.custom_models = []
         self.active_custom_model = None
@@ -95,7 +96,7 @@ class YoloObjectDetector:
         if self.device == "cuda":
             self.custom_inference_kwargs["half"] = True
         else:
-            self.custom_inference_kwargs["imgsz"] = CPU_INFERENCE_IMG_SIZE
+            self.custom_inference_kwargs["imgsz"] = CPU_INFERENCE_IMAGE_SIZE
 
         self._load_custom_models()
 
@@ -467,10 +468,15 @@ class YoloObjectDetector:
                         2,
                     )
 
-            return person_detected, traffic_light_state, detected_custom_labels
+            return DetectionResult.from_labels(
+                person_detected=person_detected,
+                traffic_light_state=traffic_light_state,
+                custom_labels=detected_custom_labels,
+            )
 
         except Exception as e:
             self.logger.error(f"Erro ao processar frame: {e}")
+            return DetectionResult()
 
     @staticmethod
     def _merge_custom_detections(detections, iou_threshold):

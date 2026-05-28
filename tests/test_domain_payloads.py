@@ -1,6 +1,7 @@
 import unittest
 
 from src.domain.models.data.object_data import ObjectData
+from src.domain.models.data.detection_result import DetectionResult
 from src.domain.models.data.lane_data import LaneData
 
 
@@ -42,6 +43,20 @@ class DomainPayloadTests(unittest.TestCase):
                 "CUSTOM_OBJECT_LABEL": "PLACA_LOMBADA",
             },
         )
+
+    def test_detection_result_converts_to_object_data_by_priority(self):
+        result = DetectionResult.from_labels(
+            person_detected=True,
+            traffic_light_state=0,
+            custom_labels={"PLACA_LOMBADA", "PLACA_PARE"},
+        )
+
+        object_data = result.to_object_data()
+
+        self.assertEqual(object_data.object_person_data, 1)
+        self.assertEqual(object_data.traffic_light_data, 0)
+        self.assertEqual(object_data.custom_object_data, 1)
+        self.assertEqual(object_data.custom_object_label, "PLACA_PARE")
 
 
 if __name__ == "__main__":

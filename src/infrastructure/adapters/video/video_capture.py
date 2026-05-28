@@ -1,14 +1,19 @@
 import os
 import cv2
-from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT, WIDE_CAPTURE_WIDTH, WIDE_CAPTURE_HEIGHT
+from src.infrastructure.constants.runtime import (
+    CAMERA_CAPTURE_HEIGHT,
+    CAMERA_CAPTURE_WIDTH,
+    DISPLAY_FRAME_HEIGHT,
+    DISPLAY_FRAME_WIDTH,
+)
 
 class VideoCapture:
-    def __init__(self, video_source, frame_width=FRAME_WIDTH, frame_height=FRAME_HEIGHT):
+    def __init__(self, video_source, frame_width=DISPLAY_FRAME_WIDTH, frame_height=DISPLAY_FRAME_HEIGHT):
         self.video_source = video_source
         self.output_width = frame_width
         self.output_height = frame_height
-        self.internal_width = WIDE_CAPTURE_WIDTH
-        self.internal_height = WIDE_CAPTURE_HEIGHT
+        self.internal_width = CAMERA_CAPTURE_WIDTH
+        self.internal_height = CAMERA_CAPTURE_HEIGHT
 
         self.is_cam = False
         self.cam_index = None

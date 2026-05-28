@@ -1,4 +1,9 @@
-from src.infrastructure.constants.colors_constants import YELLOW, RED, GREEN, RESET
+from src.infrastructure.constants.runtime import (
+    ANSI_GREEN,
+    ANSI_RED,
+    ANSI_RESET,
+    ANSI_YELLOW,
+)
 
 class Logger:
     """
@@ -17,14 +22,14 @@ class Logger:
     def info(self, message: str):
         if not self.verbose:
             return
-        print(f"{YELLOW}[{self.process_name}]{GREEN}[INFO] {message}{RESET}")
+        print(f"{ANSI_YELLOW}[{self.process_name}]{ANSI_GREEN}[INFO] {message}{ANSI_RESET}")
 
     def warning(self, message: str):
         if not self.verbose:
             return
-        print(f"{YELLOW}[{self.process_name}]{RED}[WARNING] {message}{RESET}")
+        print(f"{ANSI_YELLOW}[{self.process_name}]{ANSI_RED}[WARNING] {message}{ANSI_RESET}")
 
     def error(self, message: str):
         if not self.verbose:
             return
-        print(f"{YELLOW}[{self.process_name}]{RED}[ERROR] {message}{RESET}")
+        print(f"{ANSI_YELLOW}[{self.process_name}]{ANSI_RED}[ERROR] {message}{ANSI_RESET}")
