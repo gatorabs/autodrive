@@ -2,7 +2,7 @@ import os
 import cv2
 from src.infrastructure.constants.video_constants import FRAME_WIDTH, FRAME_HEIGHT, WIDE_CAPTURE_WIDTH, WIDE_CAPTURE_HEIGHT
 
-class VideoProcessor:
+class VideoCapture:
     def __init__(self, video_source, frame_width=FRAME_WIDTH, frame_height=FRAME_HEIGHT):
         self.video_source = video_source
         self.output_width = frame_width

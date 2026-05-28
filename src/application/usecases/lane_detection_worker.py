@@ -18,6 +18,7 @@ from src.application.services.pid_factory import (
     pid_setup,
     check_and_update_pid,
 )
+from src.domain.models.data.lane_data import LaneData
 from src.infrastructure.vision.opencv_windows import toggle_named_window
 
 
@@ -132,10 +133,10 @@ def lane_detection_process(lane_queue,
                 total_time=total_processing_time,
                 frame_count=frame_count)
 
-            lane_data = {
-                "CAR_SPEED_DATA": speed,
-                "CAR_DIRECTION_DATA": mapped_direction
-                         }
+            lane_data = LaneData(
+                car_speed_data=speed,
+                car_direction_data=mapped_direction,
+            ).to_payload()
 
             publish(
                 frame_display=frame_display,

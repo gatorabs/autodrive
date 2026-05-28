@@ -1,4 +1,4 @@
-from src.infrastructure.adapters.video.video_capture import VideoProcessor
+from src.infrastructure.adapters.video.video_capture import VideoCapture
 from src.infrastructure.media.frame_codec import encode_frame
 
 def publish(frame,
@@ -41,7 +41,7 @@ def ensure_video_source_manual(video_processor, current_source, requested_source
 
     if video_processor is None or not video_processor.is_frame_open():
         try:
-            vp = VideoProcessor(video_source=desired_source)
+            vp = VideoCapture(video_source=desired_source)
             logger.info(f"Fonte aberta: {desired_source}")
             return vp, desired_source
         except Exception as e:
@@ -51,7 +51,7 @@ def ensure_video_source_manual(video_processor, current_source, requested_source
     if desired_source != current_source:
         logger.info(f"Trocando Source de {current_source} para {desired_source}")
         try:
-            new_vp = VideoProcessor(video_source=desired_source)
+            new_vp = VideoCapture(video_source=desired_source)
         except Exception as e:
             logger.error(f"Falha ao trocar para fonte {desired_source}: {e}")
 

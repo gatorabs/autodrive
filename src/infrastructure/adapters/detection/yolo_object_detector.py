@@ -7,15 +7,16 @@ import torch
 from src.application.services.object_pipeline import (
     process_traffic_light_roi,
 )
-from src.infrastructure.adapters.video.video_capture import VideoProcessor
+from src.infrastructure.adapters.video.video_capture import VideoCapture
 from src.infrastructure.constants.video_constants import (
     FRAME_WIDTH,
     FRAME_HEIGHT,
     CPU_INFERENCE_IMG_SIZE,
 )
 
-from .custom_model_utils import load_names_from_metadata, normalise_names_payload
-from .model_registry import load_active_model
+from src.infrastructure.data.repository.model_registry_repository import load_active_model
+
+from .yolo_model_metadata import load_names_from_metadata, normalise_names_payload
 
 TARGET_CLASSES = {0, 9}
 DEFAULT_CUSTOM_MODEL_PATH = Path("runs/detect/train/weights/best.pt")
@@ -38,7 +39,7 @@ CUSTOM_CLASS_SLIDER_KEYS = {
     "SEMAFORO": "SEMAFORO",
 }
 
-class ObjectDetector:
+class YoloObjectDetector:
     def __init__(self,
                  shared_serial_data,
                  shared_frames,
@@ -54,7 +55,7 @@ class ObjectDetector:
 
         self.video_processor = video_processor
         if self.video_processor is None and camera_source is not None:
-            self.video_processor = VideoProcessor(
+            self.video_processor = VideoCapture(
                 video_source=camera_source,
                 frame_width=FRAME_WIDTH,
                 frame_height=FRAME_HEIGHT,
@@ -488,7 +489,7 @@ class ObjectDetector:
                 merged.append(current)
                 remaining = []
                 for candidate in det_list:
-                    if ObjectDetector._iou(current["box"], candidate["box"]) < iou_threshold:
+                    if YoloObjectDetector._iou(current["box"], candidate["box"]) < iou_threshold:
                         remaining.append(candidate)
                 det_list = remaining
         return merged

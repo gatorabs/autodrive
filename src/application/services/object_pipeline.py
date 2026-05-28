@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 from src.domain.constants.object_detection_constants import CUSTOM_OBJECT_PRIORITY
+from src.domain.models.data.object_data import ObjectData
 from src.infrastructure.media.frame_codec import encode_frame
 
 def process_traffic_light_roi(roi):
@@ -94,14 +95,14 @@ def publish_results(
     except Exception as e:
         logger.error(f"Erro ao codificar frames: {e}")
 
-    object_data = {
-        "OBJECT_PERSON_DATA": shared_serial_data[2],
-        "TRAFFIC_LIGHT_DATA": shared_serial_data[1],
-        "CUSTOM_OBJECT_DATA": (
+    object_data = ObjectData(
+        object_person_data=shared_serial_data[2],
+        traffic_light_data=shared_serial_data[1],
+        custom_object_data=(
             shared_serial_data[0] if len(shared_serial_data) > 0 else custom_serial_value
         ),
-        "CUSTOM_OBJECT_LABEL": custom_label,
-    }
+        custom_object_label=custom_label,
+    ).to_payload()
     if not object_queue.full():
         object_queue.put(object_data)
 
@@ -112,14 +113,14 @@ def force_default_object_data(object_queue, shared_serial_data, shared_controls,
     shared_serial_data[1] = 2
     shared_serial_data[2] = 1
 
-    object_data = {
-        "OBJECT_PERSON_DATA": 1,
-        "TRAFFIC_LIGHT_DATA": 2,
-        "CUSTOM_OBJECT_DATA": (
+    object_data = ObjectData(
+        object_person_data=1,
+        traffic_light_data=2,
+        custom_object_data=(
             shared_serial_data[0] if len(shared_serial_data) > 0 else custom_serial_value
         ),
-        "CUSTOM_OBJECT_LABEL": "",
-    }
+        custom_object_label="",
+    ).to_payload()
     if not object_queue.full():
         object_queue.put(object_data)
 

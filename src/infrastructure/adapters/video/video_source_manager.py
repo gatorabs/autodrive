@@ -1,5 +1,5 @@
 import time
-from src.infrastructure.adapters.video.video_capture import VideoProcessor
+from src.infrastructure.adapters.video.video_capture import VideoCapture
 
 
 class VideoSourceManager:
@@ -25,7 +25,7 @@ class VideoSourceManager:
             return None
 
         try:
-            video_proc = VideoProcessor(video_source=self._current_source)
+            video_proc = VideoCapture(video_source=self._current_source)
             logger.info(f"Fonte aberta: {self._current_source}")
             self._warn_unavailable = False
             self._last_retry = 0.0
@@ -74,7 +74,7 @@ class VideoSourceManager:
                 return video_processor, self._current_source
 
             try:
-                new_vp = VideoProcessor(video_source=desired_source)
+                new_vp = VideoCapture(video_source=desired_source)
                 logger.info(
                     f"Trocando Source de {self._current_source} para {desired_source}"
                 )
@@ -105,7 +105,7 @@ class VideoSourceManager:
         if new_source != self._current_source:
             logger.info(f"Trocando Source de {self._current_source} para {new_source}")
             try:
-                new_video = VideoProcessor(video_source=new_source)
+                new_video = VideoCapture(video_source=new_source)
             except Exception as e:
                 logger.error(f"Falha ao trocar para fonte {new_source}: {e}")
                 return video_processor

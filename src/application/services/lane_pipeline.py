@@ -4,10 +4,15 @@ import math
 import cv2 as cv
 
 from src.domain.constants.pid_constants import FALLBACK_PID_INPUT, FALLBACK_PID_OUTPUT
+from src.domain.models.data.lane_data import (
+    CAR_DIRECTION_DATA,
+    CAR_SPEED_DATA,
+    LaneData,
+)
 from src.domain.services.detour_service import reset_detour_mode
-from src.infrastructure.adapters.detection.lane_detection import calculate_center_distance
-from src.infrastructure.mappers.direction_mapper import map_direction
+from src.application.services.control_mapping import map_direction
 from src.infrastructure.media.frame_codec import encode_frame
+from src.infrastructure.vision.lane_marker_analysis import calculate_center_distance
 from src.infrastructure.vision.perspective_transform import (
     bird_eye_full,
     get_warp_points_from_controls,
@@ -121,13 +126,10 @@ def compute_speed_and_direction(pid,
 
 def force_safe_stop(lane_queue, shared_controls, logger, reason="CAMERA_ERROR"):
 
-    shared_controls["CAR_SPEED_DATA"] = 0
-    direction = shared_controls.car_info.get("CAR_DIRECTION_DATA", 90)
+    shared_controls[CAR_SPEED_DATA] = 0
+    direction = shared_controls.car_info.get(CAR_DIRECTION_DATA, 90)
 
-    lane_data = {
-        "CAR_SPEED_DATA": 0,
-        "CAR_DIRECTION_DATA": direction
-    }
+    lane_data = LaneData(car_speed_data=0, car_direction_data=direction).to_payload()
 
     if not lane_queue.full():
         lane_queue.put(lane_data)

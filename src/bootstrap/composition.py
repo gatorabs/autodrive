@@ -43,7 +43,7 @@ def build_process_targets() -> ProcessTargets:
     from src.application.usecases.manual_mode_worker import manual_video_process
     from src.application.usecases.object_detection_worker import object_detection_process
     from src.infrastructure.hardware.process_priority import set_process_priority
-    from src.infrastructure.adapters.detection.object_detection import ObjectDetector
+    from src.infrastructure.adapters.detection.yolo_object_detector import YoloObjectDetector
     from src.infrastructure.adapters.serial.serial_communicator import SerialCommunicator
     from src.infrastructure.adapters.video.video_source_manager import VideoSourceManager
     from src.presentation.api.web_server.app import start_flask_server
@@ -64,7 +64,7 @@ def build_process_targets() -> ProcessTargets:
         priority_setter=set_process_priority,
         video_source_manager_factory=VideoSourceManager,
         serial_communicator_factory=SerialCommunicator,
-        object_detector_factory=ObjectDetector,
+        object_detector_factory=YoloObjectDetector,
     )
 
 

@@ -3,7 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.infrastructure.adapters.detection.model_registry import load_active_model
+from src.domain.models.detection_model.active_model import ActiveModel
+from src.infrastructure.data.repository.model_registry_repository import load_active_model
 
 
 class ModelRegistryTest(unittest.TestCase):
@@ -38,6 +39,7 @@ class ModelRegistryTest(unittest.TestCase):
             active = load_active_model(registry_path, base_dir=root)
 
         self.assertIsNotNone(active)
+        self.assertIsInstance(active, ActiveModel)
         self.assertEqual(active.name, "todos_objetos")
         self.assertEqual(active.classes, ("PLACA_PARE", "PLACA_LOMBADA"))
         self.assertEqual(active.path.name, "best.pt")

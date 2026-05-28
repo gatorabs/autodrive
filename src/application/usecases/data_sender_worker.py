@@ -9,8 +9,8 @@ from src.application.services.serial_pipeline import (
     change_serial_port,
 )
 from src.domain.services.safety_service import publish_emergency_stop
-from src.domain.models.lane_data.lane_data import LaneData
-from src.domain.models.object_data.object_data import ObjectData
+from src.domain.models.data.object_data import ObjectData
+from src.domain.models.data.lane_data import LaneData
 
 def data_sender_process(lane_queue,
                         object_queue,

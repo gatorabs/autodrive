@@ -1,22 +1,13 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from src.domain.models.detection_model.active_model import ActiveModel
 from src.infrastructure.constants.path_constants import MODEL_REGISTRY_FILE, REPO_ROOT
 
 DEFAULT_MODEL_REGISTRY_PATH = MODEL_REGISTRY_FILE
-
-
-@dataclass(frozen=True)
-class ActiveModel:
-    name: str
-    path: Path
-    classes: tuple[str, ...] = ()
-    promoted_at: str = ""
-    source: str = ""
 
 
 def get_repo_root() -> Path:

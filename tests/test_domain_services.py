@@ -1,7 +1,7 @@
 import unittest
 
-from src.domain.models.lane_data.lane_data import LaneData
-from src.domain.models.object_data.object_data import ObjectData
+from src.domain.models.data.object_data import ObjectData
+from src.domain.models.data.lane_data import LaneData
 from src.domain.services.safety_service import publish_emergency_stop
 from src.domain.services.traffic_light_service import (
     TRAFFIC_LIGHT_GREEN,
