@@ -124,6 +124,12 @@ to date.
 
 ## Performance Notes
 
+![CUDA recomendado](https://img.shields.io/badge/ALERTA-CUDA%20recomendado-red)
+
+<div style="border: 1px solid #dc2626; background: #fee2e2; color: #7f1d1d; padding: 12px; border-radius: 6px;">
+  <strong>Alerta:</strong> para uma boa experiencia em tempo real, e importante usar uma instalacao PyTorch com CUDA e uma GPU NVIDIA compativel. Sem CUDA, a inferencia pode ficar lenta e afetar a fluidez do dashboard.
+</div>
+
 - Camera capture, lane detection, object detection, serial sending, Flask, and
   manual mode run in separated processes when enabled.
 - The desktop UI renders live frames only for the active view and pauses Task

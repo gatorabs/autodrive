@@ -133,6 +133,13 @@ class BootView(ctk.CTkFrame):
             child.destroy()
         StateBlock(self.state_slot, "Startup failed", message, "error").pack(fill="x")
 
+    def show_cuda_status(self, available: bool, device_name: str, message: str) -> None:
+        for child in self.state_slot.winfo_children():
+            child.destroy()
+        title = f"CUDA ready: {device_name}" if available else "CUDA recommended"
+        tone = "success" if available else "warning"
+        StateBlock(self.state_slot, title, message, tone).pack(fill="x")
+
 
 class VideoTile(Card):
     def __init__(self, master, title: str, placeholder: str, error_key: str):
@@ -917,6 +924,11 @@ class AutodriveApp(ctk.CTk):
         threading.Thread(target=task, daemon=True).start()
 
     def _finish_boot(self, user_flags):
+        self.boot.show_cuda_status(
+            bool(user_flags.get("CUDA_AVAILABLE", False)),
+            user_flags.get("CUDA_DEVICE_NAME", "CPU only"),
+            user_flags.get("CUDA_STATUS_MESSAGE", ""),
+        )
         self.shared_controls, self.tk_controls, self.shared_frames, self.user_flags = create_runtime_state(
             self.manager,
             user_flags,
@@ -935,6 +947,8 @@ class AutodriveApp(ctk.CTk):
         self.shell.grid(row=0, column=0, sticky="nsew")
         self.shell.tkraise()
         self.boot.destroy()
+        if not user_flags.get("CUDA_AVAILABLE", False):
+            self.show_status(user_flags.get("CUDA_STATUS_MESSAGE", "CUDA is recommended."), "warning")
         self._tick_processes()
         self._tick_frames()
 

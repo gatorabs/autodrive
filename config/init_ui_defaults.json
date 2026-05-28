@@ -10,5 +10,8 @@
     "NEW_PID": false,
     "SEND_DATA": true,
     "MANUAL_MD": false,
-    "LANE_SOURCE_TAB2": "0"
+    "LANE_SOURCE_TAB2": "0",
+    "CUDA_AVAILABLE": false,
+    "CUDA_DEVICE_NAME": "CPU only",
+    "CUDA_STATUS_MESSAGE": "CUDA was not detected. CPU inference will be used; CUDA is recommended for a good experience."
 }
