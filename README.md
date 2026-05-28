@@ -124,17 +124,17 @@ to date.
 
 ## Performance Notes
 
-![CUDA recomendado](https://img.shields.io/badge/ALERTA-CUDA%20recomendado-red)
+![CUDA recommended](https://img.shields.io/badge/ALERT-CUDA%20recommended-red)
 
 <div style="border: 1px solid #dc2626; background: #fee2e2; color: #7f1d1d; padding: 12px; border-radius: 6px;">
-  <strong>Alerta:</strong> para uma boa experiencia em tempo real, e importante usar uma instalacao PyTorch com CUDA e uma GPU NVIDIA compativel. Sem CUDA, a inferencia pode ficar lenta e afetar a fluidez do dashboard.
+  <strong>Alert:</strong> For a good real-time experience, it is important to use a PyTorch installation with CUDA and a compatible NVIDIA GPU. Without CUDA, inference may be slow and affect the dashboard's smoothness.
 </div>
 
 - Camera capture, lane detection, object detection, serial sending, Flask, and
-  manual mode run in separated processes when enabled.
+  manual mode run in separate processes when enabled.
 - The desktop UI renders live frames only for the active view and pauses Task
   Manager refreshes when the view is not visible.
-- Video frames are resized for the available UI area, and slider persistence is
+- Video frames are resized to fit the available UI area, and slider persistence is
   debounced to avoid excessive disk writes.
 
 ## GPU And Inference Performance
