@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
 from src.domain.constants.object_detection_constants import CUSTOM_OBJECT_PRIORITY
-from src.domain.services.traffic_light_service import TRAFFIC_LIGHT_GREEN
+from src.domain.services.driving.traffic_light_service import TRAFFIC_LIGHT_GREEN
 
 from .object_data import ObjectData
 

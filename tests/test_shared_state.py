@@ -1,6 +1,6 @@
 import unittest
 
-from src.application.state import RuntimeControls, SharedFrames, UiControls
+from src.application.runtime.state import RuntimeControls, SharedFrames, UiControls
 
 
 class SharedStateTests(unittest.TestCase):

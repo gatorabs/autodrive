@@ -4,9 +4,6 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 import torch
-from src.application.services.object_pipeline import (
-    process_traffic_light_roi,
-)
 from src.domain.models.data.detection_result import DetectionResult
 from src.infrastructure.adapters.video.video_capture import VideoCapture
 from src.infrastructure.constants.runtime import (
@@ -14,6 +11,7 @@ from src.infrastructure.constants.runtime import (
     DISPLAY_FRAME_HEIGHT,
     DISPLAY_FRAME_WIDTH,
 )
+from src.infrastructure.vision.traffic_light_analysis import process_traffic_light_roi
 
 from src.infrastructure.data.repository.model_registry_repository import load_active_model
 

@@ -1,6 +1,6 @@
 from flask import jsonify, request
 from src.infrastructure.hardware.process_monitor import get_active_python_processes
-from src.application.services.control_mapping import map_range
+from src.application.runtime.services.control.control_mapping_service import map_range
 
 
 def process_api_info(app, shared_controls):

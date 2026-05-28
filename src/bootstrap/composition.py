@@ -1,6 +1,6 @@
-from src.application.configuration.system_initializer import SystemInitializer
-from src.application.orchestration.process_manager import ProcessManager, ProcessTargets
-from src.application.state import RuntimeControls, SharedFrames, UiControls
+from src.application.runtime.configuration.system_initializer import SystemInitializer
+from src.application.runtime.orchestration.process_manager import ProcessManager, ProcessTargets
+from src.application.runtime.state import RuntimeControls, SharedFrames, UiControls
 
 
 def create_initializer():
@@ -37,11 +37,11 @@ def create_runtime_state(manager, user_flags):
 
 
 def build_process_targets() -> ProcessTargets:
-    from src.application.usecases.camera_capture_worker import camera_capture_process
-    from src.application.usecases.data_sender_worker import data_sender_process
-    from src.application.usecases.lane_detection_worker import lane_detection_process
-    from src.application.usecases.manual_mode_worker import manual_video_process
-    from src.application.usecases.object_detection_worker import object_detection_process
+    from src.application.runtime.workers.camera_capture_worker import camera_capture_process
+    from src.application.runtime.workers.data_sender_worker import data_sender_process
+    from src.application.runtime.workers.lane_detection_worker import lane_detection_process
+    from src.application.runtime.workers.manual_mode_worker import manual_video_process
+    from src.application.runtime.workers.object_detection_worker import object_detection_process
     from src.infrastructure.hardware.process_priority import set_process_priority
     from src.infrastructure.adapters.detection.yolo_object_detector import YoloObjectDetector
     from src.infrastructure.adapters.serial.serial_communicator import SerialCommunicator
