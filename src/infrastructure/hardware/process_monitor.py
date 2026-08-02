@@ -14,23 +14,28 @@ def get_active_python_processes():
     cores = psutil.cpu_count(logical=True) or 1
 
     processes = []
-    for proc in psutil.process_iter(["name", "pid", "nice", "memory_info", "io_counters"]):
+    for proc in psutil.process_iter(["name", "pid"]):
         name = proc.info.get("name") or ""
         if "python" not in name.lower():
             continue
 
-        pid = proc.info["pid"]
-        nice = proc.info["nice"]
-        priority = PRIORITY_MAP.get(nice, str(nice))
-        memory_mb = proc.info["memory_info"].rss / (1024 * 1024)
-        cpu_percent = proc.cpu_percent(interval=None) / cores
-        io_ct = proc.info.get("io_counters")
-        io_mb = ((io_ct.read_bytes + io_ct.write_bytes) / (1024 * 1024)) if io_ct else 0
+        try:
+            with proc.oneshot():
+                nice = proc.nice()
+                memory_mb = proc.memory_info().rss / (1024 * 1024)
+                cpu_percent = proc.cpu_percent(interval=None) / cores
+                try:
+                    io_ct = proc.io_counters()
+                    io_mb = (io_ct.read_bytes + io_ct.write_bytes) / (1024 * 1024)
+                except (psutil.AccessDenied, AttributeError):
+                    io_mb = 0
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
 
         processes.append({
             "name": name,
-            "pid": pid,
-            "priority": priority,
+            "pid": proc.info["pid"],
+            "priority": PRIORITY_MAP.get(nice, str(nice)),
             "memory_mb": memory_mb,
             "cpu_percent": cpu_percent,
             "io_mb": io_mb

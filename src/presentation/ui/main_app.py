@@ -818,6 +818,9 @@ class TaskManagerView(ctk.CTkFrame):
         super().__init__(master, fg_color=Theme.BG)
         self.active = False
         self.job = None
+        self.has_data = False
+        self._fetching = False
+        self._chart_labels, self._chart_memory, self._chart_cpu, self._chart_io = [], [], [], []
         self.compact = ctk.BooleanVar(value=False)
         self.metric = ctk.StringVar(value="Memory")
         self.grid_columnconfigure(0, weight=1)
@@ -859,7 +862,9 @@ class TaskManagerView(ctk.CTkFrame):
             card,
             values=["Memory", "CPU", "IO"],
             variable=self.metric,
-            command=lambda _: self.refresh(),
+            command=lambda _: self._draw_chart(
+                self._chart_labels, self._chart_memory, self._chart_cpu, self._chart_io
+            ),
             fg_color=Theme.PANEL_SOFT,
             button_color=Theme.PANEL_SOFT,
         )
@@ -869,19 +874,68 @@ class TaskManagerView(ctk.CTkFrame):
         self.canvas = FigureCanvasTkAgg(self.fig, master=card)
         self.canvas.get_tk_widget().grid(row=4, column=0, sticky="nsew", padx=16, pady=(8, 16))
 
+        self.loading_overlay = ctk.CTkFrame(card, fg_color=Theme.PANEL, corner_radius=0)
+        self.loading_overlay.grid_columnconfigure(0, weight=1)
+        self.loading_overlay.grid_rowconfigure(0, weight=1)
+        self.loading_overlay.grid_rowconfigure(2, weight=1)
+        loading_content = ctk.CTkFrame(self.loading_overlay, fg_color="transparent")
+        loading_content.grid(row=1, column=0)
+        self.loading_progress = ctk.CTkProgressBar(
+            loading_content,
+            mode="indeterminate",
+            width=220,
+            progress_color=Theme.PRIMARY,
+            fg_color=Theme.PANEL_SOFT,
+        )
+        self.loading_progress.grid(row=0, column=0, pady=(0, 10))
+        ctk.CTkLabel(
+            loading_content, text="Loading process data...", text_color=Theme.MUTED, font=font_body()
+        ).grid(row=1, column=0)
+        self.loading_overlay.grid(row=2, column=0, rowspan=3, sticky="nsew")
+        self.loading_overlay.grid_remove()
+
     def set_active(self, active):
         self.active = active
         if active and self.job is None:
-            self.after_idle(self.refresh)
+            if not self.has_data:
+                self._show_loading()
+            self.after_idle(self._start_refresh)
         elif not active and self.job is not None:
             self.after_cancel(self.job)
             self.job = None
 
-    def refresh(self):
+    def _start_refresh(self):
         self.job = None
-        if not self.active:
+        if not self.active or self._fetching:
             return
-        data = get_active_python_processes()
+        self._fetching = True
+        # Fetching process/IO stats touches every process on the system and can take
+        # a noticeable amount of time, so it runs off the Tk main thread to avoid
+        # freezing the whole UI while it collects data.
+        threading.Thread(target=self._fetch_worker, daemon=True).start()
+
+    def _fetch_worker(self):
+        try:
+            data = get_active_python_processes()
+        except Exception as exc:  # noqa: BLE001 - background thread must not crash silently.
+            logger.error(f"Failed to read process list: {exc}")
+            data = {"processes": [], "process_count": 0, "total_ram_mb": 0.0, "system_cpu": 0.0}
+        try:
+            self.after(0, lambda: self._on_data(data))
+        except Exception:
+            pass
+
+    def _on_data(self, data):
+        self._fetching = False
+        if not self.winfo_exists():
+            return
+        self._hide_loading()
+        self.has_data = True
+        if self.active:
+            self._render_data(data)
+            self.job = self.after(2000, self._start_refresh)
+
+    def _render_data(self, data):
         processes = data.get("processes", [])
         labels, memory, cpu, io_values = [], [], [], []
         seen: set[str] = set()
@@ -910,8 +964,17 @@ class TaskManagerView(ctk.CTkFrame):
                 f"System CPU: {data.get('system_cpu', 0.0):.1f}%"
             )
         )
+        self._chart_labels, self._chart_memory, self._chart_cpu, self._chart_io = labels, memory, cpu, io_values
         self._draw_chart(labels, memory, cpu, io_values)
-        self.job = self.after(2000, self.refresh)
+
+    def _show_loading(self):
+        self.loading_progress.start()
+        self.loading_overlay.grid()
+        self.loading_overlay.tkraise()
+
+    def _hide_loading(self):
+        self.loading_progress.stop()
+        self.loading_overlay.grid_remove()
 
     def _draw_chart(self, labels, memory, cpu, io_values):
         metric = self.metric.get()
