@@ -37,6 +37,7 @@ from src.presentation.ui.theme import (
     badge_style,
     button_style,
     card_style,
+    chip_entry_style,
     font_body,
     font_caption,
     font_display,
@@ -340,8 +341,6 @@ class VideoTile(Card):
             return
         size = self._target_size()
         self.render_size = size
-        # BILINEAR trades a little sharpness for much cheaper per-frame cost than
-        # LANCZOS, which matters here because this runs on the Tk main thread ~30x/s.
         resized = self.current_image.resize(size, Image.Resampling.BILINEAR)
         self.ctk_image = CTkImage(light_image=resized, dark_image=resized, size=size)
         self.image_label.configure(image=self.ctk_image, text="")
@@ -377,7 +376,11 @@ _ACCENT_TRACKS = {
 }
 
 
-class SliderControl(ctk.CTkFrame):
+class SliderControl(ctk.CTkCanvas):
+    TRACK_H = 6
+    THUMB_R = 7
+    PAD = 4
+
     def __init__(
         self,
         master,
@@ -385,62 +388,30 @@ class SliderControl(ctk.CTkFrame):
         value: float,
         on_change: Callable[[str, float], None],
         accent: str = Theme.PRIMARY,
+        height: int = 44,
     ):
-        super().__init__(master, fg_color="transparent")
+        super().__init__(master, height=height, bg=Theme.PANEL, highlightthickness=0)
         self.spec = spec
         self.on_change = on_change
-        self.grid_columnconfigure(0, weight=0, minsize=116)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_columnconfigure(2, weight=0, minsize=64)
+        self.fill_color, self.thumb_color, _hover = _ACCENT_TRACKS.get(accent, _ACCENT_TRACKS[Theme.PRIMARY])
+        self._value = value
+        self._value_bbox = (0, 0, 0, 0)
+        self._resize_job = None
+        self._editor: ctk.CTkEntry | None = None
 
-        ctk.CTkLabel(self, text=spec.label, text_color=Theme.MUTED, font=font_body(), anchor="w").grid(
-            row=0, column=0, sticky="w", padx=(0, 8), pady=2
-        )
-        steps = max(1, int(round((spec.max_value - spec.min_value) / spec.step)))
-        track_color, button_color, button_hover = _ACCENT_TRACKS.get(accent, _ACCENT_TRACKS[Theme.PRIMARY])
-        self.slider = ctk.CTkSlider(
-            self,
-            from_=spec.min_value,
-            to=spec.max_value,
-            number_of_steps=steps,
-            progress_color=track_color,
-            button_color=button_color,
-            button_hover_color=button_hover,
-            command=self._slider_changed,
-        )
-        self.slider.grid(row=0, column=1, sticky="ew", pady=2)
-        self.entry = ctk.CTkEntry(
-            self,
-            justify="center",
-            fg_color=Theme.INPUT,
-            border_color=Theme.BORDER_HOVER,
-            corner_radius=Theme.RADIUS_SM,
-            text_color=track_color,
-            font=font_label(),
-            width=64,
-        )
-        self.entry.grid(row=0, column=2, padx=(8, 0), pady=2)
-        self.entry.bind("<Return>", self._entry_changed)
-        self.entry.bind("<FocusOut>", self._entry_changed)
+        self.bind("<Configure>", self._schedule_redraw)
+        self.bind("<Button-1>", self._on_press)
+        self.bind("<B1-Motion>", self._on_press)
         self.set(value, notify=False)
 
-    def set(self, value: float, *, notify=True) -> None:
-        value = self._normalize(value)
-        self.slider.set(value)
-        self.entry.delete(0, "end")
-        self.entry.insert(0, self._format(value))
+    def get(self) -> float:
+        return self._value
+
+    def set(self, value: float, *, notify: bool = True) -> None:
+        self._value = self._normalize(value)
+        self._redraw()
         if notify:
-            self.on_change(self.spec.key, value)
-
-    def _slider_changed(self, value) -> None:
-        self.set(value)
-
-    def _entry_changed(self, _event=None) -> None:
-        try:
-            value = float(self.entry.get())
-        except ValueError:
-            value = self.slider.get()
-        self.set(value)
+            self.on_change(self.spec.key, self._value)
 
     def _normalize(self, value: float):
         value = max(self.spec.min_value, min(float(value), self.spec.max_value))
@@ -449,6 +420,126 @@ class SliderControl(ctk.CTkFrame):
 
     def _format(self, value) -> str:
         return f"{value:.3f}" if self.spec.step < 1 else str(int(round(value)))
+
+    def _on_press(self, event) -> None:
+        if self._editor is not None:
+            return
+        x0, y0, x1, y1 = self._value_bbox
+        if x0 - 6 <= event.x <= x1 + 6 and y0 - 6 <= event.y <= y1 + 6:
+            self._begin_edit()
+            return
+        width, height = self.winfo_width(), self.winfo_height()
+        if width <= 1:
+            return
+        track_y = height - 13
+        if abs(event.y - track_y) > 14:
+            return
+        left, right = self.THUMB_R + self.PAD, width - self.THUMB_R - self.PAD
+        if right <= left:
+            return
+        ratio = min(max((event.x - left) / (right - left), 0.0), 1.0)
+        self.set(self.spec.min_value + ratio * (self.spec.max_value - self.spec.min_value), notify=True)
+
+    def _begin_edit(self) -> None:
+        entry = ctk.CTkEntry(self, width=70, font=font_label(), **chip_entry_style(self.fill_color))
+        entry.insert(0, self._format(self._value))
+        entry.select_range(0, "end")
+        x0, y0, x1, y1 = self._value_bbox
+        self.create_window((x0 + x1) / 2, (y0 + y1) / 2, window=entry, anchor="center")
+        entry.focus_set()
+        entry.bind("<Return>", lambda _e: self._commit_edit(entry))
+        entry.bind("<FocusOut>", lambda _e: self._commit_edit(entry))
+        entry.bind("<Escape>", lambda _e: self._cancel_edit(entry))
+        self._editor = entry
+
+    def _commit_edit(self, entry: ctk.CTkEntry) -> None:
+        if self._editor is not entry:
+            return
+        try:
+            value = float(entry.get())
+        except ValueError:
+            value = self._value
+        self._editor = None
+        entry.destroy()
+        self.set(value, notify=True)
+
+    def _cancel_edit(self, entry: ctk.CTkEntry) -> None:
+        if self._editor is not entry:
+            return
+        self._editor = None
+        entry.destroy()
+        self._redraw()
+
+    def _schedule_redraw(self, _event=None) -> None:
+        if self._resize_job is not None:
+            self.after_cancel(self._resize_job)
+        self._resize_job = self.after(80, self._redraw)
+
+    def _redraw(self) -> None:
+        self._resize_job = None
+        if self._editor is not None:
+            return
+        width, height = self.winfo_width(), self.winfo_height()
+        if width <= 1:
+            return
+        self.delete("all")
+
+        self.create_text(self.PAD, 13, text=self.spec.label, fill=Theme.MUTED, font=font_body(), anchor="w")
+        value_id = self.create_text(
+            width - self.PAD, 13, text=self._format(self._value), fill=self.fill_color, font=font_label(), anchor="e"
+        )
+        self._value_bbox = self.bbox(value_id)
+
+        track_y = height - 13
+        left, right = self.THUMB_R + self.PAD, width - self.THUMB_R - self.PAD
+        if right <= left:
+            return
+        self.create_line(left, track_y, right, track_y, fill=Theme.PANEL_SOFT, width=self.TRACK_H, capstyle="round")
+        span = self.spec.max_value - self.spec.min_value
+        ratio = 0.0 if span <= 0 else (self._value - self.spec.min_value) / span
+        thumb_x = left + ratio * (right - left)
+        if thumb_x > left:
+            self.create_line(left, track_y, thumb_x, track_y, fill=self.fill_color, width=self.TRACK_H, capstyle="round")
+        self.create_oval(
+            thumb_x - self.THUMB_R,
+            track_y - self.THUMB_R,
+            thumb_x + self.THUMB_R,
+            track_y + self.THUMB_R,
+            fill=self.thumb_color,
+            outline=Theme.PANEL,
+            width=2,
+        )
+
+    def destroy(self) -> None:
+        if self._resize_job is not None:
+            try:
+                self.after_cancel(self._resize_job)
+            except Exception:
+                pass
+        super().destroy()
+
+
+def debounce_scrollable_frame(frame: ctk.CTkScrollableFrame, delay_ms: int = 80) -> None:
+    canvas = frame._parent_canvas
+    fit_to_canvas = frame._fit_frame_dimensions_to_canvas
+    fit_job = None
+
+    def debounced_fit(event):
+        nonlocal fit_job
+        if fit_job is not None:
+            canvas.after_cancel(fit_job)
+        fit_job = canvas.after(delay_ms, lambda: fit_to_canvas(event))
+
+    region_job = None
+
+    def debounced_region(_event=None):
+        nonlocal region_job
+        if region_job is not None:
+            frame.after_cancel(region_job)
+        region_job = frame.after(delay_ms, lambda: canvas.configure(scrollregion=canvas.bbox("all")))
+
+    canvas.bind("<Configure>", debounced_fit)
+    frame.bind("<Configure>", debounced_region)
 
 
 class SliderCard(Card):
@@ -467,8 +558,9 @@ class SliderCard(Card):
         for row, spec in enumerate(specs, start=1):
             value = calibration_data.get(spec.key, tk_controls.get(spec.key, spec.min_value))
             control = SliderControl(self, spec, value, on_change, accent=accent)
-            control.grid(row=row, column=0, sticky="ew", padx=14, pady=0)
+            control.grid(row=row, column=0, sticky="ew", padx=14, pady=(0, 4))
             self.controls[spec.key] = control
+        self.grid_rowconfigure(len(specs) + 1, minsize=Theme.SPACE_XS)
 
     def set_value(self, key: str, value: float) -> None:
         if key in self.controls:
@@ -484,6 +576,7 @@ class HomeView(ctk.CTkFrame):
 
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=6)
+        debounce_scrollable_frame(self.scroll)
         self.scroll.grid_columnconfigure((0, 1, 2), weight=1, uniform="home")
         self.scroll.grid_rowconfigure(0, weight=1, uniform="video-row")
 
@@ -553,8 +646,12 @@ class HomeView(ctk.CTkFrame):
             rowspan=2,
         )
 
+        ctk.CTkFrame(self.scroll, fg_color="transparent", height=Theme.SPACE_MD).grid(
+            row=4, column=0, columnspan=3, sticky="ew"
+        )
+
     def _build_sources(self, row, column):
-        card = Card(self.scroll, "Input and Communication")
+        card = Card(self.scroll, "Input and Communication", accent=Theme.PRIMARY)
         card.grid(row=row, column=column, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
 
         self.refresh_source_options()
@@ -666,7 +763,7 @@ class HomeView(ctk.CTkFrame):
             control = self.extras_card.controls.get("Lines")
             if control and control.spec.max_value != max_height:
                 control.spec = SliderSpec("Lines", "Lines", 0, max_height)
-                control.slider.configure(to=max_height, number_of_steps=max(1, int(max_height)))
+                control.set(control.get(), notify=False)
 
     @staticmethod
     def _clean_source(value):
@@ -685,6 +782,7 @@ class ManualView(ctk.CTkFrame):
         self.grid_rowconfigure(0, weight=1)
         scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=8)
+        debounce_scrollable_frame(scroll)
         scroll.grid_columnconfigure((0, 1), weight=1, uniform="manual")
 
         self.video = VideoTile(scroll, "Manual Video", "Waiting for manual frame", "lane")
@@ -730,6 +828,10 @@ class ManualView(ctk.CTkFrame):
         self.wheel.grid(row=1, column=0, padx=24, pady=(0, 20))
         self.wheel.bind("<B1-Motion>", self._wheel_drag)
         self._draw_wheel(self.app.tk_controls.get("MANUAL_DIRECTION", 90))
+
+        ctk.CTkFrame(scroll, fg_color="transparent", height=Theme.SPACE_MD).grid(
+            row=3, column=0, columnspan=2, sticky="ew"
+        )
 
     def apply_source(self):
         selected = self._clean_source(self.source_combo.get())
@@ -909,9 +1011,6 @@ class TaskManagerView(ctk.CTkFrame):
         if not self.active or self._fetching:
             return
         self._fetching = True
-        # Fetching process/IO stats touches every process on the system and can take
-        # a noticeable amount of time, so it runs off the Tk main thread to avoid
-        # freezing the whole UI while it collects data.
         threading.Thread(target=self._fetch_worker, daemon=True).start()
 
     def _fetch_worker(self):
@@ -1051,15 +1150,13 @@ class NavRail(ctk.CTkFrame):
     def __init__(self, master, on_select, on_settings, on_defaults, on_options):
         super().__init__(master, fg_color=Theme.SIDEBAR, corner_radius=0, width=Theme.SIDEBAR_WIDTH)
         self.grid_propagate(False)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
         self.on_select = on_select
         self.buttons: dict[str, ctk.CTkButton] = {}
         self.indicators: dict[str, ctk.CTkFrame] = {}
 
-        ctk.CTkLabel(self, image=icon("manual", 26, Theme.PRIMARY), text="").grid(row=0, column=0, pady=(20, 24))
-
         nav = ctk.CTkFrame(self, fg_color="transparent")
-        nav.grid(row=1, column=0, sticky="n")
+        nav.grid(row=0, column=0, sticky="n", pady=(20, 0))
         for key, glyph, label in self.ITEMS:
             wrapper = ctk.CTkFrame(nav, fg_color="transparent")
             wrapper.pack(pady=4)
@@ -1154,8 +1251,6 @@ class DashboardShell(ctk.CTkFrame):
             "Manual": ManualView(self.content, app),
             "Task Manager": TaskManagerView(self.content),
         }
-        for view in self.views.values():
-            view.grid(row=0, column=0, sticky="nsew")
         self._activate("Manual" if app.shared_controls.manual_mode else "Home")
 
     def select(self, name):
@@ -1184,8 +1279,10 @@ class DashboardShell(ctk.CTkFrame):
             return
         if self.current == "Task Manager":
             self.views["Task Manager"].set_active(False)
+        if self.current is not None:
+            self.views[self.current].grid_remove()
         self.current = name
-        self.views[name].tkraise()
+        self.views[name].grid(row=0, column=0, sticky="nsew")
         self.nav.set_active(name)
         if name == "Task Manager":
             self.views["Task Manager"].set_active(True)

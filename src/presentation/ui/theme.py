@@ -143,6 +143,16 @@ def input_style() -> dict:
     }
 
 
+def chip_entry_style(accent: str = Theme.PRIMARY) -> dict:
+    return {
+        "fg_color": Theme.PANEL_SOFT,
+        "border_width": 0,
+        "corner_radius": Theme.RADIUS_PILL,
+        "text_color": accent,
+        "justify": "center",
+    }
+
+
 def badge_style(tone: str = "info") -> dict:
     tones = {
         "info": (Theme.PRIMARY_SOFT, Theme.PRIMARY),
@@ -155,10 +165,6 @@ def badge_style(tone: str = "info") -> dict:
     bg, fg = tones.get(tone, tones["info"])
     return {"fg_color": bg, "text_color": fg}
 
-
-# ---------------------------------------------------------------------------
-# Runtime-drawn icon glyphs (no external asset/icon-font dependency).
-# ---------------------------------------------------------------------------
 
 _ICON_CACHE: dict[tuple[str, int, str], "ctk.CTkImage"] = {}
 _SUPERSAMPLE = 4
