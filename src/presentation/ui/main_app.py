@@ -8,7 +8,6 @@ from typing import Callable
 import cv2
 import customtkinter as ctk
 import numpy as np
-from CTkMessagebox import CTkMessagebox
 from customtkinter import CTkImage
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -32,7 +31,22 @@ from src.infrastructure.hardware.process_monitor import get_active_python_proces
 from src.infrastructure.logging.logger import Logger
 from src.infrastructure.vision.camera_discovery import detect_camera_indices
 from src.infrastructure.vision.video_files import get_video_files_from_folder
-from src.presentation.ui.theme import Theme, button_style, card_style, font, input_style
+from src.presentation.ui.theme import (
+    Theme,
+    accent_card_style,
+    badge_style,
+    button_style,
+    card_style,
+    font_body,
+    font_caption,
+    font_display,
+    font_heading,
+    font_label,
+    icon,
+    icon_button_style,
+    input_style,
+    nav_button_style,
+)
 
 logger = Logger("MainUI")
 
@@ -47,16 +61,28 @@ class SliderSpec:
 
 
 class Card(ctk.CTkFrame):
-    def __init__(self, master, title: str | None = None, **kwargs):
-        super().__init__(master, **card_style(), **kwargs)
+    def __init__(self, master, title: str | None = None, *, accent: str | None = None, **kwargs):
+        style = accent_card_style(accent) if accent else card_style()
+        super().__init__(master, **style, **kwargs)
         self.grid_columnconfigure(0, weight=1)
+        self.header: ctk.CTkFrame | None = None
+        self.title_label: ctk.CTkLabel | None = None
         if title:
-            ctk.CTkLabel(
-                self,
+            self.header = ctk.CTkFrame(self, fg_color="transparent")
+            self.header.grid(row=0, column=0, sticky="ew", padx=14, pady=(11, 6))
+            self.header.grid_columnconfigure(0, weight=1)
+            self.title_label = ctk.CTkLabel(
+                self.header,
                 text=title,
-                font=font(16, "bold"),
+                font=font_heading(),
                 text_color=Theme.TEXT,
-            ).grid(row=0, column=0, sticky="w", padx=14, pady=(11, 6))
+            )
+            self.title_label.grid(row=0, column=0, sticky="w")
+
+    def set_accessory(self, widget: ctk.CTkBaseClass) -> None:
+        if self.header is None:
+            return
+        widget.grid(row=0, column=1, sticky="e", padx=(8, 0))
 
 
 class StateBlock(ctk.CTkFrame):
@@ -74,7 +100,7 @@ class StateBlock(ctk.CTkFrame):
             "warning": Theme.WARNING,
             "error": Theme.DANGER,
         }.get(tone, Theme.TEXT)
-        ctk.CTkLabel(self, text=title, font=font(14, "bold"), text_color=color).pack(
+        ctk.CTkLabel(self, text=title, font=font_heading(), text_color=color).pack(
             anchor="w", padx=14, pady=(12, 2)
         )
         ctk.CTkLabel(
@@ -84,6 +110,88 @@ class StateBlock(ctk.CTkFrame):
             justify="left",
             wraplength=520,
         ).pack(anchor="w", padx=14, pady=(0, 12))
+
+
+class StatusBadge(ctk.CTkLabel):
+    def __init__(self, master, text: str, tone: str = "muted"):
+        style = badge_style(tone)
+        super().__init__(
+            master,
+            text=f"  {text}  ",
+            font=font_caption(),
+            corner_radius=Theme.RADIUS_SM,
+            height=24,
+            **style,
+        )
+
+    def set(self, text: str, tone: str = "muted") -> None:
+        self.configure(text=f"  {text}  ", **badge_style(tone))
+
+
+class ConfirmDialog(ctk.CTkToplevel):
+    def __init__(self, master, title: str, message: str, tone: str = "warning"):
+        super().__init__(master)
+        self.withdraw()
+        self.title(title)
+        self.configure(fg_color=Theme.BG)
+        self.resizable(False, False)
+        self.transient(master)
+        self.result = False
+
+        wrapper = Card(self)
+        wrapper.grid(row=0, column=0, padx=1, pady=1)
+        wrapper.grid_columnconfigure(0, weight=1)
+
+        tone_style = badge_style(tone)
+        icon_wrap = ctk.CTkFrame(wrapper, width=48, height=48, corner_radius=24, fg_color=tone_style["fg_color"])
+        icon_wrap.grid(row=0, column=0, pady=(24, 12))
+        icon_wrap.grid_propagate(False)
+        ctk.CTkLabel(icon_wrap, image=icon("alert", 20, tone_style["text_color"]), text="").place(
+            relx=0.5, rely=0.5, anchor="center"
+        )
+
+        ctk.CTkLabel(wrapper, text=title, font=font_heading(), text_color=Theme.TEXT).grid(row=1, column=0, padx=28)
+        ctk.CTkLabel(
+            wrapper, text=message, text_color=Theme.MUTED, wraplength=260, justify="center"
+        ).grid(row=2, column=0, padx=28, pady=(6, 24))
+
+        buttons = ctk.CTkFrame(wrapper, fg_color="transparent")
+        buttons.grid(row=3, column=0, sticky="ew", padx=24, pady=(0, 24))
+        buttons.grid_columnconfigure((0, 1), weight=1)
+        ctk.CTkButton(buttons, text="Cancel", **button_style(False), command=self._cancel).grid(
+            row=0, column=0, sticky="ew", padx=(0, 6)
+        )
+        ctk.CTkButton(buttons, text="Confirm", **button_style(True), command=self._confirm).grid(
+            row=0, column=1, sticky="ew", padx=(6, 0)
+        )
+
+        self.protocol("WM_DELETE_WINDOW", self._cancel)
+        self.update_idletasks()
+        self._center_on(master)
+        self.deiconify()
+        self.grab_set()
+        self.focus_force()
+
+    def _center_on(self, master) -> None:
+        width = self.winfo_reqwidth()
+        height = self.winfo_reqheight()
+        x = master.winfo_rootx() + (master.winfo_width() - width) // 2
+        y = master.winfo_rooty() + (master.winfo_height() - height) // 2
+        self.geometry(f"{width}x{height}+{max(x, 0)}+{max(y, 0)}")
+
+    def _confirm(self) -> None:
+        self.result = True
+        self.destroy()
+
+    def _cancel(self) -> None:
+        self.result = False
+        self.destroy()
+
+    @classmethod
+    def ask(cls, master, title: str, message: str, tone: str = "warning") -> bool:
+        dialog = cls(master, title, message, tone)
+        master.wait_window(dialog)
+        return dialog.result
 
 
 class BootView(ctk.CTkFrame):
@@ -96,31 +204,38 @@ class BootView(ctk.CTkFrame):
         shell.grid(row=0, column=0, sticky="nsew", padx=36, pady=36)
         shell.grid_columnconfigure(0, weight=1)
 
+        badge = ctk.CTkFrame(shell, width=64, height=64, corner_radius=32, fg_color=Theme.PRIMARY_SOFT)
+        badge.grid(row=0, column=0, pady=(48, 16))
+        badge.grid_propagate(False)
+        ctk.CTkLabel(badge, image=icon("manual", 34, Theme.PRIMARY), text="").place(relx=0.5, rely=0.5, anchor="center")
+
         ctk.CTkLabel(
             shell,
             text="Autonomous Team",
-            font=font(28, "bold"),
+            font=font_display(),
             text_color=Theme.TEXT,
-        ).grid(row=0, column=0, pady=(44, 4))
+        ).grid(row=1, column=0, pady=(0, 4))
         ctk.CTkLabel(
             shell,
             text="Starting dashboard, processes, and devices",
             text_color=Theme.MUTED,
-        ).grid(row=1, column=0, pady=(0, 26))
+        ).grid(row=2, column=0, pady=(0, 26))
 
         self.progress = ctk.CTkProgressBar(
             shell,
+            height=8,
+            corner_radius=4,
             progress_color=Theme.PRIMARY,
             fg_color=Theme.PANEL_SOFT,
         )
-        self.progress.grid(row=2, column=0, sticky="ew", padx=54)
+        self.progress.grid(row=3, column=0, sticky="ew", padx=54)
         self.progress.set(0)
 
         self.step_label = ctk.CTkLabel(shell, text="Preparing...", text_color=Theme.MUTED)
-        self.step_label.grid(row=3, column=0, pady=(12, 28))
+        self.step_label.grid(row=4, column=0, pady=(12, 28))
 
         self.state_slot = ctk.CTkFrame(shell, fg_color="transparent")
-        self.state_slot.grid(row=4, column=0, sticky="ew", padx=54, pady=(0, 42))
+        self.state_slot.grid(row=5, column=0, sticky="ew", padx=54, pady=(0, 42))
 
     def set_progress(self, value: float, message: str) -> None:
         self.progress.set(max(0.0, min(value / 100.0, 1.0)))
@@ -150,11 +265,16 @@ class VideoTile(Card):
         self.ctk_image = None
         self.resize_job = None
 
+        self.status_dot = ctk.CTkFrame(
+            self.header, width=10, height=10, corner_radius=5, fg_color=Theme.SUBTLE
+        )
+        self.set_accessory(self.status_dot)
+
         self.image_label = ctk.CTkLabel(
             self,
             text=placeholder,
             text_color=Theme.MUTED,
-            fg_color=Theme.PANEL,
+            fg_color=Theme.PANEL_ALT,
             corner_radius=Theme.RADIUS_SM,
         )
         self.image_label.grid(row=1, column=0, sticky="nsew", padx=8, pady=(0, 8))
@@ -166,25 +286,35 @@ class VideoTile(Card):
     def update_state(self, frame, *, webview=False, safe_stop=False, object_safe_stop=False):
         if webview:
             self._show_text("Webview active")
+            self._set_dot(Theme.WARNING)
             return
         if self.error_key == "lane" and safe_stop:
             self._show_text("Transmission error")
+            self._set_dot(Theme.DANGER)
             return
         if self.error_key == "object" and object_safe_stop:
             self._show_text("Transmission error")
+            self._set_dot(Theme.DANGER)
             return
         if frame is None:
             self._show_text(self.placeholder)
+            self._set_dot(Theme.SUBTLE)
             return
         if frame is self.current_frame_ref and self.render_size == self._target_size():
+            self._set_dot(Theme.SUCCESS)
             return
         image = self._to_image(frame)
         if image is None:
             self._show_text(self.placeholder)
+            self._set_dot(Theme.DANGER)
             return
         self.current_frame_ref = frame
         self.current_image = image
         self._render()
+        self._set_dot(Theme.SUCCESS)
+
+    def _set_dot(self, color: str) -> None:
+        self.status_dot.configure(fg_color=color)
 
     def _to_image(self, frame):
         try:
@@ -210,8 +340,10 @@ class VideoTile(Card):
             return
         size = self._target_size()
         self.render_size = size
-        resized = self.current_image.resize(size, Image.Resampling.LANCZOS)
-        self.ctk_image = CTkImage(light_image=resized, size=size)
+        # BILINEAR trades a little sharpness for much cheaper per-frame cost than
+        # LANCZOS, which matters here because this runs on the Tk main thread ~30x/s.
+        resized = self.current_image.resize(size, Image.Resampling.BILINEAR)
+        self.ctk_image = CTkImage(light_image=resized, dark_image=resized, size=size)
         self.image_label.configure(image=self.ctk_image, text="")
 
     def _show_text(self, text: str) -> None:
@@ -239,6 +371,12 @@ class VideoTile(Card):
         super().destroy()
 
 
+_ACCENT_TRACKS = {
+    Theme.PRIMARY: (Theme.PRIMARY, "#60a5fa", "#93c5fd"),
+    Theme.SECONDARY: (Theme.SECONDARY, "#67e8f9", "#a5f3fc"),
+}
+
+
 class SliderControl(ctk.CTkFrame):
     def __init__(
         self,
@@ -246,6 +384,7 @@ class SliderControl(ctk.CTkFrame):
         spec: SliderSpec,
         value: float,
         on_change: Callable[[str, float], None],
+        accent: str = Theme.PRIMARY,
     ):
         super().__init__(master, fg_color="transparent")
         self.spec = spec
@@ -254,18 +393,19 @@ class SliderControl(ctk.CTkFrame):
         self.grid_columnconfigure(1, weight=1)
         self.grid_columnconfigure(2, weight=0, minsize=64)
 
-        ctk.CTkLabel(self, text=spec.label, text_color=Theme.MUTED, anchor="w").grid(
+        ctk.CTkLabel(self, text=spec.label, text_color=Theme.MUTED, font=font_body(), anchor="w").grid(
             row=0, column=0, sticky="w", padx=(0, 8), pady=2
         )
         steps = max(1, int(round((spec.max_value - spec.min_value) / spec.step)))
+        track_color, button_color, button_hover = _ACCENT_TRACKS.get(accent, _ACCENT_TRACKS[Theme.PRIMARY])
         self.slider = ctk.CTkSlider(
             self,
             from_=spec.min_value,
             to=spec.max_value,
             number_of_steps=steps,
-            progress_color=Theme.PRIMARY,
-            button_color="#60a5fa",
-            button_hover_color="#93c5fd",
+            progress_color=track_color,
+            button_color=button_color,
+            button_hover_color=button_hover,
             command=self._slider_changed,
         )
         self.slider.grid(row=0, column=1, sticky="ew", pady=2)
@@ -274,6 +414,9 @@ class SliderControl(ctk.CTkFrame):
             justify="center",
             fg_color=Theme.INPUT,
             border_color=Theme.BORDER_HOVER,
+            corner_radius=Theme.RADIUS_SM,
+            text_color=track_color,
+            font=font_label(),
             width=64,
         )
         self.entry.grid(row=0, column=2, padx=(8, 0), pady=2)
@@ -317,12 +460,13 @@ class SliderCard(Card):
         tk_controls,
         calibration_data,
         on_change: Callable[[str, float], None],
+        accent: str = Theme.PRIMARY,
     ):
-        super().__init__(master, title)
+        super().__init__(master, title, accent=accent)
         self.controls: dict[str, SliderControl] = {}
         for row, spec in enumerate(specs, start=1):
             value = calibration_data.get(spec.key, tk_controls.get(spec.key, spec.min_value))
-            control = SliderControl(self, spec, value, on_change)
+            control = SliderControl(self, spec, value, on_change, accent=accent)
             control.grid(row=row, column=0, sticky="ew", padx=14, pady=0)
             self.controls[spec.key] = control
 
@@ -546,7 +690,7 @@ class ManualView(ctk.CTkFrame):
         self.video = VideoTile(scroll, "Manual Video", "Waiting for manual frame", "lane")
         self.video.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=6, pady=6)
 
-        source_card = Card(scroll, "Manual Source")
+        source_card = Card(scroll, "Manual Source", accent=Theme.SECONDARY)
         source_card.grid(row=1, column=0, sticky="new", padx=6, pady=6)
         source_card.grid_columnconfigure(0, weight=1)
 
@@ -576,10 +720,11 @@ class ManualView(ctk.CTkFrame):
             self.app.tk_controls,
             self.app.calibration_data,
             self._manual_slider_changed,
+            accent=Theme.SECONDARY,
         )
         self.control_card.grid(row=1, column=1, sticky="new", padx=6, pady=6)
 
-        self.wheel_card = Card(scroll, "Steering Wheel")
+        self.wheel_card = Card(scroll, "Steering Wheel", accent=Theme.SECONDARY)
         self.wheel_card.grid(row=2, column=0, columnspan=2, sticky="n", padx=6, pady=6)
         self.wheel = ctk.CTkCanvas(self.wheel_card, width=170, height=170, bg=Theme.PANEL, highlightthickness=0)
         self.wheel.grid(row=1, column=0, padx=24, pady=(0, 20))
@@ -631,12 +776,27 @@ class ManualView(ctk.CTkFrame):
         self.wheel.delete("all")
         cx = cy = 85
         radius = 68
-        self.wheel.create_oval(cx - radius, cy - radius, cx + radius, cy + radius, outline="#60a5fa", width=2)
-        self.wheel.create_oval(cx - 30, cy - 30, cx + 30, cy + 30, outline=Theme.BORDER_HOVER, width=1)
+
+        self.wheel.create_oval(
+            cx - radius, cy - radius, cx + radius, cy + radius, outline=Theme.SECONDARY, width=3
+        )
+        for tick_angle in range(0, 181, 30):
+            rad = np.deg2rad(tick_angle - 90)
+            x1 = cx + (radius - 8) * np.cos(rad)
+            y1 = cy + (radius - 8) * np.sin(rad)
+            x2 = cx + (radius + 1) * np.cos(rad)
+            y2 = cy + (radius + 1) * np.sin(rad)
+            self.wheel.create_line(x1, y1, x2, y2, fill=Theme.BORDER_HOVER, width=2)
+
+        self.wheel.create_oval(
+            cx - 28, cy - 28, cx + 28, cy + 28, fill=Theme.PANEL_ALT, outline=Theme.BORDER_HOVER, width=1
+        )
+
         radians = np.deg2rad(float(angle) - 90)
         x = cx + radius * 0.75 * np.cos(radians)
         y = cy + radius * 0.75 * np.sin(radians)
-        self.wheel.create_line(cx, cy, x, y, fill=Theme.PRIMARY, width=4)
+        self.wheel.create_line(cx, cy, x, y, fill=Theme.SECONDARY, width=4, capstyle="round")
+        self.wheel.create_oval(x - 7, y - 7, x + 7, y + 7, fill=Theme.SECONDARY, outline=Theme.PANEL_ALT, width=2)
 
     def _wheel_drag(self, event):
         dx = event.x - 85
@@ -672,13 +832,12 @@ class TaskManagerView(ctk.CTkFrame):
         header = ctk.CTkFrame(card, fg_color="transparent")
         header.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 8))
         header.grid_columnconfigure(0, weight=1)
-        self.summary = ctk.CTkLabel(header, text="Waiting for data...", text_color=Theme.MUTED)
+        self.summary = ctk.CTkLabel(header, text="Waiting for data...", text_color=Theme.MUTED, font=font_caption())
         self.summary.grid(row=0, column=0, sticky="w")
         ctk.CTkSwitch(header, text="Compact", variable=self.compact, command=self._toggle_compact).grid(
             row=0, column=1, sticky="e"
         )
 
-        self._configure_tree()
         table = ctk.CTkFrame(card, fg_color="transparent")
         table.grid(row=2, column=0, sticky="nsew", padx=16)
         table.grid_columnconfigure(0, weight=1)
@@ -688,10 +847,13 @@ class TaskManagerView(ctk.CTkFrame):
         for col in cols:
             self.tree.heading(col, text=col, command=lambda c=col: self._sort(c, False))
             self.tree.column(col, stretch=True, minwidth=50)
+        self.tree.tag_configure("evenrow", background=Theme.PANEL_ALT)
+        self.tree.tag_configure("oddrow", background=Theme.PANEL_SOFT)
         self.tree.grid(row=0, column=0, sticky="nsew")
         scrollbar = ttk.Scrollbar(table, orient="vertical", command=self.tree.yview)
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.tree.configure(yscrollcommand=scrollbar.set)
+        self._configure_tree()
 
         self.metric_menu = ctk.CTkOptionMenu(
             card,
@@ -721,18 +883,26 @@ class TaskManagerView(ctk.CTkFrame):
             return
         data = get_active_python_processes()
         processes = data.get("processes", [])
-        for item in self.tree.get_children():
-            self.tree.delete(item)
         labels, memory, cpu, io_values = [], [], [], []
+        seen: set[str] = set()
         for index, proc in enumerate(processes):
             pid = proc.get("pid")
+            iid = str(pid)
+            seen.add(iid)
             mem = proc.get("memory_mb", 0.0)
             labels.append(str(pid))
             memory.append(mem)
             cpu.append(proc.get("cpu_percent", 0.0))
             io_values.append(proc.get("io_mb", 0.0))
             tag = "evenrow" if index % 2 == 0 else "oddrow"
-            self.tree.insert("", "end", values=(proc.get("name"), pid, proc.get("priority"), f"{mem:.2f}"), tags=(tag,))
+            values = (proc.get("name"), pid, proc.get("priority"), f"{mem:.2f}")
+            if self.tree.exists(iid):
+                self.tree.item(iid, values=values, tags=(tag,))
+            else:
+                self.tree.insert("", "end", iid=iid, values=values, tags=(tag,))
+            self.tree.move(iid, "", index)
+        for stale_iid in [item for item in self.tree.get_children() if item not in seen]:
+            self.tree.delete(stale_iid)
         self.summary.configure(
             text=(
                 f"Python processes: {data.get('process_count', len(processes))} | "
@@ -751,12 +921,17 @@ class TaskManagerView(ctk.CTkFrame):
         self.ax.set_facecolor(Theme.PANEL)
         self.fig.patch.set_facecolor(Theme.PANEL)
         if values:
-            self.ax.barh(labels, values)
+            self.ax.barh(labels, values, color=Theme.PRIMARY, edgecolor=Theme.PRIMARY_HOVER, height=0.6)
+            self.ax.grid(axis="x", color=Theme.BORDER, linestyle="--", linewidth=0.6, alpha=0.7)
+            self.ax.set_axisbelow(True)
         else:
             self.ax.text(0.5, 0.5, "No Python processes found", color=Theme.MUTED, ha="center")
-        self.ax.set_xlabel(xlabel, color=Theme.TEXT)
-        self.ax.tick_params(axis="x", colors=Theme.TEXT)
-        self.ax.tick_params(axis="y", colors=Theme.TEXT)
+        self.ax.set_xlabel(xlabel, color=Theme.MUTED, fontsize=9)
+        self.ax.tick_params(axis="x", colors=Theme.MUTED, labelsize=8)
+        self.ax.tick_params(axis="y", colors=Theme.TEXT, labelsize=8)
+        for spine_name in ("top", "right", "left"):
+            self.ax.spines[spine_name].set_visible(False)
+        self.ax.spines["bottom"].set_color(Theme.BORDER)
         self.fig.tight_layout()
         self.canvas.draw_idle()
 
@@ -781,44 +956,135 @@ class TaskManagerView(ctk.CTkFrame):
     def _configure_tree(self):
         style = ttk.Style()
         style.theme_use("default")
-        style.configure("Treeview", background=Theme.PANEL_ALT, fieldbackground=Theme.PANEL_ALT, foreground=Theme.TEXT, rowheight=28)
-        style.configure("Treeview.Heading", background=Theme.PANEL_SOFT, foreground=Theme.TEXT, font=("Arial", 12, "bold"))
-        style.map("Treeview", background=[("selected", Theme.PRIMARY)], foreground=[("selected", Theme.TEXT)])
+        style.configure(
+            "Treeview",
+            background=Theme.PANEL_ALT,
+            fieldbackground=Theme.PANEL_ALT,
+            foreground=Theme.TEXT,
+            rowheight=30,
+            borderwidth=0,
+        )
+        style.configure(
+            "Treeview.Heading",
+            background=Theme.PANEL_SOFT,
+            foreground=Theme.MUTED,
+            font=("Segoe UI", 11, "bold"),
+            borderwidth=0,
+        )
+        style.map(
+            "Treeview",
+            background=[("selected", Theme.PRIMARY_SOFT)],
+            foreground=[("selected", Theme.TEXT)],
+        )
+
+
+class NavRail(ctk.CTkFrame):
+    ITEMS = (
+        ("Home", "home", "Home"),
+        ("Manual", "manual", "Manual"),
+        ("Task Manager", "activity", "Tasks"),
+    )
+
+    def __init__(self, master, on_select, on_settings, on_defaults, on_options):
+        super().__init__(master, fg_color=Theme.SIDEBAR, corner_radius=0, width=Theme.SIDEBAR_WIDTH)
+        self.grid_propagate(False)
+        self.grid_rowconfigure(1, weight=1)
+        self.on_select = on_select
+        self.buttons: dict[str, ctk.CTkButton] = {}
+        self.indicators: dict[str, ctk.CTkFrame] = {}
+
+        ctk.CTkLabel(self, image=icon("manual", 26, Theme.PRIMARY), text="").grid(row=0, column=0, pady=(20, 24))
+
+        nav = ctk.CTkFrame(self, fg_color="transparent")
+        nav.grid(row=1, column=0, sticky="n")
+        for key, glyph, label in self.ITEMS:
+            wrapper = ctk.CTkFrame(nav, fg_color="transparent")
+            wrapper.pack(pady=4)
+            indicator = ctk.CTkFrame(wrapper, width=3, height=32, corner_radius=2, fg_color="transparent")
+            indicator.grid(row=0, column=0, padx=(0, 4))
+            button = ctk.CTkButton(
+                wrapper,
+                text=label,
+                image=icon(glyph, 20, Theme.MUTED),
+                compound="top",
+                font=font_caption(),
+                command=lambda k=key: self.on_select(k),
+                **nav_button_style(False),
+            )
+            button.grid(row=0, column=1)
+            self.buttons[key] = button
+            self.indicators[key] = indicator
+
+        footer = ctk.CTkFrame(self, fg_color="transparent")
+        footer.grid(row=2, column=0, pady=(0, 18))
+        for glyph, command in (
+            ("settings", on_settings),
+            ("defaults", on_defaults),
+            ("options", on_options),
+        ):
+            ctk.CTkButton(
+                footer,
+                text="",
+                image=icon(glyph, 18, Theme.MUTED),
+                command=command,
+                **icon_button_style(False),
+            ).pack(pady=4)
+
+    def set_active(self, name: str) -> None:
+        glyphs = {key: glyph for key, glyph, _ in self.ITEMS}
+        for key, button in self.buttons.items():
+            active = key == name
+            button.configure(
+                image=icon(glyphs[key], 20, Theme.TEXT if active else Theme.MUTED),
+                **nav_button_style(active),
+            )
+            self.indicators[key].configure(fg_color=Theme.PRIMARY if active else "transparent")
 
 
 class DashboardShell(ctk.CTkFrame):
     def __init__(self, master, app):
         super().__init__(master, fg_color=Theme.BG)
         self.app = app
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
         self.current = None
-        self.buttons = {}
 
-        header = ctk.CTkFrame(self, fg_color=Theme.PANEL, corner_radius=0)
-        header.grid(row=0, column=0, sticky="ew")
-        header.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(header, text="Autonomous Team", font=font(18, "bold"), text_color=Theme.TEXT).grid(
-            row=0, column=0, padx=18, pady=12
+        self.nav = NavRail(
+            self,
+            on_select=self.select,
+            on_settings=app.open_settings,
+            on_defaults=app.open_defaults,
+            on_options=app.open_options,
         )
-        nav = ctk.CTkFrame(header, fg_color="transparent")
-        nav.grid(row=0, column=1, sticky="e", padx=12)
-        for name in ("Home", "Manual", "Task Manager"):
-            self.buttons[name] = ctk.CTkButton(nav, text=name, **button_style(), command=lambda n=name: self.select(n))
-            self.buttons[name].pack(side="left", padx=4)
-        for text, command in (
-            ("Settings", app.open_settings),
-            ("Defaults", app.open_defaults),
-            ("Options", app.open_options),
-        ):
-            ctk.CTkButton(nav, text=text, **button_style(), command=command).pack(side="left", padx=4)
+        self.nav.grid(row=0, column=0, sticky="ns")
 
-        self.content = ctk.CTkFrame(self, fg_color=Theme.BG)
+        right = ctk.CTkFrame(self, fg_color=Theme.BG)
+        right.grid(row=0, column=1, sticky="nsew")
+        right.grid_columnconfigure(0, weight=1)
+        right.grid_rowconfigure(1, weight=1)
+
+        topbar = ctk.CTkFrame(right, fg_color=Theme.PANEL, corner_radius=0, height=60)
+        topbar.grid(row=0, column=0, sticky="ew")
+        topbar.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(topbar, text="Autonomous Team", font=font_heading(), text_color=Theme.TEXT).grid(
+            row=0, column=0, padx=(20, 16), pady=14, sticky="w"
+        )
+        badges = ctk.CTkFrame(topbar, fg_color="transparent")
+        badges.grid(row=0, column=2, sticky="e", padx=20, pady=14)
+        self.mode_badge = StatusBadge(badges, "Auto", "info")
+        self.mode_badge.pack(side="left", padx=4)
+        self.cuda_badge = StatusBadge(badges, "CUDA -", "muted")
+        self.cuda_badge.pack(side="left", padx=4)
+        self.safety_badge = StatusBadge(badges, "Nominal", "success")
+        self.safety_badge.pack(side="left", padx=4)
+
+        self.content = ctk.CTkFrame(right, fg_color=Theme.BG)
         self.content.grid(row=1, column=0, sticky="nsew")
         self.content.grid_rowconfigure(0, weight=1)
         self.content.grid_columnconfigure(0, weight=1)
-        self.status = ctk.CTkLabel(self, text="Ready", text_color=Theme.MUTED, anchor="w")
-        self.status.grid(row=2, column=0, sticky="ew", padx=18, pady=(0, 8))
+
+        self.status = StatusBadge(right, "Ready", "muted")
+        self.status.grid(row=2, column=0, sticky="w", padx=20, pady=(0, 12))
 
         self.views = {
             "Home": HomeView(self.content, app),
@@ -831,13 +1097,21 @@ class DashboardShell(ctk.CTkFrame):
 
     def select(self, name):
         if name == "Manual" and not self.app.shared_controls.manual_mode:
-            box = CTkMessagebox(title="Attention", message="Manual mode will be enabled", icon="warning", option_1="OK", option_2="Cancel")
-            if box.get() != "OK":
+            if not ConfirmDialog.ask(
+                self.winfo_toplevel(),
+                "Enable manual mode",
+                "The vehicle will switch to manual driving control.",
+                "warning",
+            ):
                 return
             self.app.set_manual_mode(True)
         elif name == "Home" and self.app.shared_controls.manual_mode:
-            box = CTkMessagebox(title="Attention", message="Manual mode will be disabled", icon="info", option_1="OK", option_2="Cancel")
-            if box.get() != "OK":
+            if not ConfirmDialog.ask(
+                self.winfo_toplevel(),
+                "Disable manual mode",
+                "The vehicle will return to autonomous control.",
+                "info",
+            ):
                 return
             self.app.set_manual_mode(False)
         self._activate(name)
@@ -849,14 +1123,29 @@ class DashboardShell(ctk.CTkFrame):
             self.views["Task Manager"].set_active(False)
         self.current = name
         self.views[name].tkraise()
-        for key, button in self.buttons.items():
-            button.configure(**button_style(key == name))
+        self.nav.set_active(name)
         if name == "Task Manager":
             self.views["Task Manager"].set_active(True)
 
+    def sync_state(self, manual_mode: bool, safe_stop: bool, object_safe_stop: bool) -> None:
+        if manual_mode:
+            self.mode_badge.set("Manual", "warning")
+        else:
+            self.mode_badge.set("Auto", "info")
+        if safe_stop or object_safe_stop:
+            self.safety_badge.set("Safe-stop", "danger")
+        else:
+            self.safety_badge.set("Nominal", "success")
+
+    def set_cuda_status(self, available: bool, device_name: str) -> None:
+        if available:
+            self.cuda_badge.set(device_name or "CUDA", "success")
+        else:
+            self.cuda_badge.set("CPU only", "muted")
+
     def show_status(self, message, tone="info"):
-        color = {"success": Theme.SUCCESS, "warning": Theme.WARNING, "error": Theme.DANGER}.get(tone, Theme.MUTED)
-        self.status.configure(text=message, text_color=color)
+        tone_map = {"success": "success", "warning": "warning", "error": "danger"}.get(tone, "muted")
+        self.status.set(message, tone_map)
 
 
 class AutodriveApp(ctk.CTk):
@@ -944,6 +1233,9 @@ class AutodriveApp(ctk.CTk):
         self.shell = DashboardShell(self, self)
         self.shell.grid(row=0, column=0, sticky="nsew")
         self.shell.tkraise()
+        self.shell.set_cuda_status(
+            bool(user_flags.get("CUDA_AVAILABLE", False)), user_flags.get("CUDA_DEVICE_NAME", "CPU only")
+        )
         self.boot.destroy()
         if not user_flags.get("CUDA_AVAILABLE", False):
             self.show_status(user_flags.get("CUDA_STATUS_MESSAGE", "CUDA is recommended."), "warning")
@@ -962,6 +1254,11 @@ class AutodriveApp(ctk.CTk):
             self.shell.views["Manual"].sync_car_info()
         if self.shell:
             self.shell.views["Home"].sync_dynamic_ranges()
+            self.shell.sync_state(
+                current_manual_mode,
+                self.shared_controls.safe_stop,
+                self.shared_controls.object_safe_stop,
+            )
         self.loop_job = self.after(250, self._tick_processes)
 
     def _tick_frames(self):

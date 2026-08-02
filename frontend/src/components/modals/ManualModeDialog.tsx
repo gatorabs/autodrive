@@ -21,17 +21,17 @@ export function ManualModeDialog({ open, mode, onOpenChange, onConfirm }: Manual
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-white/10 bg-slate-950 text-white">
+      <DialogContent className="border-border bg-background text-foreground">
         <DialogHeader>
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-amber-400/15 p-3 text-amber-300">
+            <div className="rounded-2xl bg-warning-soft p-3 text-warning">
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div>
               <DialogTitle className="text-xl">
                 {enabling ? "Enable Manual Mode" : "Disable Manual Mode"}
               </DialogTitle>
-              <DialogDescription className="mt-2 text-slate-300">
+              <DialogDescription className="mt-2 text-muted-foreground">
                 {enabling
                   ? "Manual control temporarily pauses autonomous control and lets you drive speed and steering directly."
                   : "Autonomous control will take over steering and speed again."}
@@ -40,10 +40,10 @@ export function ManualModeDialog({ open, mode, onOpenChange, onConfirm }: Manual
           </div>
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-white/10 bg-slate-900 text-slate-200">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-border bg-surface text-foreground">
             Cancel
           </Button>
-          <Button onClick={onConfirm} className="bg-blue-500 text-white hover:bg-blue-400">
+          <Button onClick={onConfirm} className="bg-primary text-primary-foreground hover:bg-primary-hover">
             {enabling ? "Enable Manual Mode" : "Return To Dashboard"}
           </Button>
         </DialogFooter>

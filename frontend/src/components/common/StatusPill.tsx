@@ -4,10 +4,10 @@ interface StatusPillProps {
 }
 
 const styles = {
-  good: "border-emerald-400/25 bg-emerald-500/10 text-emerald-300",
-  bad: "border-red-400/25 bg-red-500/10 text-red-300",
-  warn: "border-amber-400/25 bg-amber-500/10 text-amber-300",
-  neutral: "border-slate-700 bg-slate-900 text-slate-300",
+  good: "border-success/25 bg-success/10 text-success",
+  bad: "border-destructive/25 bg-destructive/10 text-destructive",
+  warn: "border-warning/25 bg-warning/10 text-warning",
+  neutral: "border-border bg-surface text-muted-foreground",
 };
 
 export function StatusPill({ label, tone = "neutral" }: StatusPillProps) {

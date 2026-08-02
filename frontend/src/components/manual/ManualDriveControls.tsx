@@ -17,18 +17,18 @@ export function ManualDriveControls({ onChange }: ManualDriveControlsProps) {
 
   const buttonClass = (active: boolean) =>
     active
-      ? "border-slate-300 bg-slate-100 text-slate-950 hover:bg-white"
-      : "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800";
+      ? "border-secondary bg-secondary text-secondary-foreground hover:bg-secondary"
+      : "border-border bg-surface text-foreground hover:bg-surface-alt";
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+      <div className="rounded-2xl border border-border bg-background/40 p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Gauge className="h-4 w-4 text-slate-400" />
-            <span className="font-semibold text-white">Throttle</span>
+            <Gauge className="h-4 w-4 text-secondary" />
+            <span className="font-semibold text-foreground">Throttle</span>
           </div>
-          <button className="text-sm text-slate-400 hover:text-white" onClick={() => setThrottle(0)} type="button">
+          <button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setThrottle(0)} type="button">
             Reset
           </button>
         </div>
@@ -38,22 +38,22 @@ export function ManualDriveControls({ onChange }: ManualDriveControlsProps) {
           max={100}
           value={throttle}
           onChange={(event) => setThrottle(Number(event.target.value))}
-          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-slate-200"
+          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-soft accent-secondary"
         />
-        <div className="mt-3 flex justify-between text-xs text-slate-400">
+        <div className="mt-3 flex justify-between text-xs text-muted-foreground">
           <span>Stopped</span>
-          <span className="font-mono text-slate-200">{throttle}%</span>
+          <span className="font-mono text-foreground">{throttle}%</span>
           <span>Forward</span>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+      <div className="rounded-2xl border border-border bg-background/40 p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <ArrowDownToLine className="h-4 w-4 text-slate-400" />
-            <span className="font-semibold text-white">Steering</span>
+            <ArrowDownToLine className="h-4 w-4 text-secondary" />
+            <span className="font-semibold text-foreground">Steering</span>
           </div>
-          <button className="text-sm text-slate-400 hover:text-white" onClick={() => setSteering(0)} type="button">
+          <button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setSteering(0)} type="button">
             Center
           </button>
         </div>

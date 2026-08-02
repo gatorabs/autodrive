@@ -65,27 +65,27 @@ export function SystemInspectorDialog({ logs, onClearLogs }: SystemInspectorDial
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-slate-800 text-white hover:bg-slate-700">
+        <Button className="bg-surface-alt text-foreground hover:bg-surface-soft">
           <FileText className="mr-2 h-4 w-4" />
           Inspector
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[86vh] w-[calc(100vw-1.5rem)] max-w-5xl overflow-hidden border-white/10 bg-slate-950 text-white">
+      <DialogContent className="max-h-[86vh] w-[calc(100vw-1.5rem)] max-w-5xl overflow-hidden border-border bg-background text-foreground">
         <DialogHeader>
           <DialogTitle>System Inspector</DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="logs">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-900">
+          <TabsList className="grid w-full grid-cols-2 bg-surface">
             <TabsTrigger value="logs">Logs</TabsTrigger>
             <TabsTrigger value="processes">Processes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="logs" className="mt-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-slate-900 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-surface p-3">
               <Badge variant="secondary">{logs.length} events</Badge>
               <div className="flex gap-2">
-                <Button size="sm" onClick={exportLogs} className="bg-blue-500 hover:bg-blue-400">
+                <Button size="sm" onClick={exportLogs} className="bg-primary text-primary-foreground hover:bg-primary-hover">
                   <Download className="mr-2 h-4 w-4" />
                   Export
                 </Button>
@@ -96,20 +96,20 @@ export function SystemInspectorDialog({ logs, onClearLogs }: SystemInspectorDial
               </div>
             </div>
 
-            <ScrollArea className="h-[52vh] rounded-2xl border border-white/10 bg-slate-900 p-4">
+            <ScrollArea className="h-[52vh] rounded-2xl border border-border bg-surface p-4">
               <div className="space-y-3">
                 {logs.length === 0 ? (
-                  <p className="py-12 text-center text-sm text-slate-400">No logs yet.</p>
+                  <p className="py-12 text-center text-sm text-muted-foreground">No logs yet.</p>
                 ) : (
                   logs.map((log) => (
-                    <article key={log.id} className="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
+                    <article key={log.id} className="rounded-2xl border border-border bg-background/70 p-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge>{log.type}</Badge>
-                        <span className="text-xs uppercase tracking-[0.16em] text-slate-400">{log.category}</span>
-                        <span className="text-xs text-slate-500">{log.timestamp.toLocaleString()}</span>
+                        <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{log.category}</span>
+                        <span className="text-xs text-muted-foreground">{log.timestamp.toLocaleString()}</span>
                       </div>
-                      <p className="mt-2 text-sm text-white">{log.message}</p>
-                      {log.details && <p className="mt-1 text-xs text-slate-400">{log.details}</p>}
+                      <p className="mt-2 text-sm text-foreground">{log.message}</p>
+                      {log.details && <p className="mt-1 text-xs text-muted-foreground">{log.details}</p>}
                     </article>
                   ))
                 )}
@@ -123,22 +123,22 @@ export function SystemInspectorDialog({ logs, onClearLogs }: SystemInspectorDial
               <Summary label="Process CPU" value={`${totalProcessCpu.toFixed(1)}%`} />
               <Summary label="Total RAM" value={formatMemory(systemInfo.total_ram_mb)} />
             </div>
-            <ScrollArea className="h-[52vh] rounded-2xl border border-white/10 bg-slate-900 p-4">
+            <ScrollArea className="h-[52vh] rounded-2xl border border-border bg-surface p-4">
               <div className="space-y-3">
                 {systemInfo.processes.length === 0 ? (
-                  <p className="py-12 text-center text-sm text-slate-400">No Python processes found.</p>
+                  <p className="py-12 text-center text-sm text-muted-foreground">No Python processes found.</p>
                 ) : (
                   systemInfo.processes.map((process) => (
-                    <article key={process.pid} className="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
+                    <article key={process.pid} className="rounded-2xl border border-border bg-background/70 p-3">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-mono text-sm text-blue-300">PID {process.pid}</span>
+                        <span className="font-mono text-sm text-primary">PID {process.pid}</span>
                         <Badge>{process.priority}</Badge>
                       </div>
-                      <p className="mb-3 truncate text-sm text-slate-300">{process.name}</p>
-                      <div className="grid gap-2 text-sm text-slate-300 sm:grid-cols-3">
-                        <span className="flex items-center gap-2"><Cpu className="h-4 w-4 text-blue-300" />{process.cpu_percent.toFixed(1)}%</span>
-                        <span className="flex items-center gap-2"><MemoryStick className="h-4 w-4 text-emerald-300" />{formatMemory(process.memory_mb)}</span>
-                        <span className="flex items-center gap-2"><HardDrive className="h-4 w-4 text-purple-300" />{formatMemory(process.io_mb)}</span>
+                      <p className="mb-3 truncate text-sm text-muted-foreground">{process.name}</p>
+                      <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
+                        <span className="flex items-center gap-2"><Cpu className="h-4 w-4 text-primary" />{process.cpu_percent.toFixed(1)}%</span>
+                        <span className="flex items-center gap-2"><MemoryStick className="h-4 w-4 text-success" />{formatMemory(process.memory_mb)}</span>
+                        <span className="flex items-center gap-2"><HardDrive className="h-4 w-4 text-secondary" />{formatMemory(process.io_mb)}</span>
                       </div>
                     </article>
                   ))
@@ -154,9 +154,9 @@ export function SystemInspectorDialog({ logs, onClearLogs }: SystemInspectorDial
 
 function Summary({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-900 p-4">
-      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-white">{value}</p>
+    <div className="rounded-2xl border border-border bg-surface p-4">
+      <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
     </div>
   );
 }

@@ -98,7 +98,7 @@ export default function Index() {
         <>
           <StatusPill label={isConnected ? "API connected" : "API offline"} tone={isConnected ? "good" : "bad"} />
           <SystemInspectorDialog logs={logs} onClearLogs={clearLogs} />
-          <Button className="w-full border border-slate-700 bg-slate-100 text-slate-950 hover:bg-white sm:w-auto" onClick={() => setManualDialogOpen(true)}>
+          <Button className="w-full border border-primary bg-primary text-primary-foreground hover:bg-primary-hover sm:w-auto" onClick={() => setManualDialogOpen(true)}>
             <Settings className="mr-2 h-4 w-4" />
             Manual Mode
           </Button>
@@ -125,7 +125,7 @@ export default function Index() {
               <TurnIndicator direction="left" active={leftSignal} />
               <TurnIndicator direction="right" active={rightSignal} />
             </div>
-            <div className="grid gap-2 text-sm text-slate-300 sm:text-right">
+            <div className="grid gap-2 text-sm text-muted-foreground sm:text-right">
               <span>Last update: {lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString() : "never"}</span>
               <span>Webview: {telemetry.webview ? "enabled" : "disabled"}</span>
             </div>
@@ -133,14 +133,14 @@ export default function Index() {
         </Panel>
 
         <Panel title="Runtime Summary" subtitle="Current backend state">
-          <div className="grid gap-3 text-sm text-slate-300">
+          <div className="grid gap-3 text-sm text-muted-foreground">
             <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2"><Radio className="h-4 w-4 text-blue-300" />Manual mode</span>
+              <span className="flex items-center gap-2"><Radio className="h-4 w-4 text-primary" />Manual mode</span>
               <StatusPill label={telemetry.manual_mode ? "Enabled" : "Disabled"} tone={telemetry.manual_mode ? "warn" : "neutral"} />
             </div>
             <div className="flex items-center justify-between gap-3">
               <span>Direction threshold</span>
-              <span className="font-mono text-slate-100">{LEFT_SIGNAL_THRESHOLD}/{RIGHT_SIGNAL_THRESHOLD}</span>
+              <span className="font-mono text-foreground">{LEFT_SIGNAL_THRESHOLD}/{RIGHT_SIGNAL_THRESHOLD}</span>
             </div>
           </div>
         </Panel>

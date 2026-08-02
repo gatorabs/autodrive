@@ -58,7 +58,7 @@ export default function ManualMode() {
       title="Manual Mode"
       eyebrow="Direct vehicle control"
       actions={
-        <Button className="w-full border border-slate-700 bg-slate-100 text-slate-950 hover:bg-white sm:w-auto" onClick={() => setExitDialogOpen(true)}>
+        <Button className="w-full border border-primary bg-primary text-primary-foreground hover:bg-primary-hover sm:w-auto" onClick={() => setExitDialogOpen(true)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Return To Dashboard
         </Button>
@@ -80,7 +80,7 @@ export default function ManualMode() {
 
       <section className="mt-4">
         <Panel title="Manual Runtime" subtitle="Current control payload">
-          <div className="grid gap-3 text-sm text-slate-300 sm:grid-cols-3">
+          <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
             <Info label="Mode" value="Manual" />
             <Info label="Payload X" value={controlData.x.toFixed(2)} />
             <Info label="Payload Y" value={controlData.y.toFixed(2)} />
@@ -100,9 +100,9 @@ export default function ManualMode() {
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-white">{value}</p>
+    <div className="rounded-2xl border border-border bg-background/50 p-4">
+      <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="mt-2 text-lg font-semibold text-foreground">{value}</p>
     </div>
   );
 }

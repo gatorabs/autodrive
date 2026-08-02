@@ -11,8 +11,8 @@ export function TurnIndicator({ direction, active }: TurnIndicatorProps) {
     <div
       className={`flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
         active
-          ? "border-amber-300/40 bg-amber-400 text-slate-950 shadow-lg shadow-amber-400/20"
-          : "border-white/10 bg-slate-800 text-slate-500"
+          ? "border-warning/40 bg-warning text-background shadow-lg shadow-warning/20"
+          : "border-border bg-surface-alt text-muted-foreground"
       }`}
       aria-label={`${direction} turn signal ${active ? "active" : "inactive"}`}
     >

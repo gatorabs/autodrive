@@ -9,9 +9,9 @@ interface MetricCardProps {
 }
 
 const tones = {
-  default: "border-slate-800 bg-slate-900 text-slate-300",
-  good: "border-emerald-500/20 bg-slate-900 text-emerald-300",
-  warn: "border-amber-500/20 bg-slate-900 text-amber-300",
+  default: "border-border bg-surface text-muted-foreground",
+  good: "border-success/20 bg-surface text-success",
+  warn: "border-warning/20 bg-surface text-warning",
 };
 
 export function MetricCard({ label, value, detail, icon, tone = "default" }: MetricCardProps) {
@@ -19,12 +19,12 @@ export function MetricCard({ label, value, detail, icon, tone = "default" }: Met
     <div className={`rounded-2xl border ${tones[tone]} p-4 shadow-sm shadow-black/10`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-xs uppercase tracking-[0.16em] text-slate-500">{label}</p>
-          <p className="mt-2 truncate text-xl font-semibold text-white sm:text-2xl">{value}</p>
+          <p className="truncate text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+          <p className="mt-2 truncate text-xl font-semibold text-foreground sm:text-2xl">{value}</p>
         </div>
-        {icon && <div className="rounded-xl border border-white/10 bg-slate-950 p-2 text-current">{icon}</div>}
+        {icon && <div className="rounded-xl border border-border bg-background p-2 text-current">{icon}</div>}
       </div>
-      {detail && <p className="mt-3 text-sm text-slate-300">{detail}</p>}
+      {detail && <p className="mt-3 text-sm text-muted-foreground">{detail}</p>}
     </div>
   );
 }

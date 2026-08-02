@@ -10,12 +10,12 @@ interface PanelProps {
 
 export function Panel({ title, subtitle, action, children, className = "" }: PanelProps) {
   return (
-    <section className={`rounded-2xl border border-slate-800 bg-slate-900 shadow-lg shadow-black/10 ${className}`}>
+    <section className={`rounded-2xl border border-border bg-surface shadow-lg shadow-black/10 ${className}`}>
       {(title || action) && (
-        <div className="flex items-start justify-between gap-3 border-b border-slate-800 px-4 py-3">
+        <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
           <div>
-            {title && <h2 className="font-semibold text-white">{title}</h2>}
-            {subtitle && <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>}
+            {title && <h2 className="font-semibold text-foreground">{title}</h2>}
+            {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
           </div>
           {action}
         </div>
