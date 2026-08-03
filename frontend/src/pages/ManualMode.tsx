@@ -22,10 +22,13 @@ export default function ManualMode() {
   const frameTime = Number(telemetry.time_info?.total_processing_time ?? 0);
 
   useEffect(() => {
-    if (!telemetry.manual_mode && telemetry.webview) {
-      navigate("/");
-    }
-  }, [navigate, telemetry.manual_mode, telemetry.webview]);
+    const timeout = window.setTimeout(() => {
+      if (!telemetry.manual_mode) {
+        navigate("/");
+      }
+    }, 1500);
+    return () => window.clearTimeout(timeout);
+  }, [navigate, telemetry.manual_mode]);
 
   const handleControlChange = useCallback((data: ManualControlData) => {
     setControlData(data);

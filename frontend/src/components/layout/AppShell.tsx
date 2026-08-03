@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
 
 interface AppShellProps {
   title: string;
@@ -7,11 +6,6 @@ interface AppShellProps {
   actions?: ReactNode;
   children: ReactNode;
 }
-
-const NAV_ITEMS = [
-  { to: "/", label: "Dashboard" },
-  { to: "/manual-mode", label: "Manual Drive" },
-];
 
 function BrandMark() {
   return (
@@ -26,8 +20,6 @@ function BrandMark() {
 }
 
 export function AppShell({ title, eyebrow, actions, children }: AppShellProps) {
-  const location = useLocation();
-
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-3 py-3 sm:px-5 lg:px-6">
@@ -44,25 +36,6 @@ export function AppShell({ title, eyebrow, actions, children }: AppShellProps) {
                 <h1 className="truncate text-lg font-semibold text-foreground sm:text-2xl">{title}</h1>
               </div>
             </div>
-
-            <nav className="flex items-center gap-1 self-start rounded-xl border border-border bg-surface p-1 lg:self-auto">
-              {NAV_ITEMS.map((item) => {
-                const isActive = location.pathname === item.to;
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                      isActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:bg-surface-alt hover:text-foreground"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
 
             {actions && (
               <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center lg:justify-end">
