@@ -61,8 +61,23 @@ class SliderSpec:
     step: float = 1.0
 
 
+_ACCENT_SOFT = {
+    Theme.PRIMARY: Theme.PRIMARY_SOFT,
+    Theme.SECONDARY: Theme.SECONDARY_SOFT,
+    Theme.SUCCESS: Theme.SUCCESS_SOFT,
+}
+
+
 class Card(ctk.CTkFrame):
-    def __init__(self, master, title: str | None = None, *, accent: str | None = None, **kwargs):
+    def __init__(
+        self,
+        master,
+        title: str | None = None,
+        *,
+        accent: str | None = None,
+        icon_name: str | None = None,
+        **kwargs,
+    ):
         style = accent_card_style(accent) if accent else card_style()
         super().__init__(master, **style, **kwargs)
         self.grid_columnconfigure(0, weight=1)
@@ -71,19 +86,36 @@ class Card(ctk.CTkFrame):
         if title:
             self.header = ctk.CTkFrame(self, fg_color="transparent")
             self.header.grid(row=0, column=0, sticky="ew", padx=14, pady=(11, 6))
-            self.header.grid_columnconfigure(0, weight=1)
+            title_col = 0
+            if icon_name:
+                badge_color = accent or Theme.PRIMARY
+                badge = ctk.CTkFrame(
+                    self.header,
+                    width=28,
+                    height=28,
+                    corner_radius=8,
+                    fg_color=_ACCENT_SOFT.get(badge_color, Theme.PRIMARY_SOFT),
+                )
+                badge.grid(row=0, column=0, padx=(0, 8))
+                badge.grid_propagate(False)
+                ctk.CTkLabel(badge, image=icon(icon_name, 15, badge_color), text="").place(
+                    relx=0.5, rely=0.5, anchor="center"
+                )
+                title_col = 1
+            self.header.grid_columnconfigure(title_col, weight=1)
             self.title_label = ctk.CTkLabel(
                 self.header,
                 text=title,
                 font=font_heading(),
                 text_color=Theme.TEXT,
             )
-            self.title_label.grid(row=0, column=0, sticky="w")
+            self.title_label.grid(row=0, column=title_col, sticky="w")
+            self._accessory_col = title_col + 1
 
     def set_accessory(self, widget: ctk.CTkBaseClass) -> None:
         if self.header is None:
             return
-        widget.grid(row=0, column=1, sticky="e", padx=(8, 0))
+        widget.grid(row=0, column=getattr(self, "_accessory_col", 1), sticky="e", padx=(8, 0))
 
 
 class StateBlock(ctk.CTkFrame):
@@ -373,12 +405,14 @@ class VideoTile(Card):
 _ACCENT_TRACKS = {
     Theme.PRIMARY: (Theme.PRIMARY, "#60a5fa", "#93c5fd"),
     Theme.SECONDARY: (Theme.SECONDARY, "#67e8f9", "#a5f3fc"),
+    Theme.SUCCESS: (Theme.SUCCESS, "#6ee7b7", "#a7f3d0"),
 }
 
 
 class SliderControl(ctk.CTkCanvas):
     TRACK_H = 6
     THUMB_R = 7
+    GLOW_R = THUMB_R + 4
     PAD = 4
 
     def __init__(
@@ -388,12 +422,12 @@ class SliderControl(ctk.CTkCanvas):
         value: float,
         on_change: Callable[[str, float], None],
         accent: str = Theme.PRIMARY,
-        height: int = 44,
+        height: int = 46,
     ):
         super().__init__(master, height=height, bg=Theme.PANEL, highlightthickness=0)
         self.spec = spec
         self.on_change = on_change
-        self.fill_color, self.thumb_color, _hover = _ACCENT_TRACKS.get(accent, _ACCENT_TRACKS[Theme.PRIMARY])
+        self.fill_color, self.thumb_color, self.glow_color = _ACCENT_TRACKS.get(accent, _ACCENT_TRACKS[Theme.PRIMARY])
         self._value = value
         self._value_bbox = (0, 0, 0, 0)
         self._resize_job = None
@@ -495,11 +529,21 @@ class SliderControl(ctk.CTkCanvas):
         if right <= left:
             return
         self.create_line(left, track_y, right, track_y, fill=Theme.PANEL_SOFT, width=self.TRACK_H, capstyle="round")
+        for tick_x in (left, (left + right) / 2, right):
+            self.create_line(tick_x, track_y - 3, tick_x, track_y + 3, fill=Theme.BORDER_HOVER, width=1)
         span = self.spec.max_value - self.spec.min_value
         ratio = 0.0 if span <= 0 else (self._value - self.spec.min_value) / span
         thumb_x = left + ratio * (right - left)
         if thumb_x > left:
             self.create_line(left, track_y, thumb_x, track_y, fill=self.fill_color, width=self.TRACK_H, capstyle="round")
+        self.create_oval(
+            thumb_x - self.GLOW_R,
+            track_y - self.GLOW_R,
+            thumb_x + self.GLOW_R,
+            track_y + self.GLOW_R,
+            fill=self.glow_color,
+            outline="",
+        )
         self.create_oval(
             thumb_x - self.THUMB_R,
             track_y - self.THUMB_R,
@@ -552,8 +596,9 @@ class SliderCard(Card):
         calibration_data,
         on_change: Callable[[str, float], None],
         accent: str = Theme.PRIMARY,
+        icon_name: str | None = None,
     ):
-        super().__init__(master, title, accent=accent)
+        super().__init__(master, title, accent=accent, icon_name=icon_name)
         self.controls: dict[str, SliderControl] = {}
         for row, spec in enumerate(specs, start=1):
             value = calibration_data.get(spec.key, tk_controls.get(spec.key, spec.min_value))
@@ -567,6 +612,58 @@ class SliderCard(Card):
             self.controls[key].set(value, notify=False)
 
 
+class SettingsPanel(Card):
+    def __init__(self, master, title: str, *, icon_name: str | None = None, accent: str = Theme.PRIMARY):
+        super().__init__(master, title, accent=accent, icon_name=icon_name)
+        self.configure(border_width=0)
+        self.accent = accent
+        self.controls: dict[str, SliderControl] = {}
+        self._row = 1
+
+    def add_section(self, label: str) -> None:
+        if self._row > 1:
+            ctk.CTkFrame(self, fg_color="transparent", height=Theme.SPACE_SM).grid(
+                row=self._row, column=0, sticky="ew"
+            )
+            self._row += 1
+        ctk.CTkLabel(self, text=label.upper(), font=font_caption(), text_color=Theme.SUBTLE).grid(
+            row=self._row, column=0, sticky="w", padx=14, pady=(0, 2)
+        )
+        self._row += 1
+        ctk.CTkFrame(self, fg_color=Theme.BORDER, height=1).grid(
+            row=self._row, column=0, sticky="ew", padx=14, pady=(0, 6)
+        )
+        self._row += 1
+
+    def add_sliders(
+        self,
+        specs: list[SliderSpec],
+        tk_controls,
+        calibration_data,
+        on_change: Callable[[str, float], None],
+    ) -> None:
+        for spec in specs:
+            value = calibration_data.get(spec.key, tk_controls.get(spec.key, spec.min_value))
+            control = SliderControl(self, spec, value, on_change, accent=self.accent)
+            control.grid(row=self._row, column=0, sticky="ew", padx=14, pady=(0, 4))
+            self.controls[spec.key] = control
+            self._row += 1
+        self.grid_rowconfigure(self._row, minsize=Theme.SPACE_XS)
+        self._row += 1
+
+    def add_content(self, builder: Callable[[ctk.CTkFrame], None]) -> ctk.CTkFrame:
+        frame = ctk.CTkFrame(self, fg_color="transparent")
+        frame.grid(row=self._row, column=0, sticky="ew", padx=14, pady=(0, 4))
+        frame.grid_columnconfigure(0, weight=1)
+        self._row += 1
+        builder(frame)
+        return frame
+
+    def set_value(self, key: str, value: float) -> None:
+        if key in self.controls:
+            self.controls[key].set(value, notify=False)
+
+
 class HomeView(ctk.CTkFrame):
     def __init__(self, master, app):
         super().__init__(master, fg_color=Theme.BG)
@@ -574,7 +671,13 @@ class HomeView(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.scroll = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+            scrollbar_fg_color=Theme.PANEL_ALT,
+            scrollbar_button_color=Theme.PRIMARY,
+            scrollbar_button_hover_color=Theme.PRIMARY_HOVER,
+        )
         self.scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=6)
         debounce_scrollable_frame(self.scroll)
         self.scroll.grid_columnconfigure((0, 1, 2), weight=1, uniform="home")
@@ -586,8 +689,23 @@ class HomeView(ctk.CTkFrame):
         for col, tile in enumerate((self.normal_video, self.edges_video, self.object_video)):
             tile.grid(row=0, column=col, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
 
-        self.warp_card = self._slider_card(
-            "Road Perspective",
+        self.camera_panel = self._build_camera_panel(row=1, column=0)
+        self.detection_panel = self._build_detection_panel(row=1, column=1)
+        self.object_panel = self._build_object_panel(row=1, column=2)
+
+        ctk.CTkFrame(self.scroll, fg_color="transparent", height=Theme.SPACE_MD).grid(
+            row=2, column=0, columnspan=3, sticky="ew"
+        )
+
+    def _build_camera_panel(self, row, column):
+        panel = SettingsPanel(self.scroll, "Camera & Perspective", icon_name="camera", accent=Theme.PRIMARY)
+        panel.grid(row=row, column=column, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
+
+        panel.add_section("Sources")
+        panel.add_content(self._build_sources_content)
+
+        panel.add_section("Warp Points")
+        panel.add_sliders(
             [
                 SliderSpec("tl_x", "Top Left X", 0, 640),
                 SliderSpec("tl_y", "Top Left Y", 0, 480),
@@ -598,62 +716,80 @@ class HomeView(ctk.CTkFrame):
                 SliderSpec("br_x", "Bottom Right X", 0, 640),
                 SliderSpec("br_y", "Bottom Right Y", 0, 480),
             ],
-            1,
-            0,
-            rowspan=3,
+            self.app.tk_controls,
+            self.app.calibration_data,
+            self.app.on_slider_value,
+        )
+        return panel
+
+    def _build_detection_panel(self, row, column):
+        panel = SettingsPanel(self.scroll, "Detection Tuning", icon_name="options", accent=Theme.SECONDARY)
+        panel.grid(row=row, column=column, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
+
+        panel.add_section("Image Filters")
+        panel.add_sliders(
+            [SliderSpec("F_Canny", "Canny Low", 0, 255), SliderSpec("S_Canny", "Canny High", 0, 255)],
+            self.app.tk_controls,
+            self.app.calibration_data,
+            self.app.on_slider_value,
         )
 
-        self._build_sources(row=1, column=1)
-        self.filter_card = self._slider_card(
-            "Image Filters",
-            [SliderSpec("F_Canny", "Canny Low", 0, 255), SliderSpec("S_Canny", "Canny High", 0, 255)],
-            2,
-            1,
-        )
-        self.pid_card = self._slider_card(
-            "PID Control",
+        panel.add_section("PID Control")
+        panel.add_sliders(
             [
                 SliderSpec("KP", "Proportional", 0.0, 5.0, 0.01),
                 SliderSpec("KI", "Integral", 0.0, 10.0, 0.001),
                 SliderSpec("KD", "Derivative", 0.0, 10.0, 0.001),
             ],
-            3,
-            1,
+            self.app.tk_controls,
+            self.app.calibration_data,
+            self.app.on_slider_value,
         )
-        self.extras_card = self._slider_card(
-            "Operation",
+
+        panel.add_section("Operation")
+        panel.add_sliders(
             [
                 SliderSpec("Lines", "Lines", 0, 480),
                 SliderSpec("Distance", "Distance", 0, 270),
                 SliderSpec("Speed", "Speed", 0, 255),
                 SliderSpec("Side", "Side", 1, 2),
             ],
-            1,
-            2,
+            self.app.tk_controls,
+            self.app.calibration_data,
+            self.app.on_slider_value,
         )
-        self.object_card = self._slider_card(
-            "Object Detection",
+        return panel
+
+    def _build_object_panel(self, row, column):
+        panel = SettingsPanel(self.scroll, "Object Detection", icon_name="target", accent=Theme.SUCCESS)
+        panel.grid(row=row, column=column, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
+
+        panel.add_section("Traffic")
+        panel.add_sliders(
             [
                 SliderSpec("Person", "Person", 0, 240),
                 SliderSpec("SEMAFORO", "Traffic Light", 0, 240),
                 SliderSpec("PeopleRegion", "Person Region", 10, 100),
+            ],
+            self.app.tk_controls,
+            self.app.calibration_data,
+            self.app.on_slider_value,
+        )
+
+        panel.add_section("Signs")
+        panel.add_sliders(
+            [
                 SliderSpec("PLACA_PARE", "Stop Sign", 0, 240),
                 SliderSpec("PLACA_DESVIO", "Detour Sign", 0, 240),
                 SliderSpec("PLACA_LOMBADA", "Speed Bump Sign", 0, 240),
             ],
-            2,
-            2,
-            rowspan=2,
+            self.app.tk_controls,
+            self.app.calibration_data,
+            self.app.on_slider_value,
         )
+        return panel
 
-        ctk.CTkFrame(self.scroll, fg_color="transparent", height=Theme.SPACE_MD).grid(
-            row=4, column=0, columnspan=3, sticky="ew"
-        )
-
-    def _build_sources(self, row, column):
-        card = Card(self.scroll, "Input and Communication", accent=Theme.PRIMARY)
-        card.grid(row=row, column=column, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
-
+    def _build_sources_content(self, frame):
         self.refresh_source_options()
         self.refresh_com_options()
         init_data = self.app.init_data
@@ -665,13 +801,13 @@ class HomeView(ctk.CTkFrame):
         self.security_com = ctk.StringVar(value=self.app.shared_controls.security_com)
         self.sender_com = ctk.StringVar(value=self.app.shared_controls.sender_com)
 
-        self.lane_combo = self._combo_row(card, 1, "Lane camera", self.sources, self.lane_source)
-        self.object_combo = self._combo_row(card, 2, "Object camera", self.sources, self.object_source)
-        self.security_combo = self._combo_row(card, 3, "Safety COM", self.com_ports, self.security_com)
-        self.sender_combo = self._combo_row(card, 4, "Sender COM", self.com_ports, self.sender_com)
+        self.lane_combo = self._combo_row(frame, 0, "Lane camera", self.sources, self.lane_source)
+        self.object_combo = self._combo_row(frame, 1, "Object camera", self.sources, self.object_source)
+        self.security_combo = self._combo_row(frame, 2, "Safety COM", self.com_ports, self.security_com)
+        self.sender_combo = self._combo_row(frame, 3, "Sender COM", self.com_ports, self.sender_com)
 
-        buttons = ctk.CTkFrame(card, fg_color="transparent")
-        buttons.grid(row=5, column=0, sticky="ew", padx=14, pady=(8, 10))
+        buttons = ctk.CTkFrame(frame, fg_color="transparent")
+        buttons.grid(row=4, column=0, sticky="ew", pady=(8, 0))
         buttons.grid_columnconfigure((0, 1), weight=1)
         ctk.CTkButton(buttons, text="Apply sources", **button_style(True), command=self.apply_sources).grid(
             row=0, column=0, sticky="ew", padx=(0, 4), pady=3
@@ -688,24 +824,12 @@ class HomeView(ctk.CTkFrame):
 
     def _combo_row(self, parent, row, label, values, variable):
         wrapper = ctk.CTkFrame(parent, fg_color="transparent")
-        wrapper.grid(row=row, column=0, sticky="ew", padx=14, pady=2)
+        wrapper.grid(row=row, column=0, sticky="ew", pady=2)
         wrapper.grid_columnconfigure(1, weight=1)
         ctk.CTkLabel(wrapper, text=label, text_color=Theme.MUTED).grid(row=0, column=0, sticky="w", padx=(0, 8))
         combo = ctk.CTkComboBox(wrapper, values=values, variable=variable, **input_style())
         combo.grid(row=0, column=1, sticky="ew")
         return combo
-
-    def _slider_card(self, title, specs, row, column, rowspan=1):
-        card = SliderCard(
-            self.scroll,
-            title,
-            specs,
-            self.app.tk_controls,
-            self.app.calibration_data,
-            self.app.on_slider_value,
-        )
-        card.grid(row=row, column=column, rowspan=rowspan, sticky="nsew", padx=Theme.ROW_GAP // 2, pady=Theme.ROW_GAP // 2)
-        return card
 
     def refresh_source_options(self):
         cameras = self.app.tk_controls.get("DETECTED_CAMERAS", [])
@@ -760,7 +884,7 @@ class HomeView(ctk.CTkFrame):
     def sync_dynamic_ranges(self):
         max_height = self.app.shared_controls.get("MAX_HEIGHT")
         if isinstance(max_height, (int, float)) and max_height > 0:
-            control = self.extras_card.controls.get("Lines")
+            control = self.detection_panel.controls.get("Lines")
             if control and control.spec.max_value != max_height:
                 control.spec = SliderSpec("Lines", "Lines", 0, max_height)
                 control.set(control.get(), notify=False)
@@ -780,7 +904,13 @@ class ManualView(ctk.CTkFrame):
         self.app = app
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
-        scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        scroll = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+            scrollbar_fg_color=Theme.PANEL_ALT,
+            scrollbar_button_color=Theme.SECONDARY,
+            scrollbar_button_hover_color=Theme.SECONDARY_HOVER,
+        )
         scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=8)
         debounce_scrollable_frame(scroll)
         scroll.grid_columnconfigure((0, 1), weight=1, uniform="manual")
@@ -788,7 +918,7 @@ class ManualView(ctk.CTkFrame):
         self.video = VideoTile(scroll, "Manual Video", "Waiting for manual frame", "lane")
         self.video.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=6, pady=6)
 
-        source_card = Card(scroll, "Manual Source", accent=Theme.SECONDARY)
+        source_card = Card(scroll, "Manual Source", accent=Theme.SECONDARY, icon_name="camera")
         source_card.grid(row=1, column=0, sticky="new", padx=6, pady=6)
         source_card.grid_columnconfigure(0, weight=1)
 
@@ -819,10 +949,11 @@ class ManualView(ctk.CTkFrame):
             self.app.calibration_data,
             self._manual_slider_changed,
             accent=Theme.SECONDARY,
+            icon_name="manual",
         )
         self.control_card.grid(row=1, column=1, sticky="new", padx=6, pady=6)
 
-        self.wheel_card = Card(scroll, "Steering Wheel", accent=Theme.SECONDARY)
+        self.wheel_card = Card(scroll, "Steering Wheel", accent=Theme.SECONDARY, icon_name="manual")
         self.wheel_card.grid(row=2, column=0, columnspan=2, sticky="n", padx=6, pady=6)
         self.wheel = ctk.CTkCanvas(self.wheel_card, width=170, height=170, bg=Theme.PANEL, highlightthickness=0)
         self.wheel.grid(row=1, column=0, padx=24, pady=(0, 20))
@@ -1466,9 +1597,9 @@ class AutodriveApp(ctk.CTk):
         self.settings_store.load(DEFAULTS_FILE, update_target_if_exists=self.tk_controls)
         for view_name in ("Home",):
             view = self.shell.views[view_name]
-            for card in (view.filter_card, view.warp_card, view.pid_card, view.extras_card, view.object_card):
+            for panel in (view.camera_panel, view.detection_panel, view.object_panel):
                 for key, value in self.tk_controls.items():
-                    card.set_value(key, value)
+                    panel.set_value(key, value)
         self.settings_store.update(self.tk_controls, CALIBRATION_FILE, only_existing_keys=True)
         self.show_status("Defaults restored", "success")
 
@@ -1485,9 +1616,9 @@ class AutodriveApp(ctk.CTk):
             SliderSpec("DeviationCounter", "Deviation Counter", 0, 5),
         ]
         modal = self._modal("Settings")
-        SliderCard(modal, "Settings", specs, self.tk_controls, self.calibration_data, self.on_slider_value).pack(
-            fill="both", expand=True, padx=12, pady=12
-        )
+        SliderCard(
+            modal, "Settings", specs, self.tk_controls, self.calibration_data, self.on_slider_value, icon_name="settings"
+        ).pack(fill="both", expand=True, padx=12, pady=12)
 
     def open_defaults(self):
         modal = self._modal("Defaults")

@@ -300,6 +300,35 @@ def _draw_alert(draw: ImageDraw.ImageDraw, canvas: int, stroke: int, color: str)
     draw.ellipse([cx - dot_r, dot_y - dot_r, cx + dot_r, dot_y + dot_r], fill=color)
 
 
+def _draw_camera(draw: ImageDraw.ImageDraw, canvas: int, stroke: int, color: str) -> None:
+    lo, hi = _pad(canvas, 0.18)
+    body_top = lo + (hi - lo) * 0.2
+    cx = (lo + hi) / 2
+    draw.rounded_rectangle([lo, body_top, hi, hi], radius=(hi - lo) * 0.14, outline=color, width=stroke)
+    bump_w = (hi - lo) * 0.32
+    draw.rounded_rectangle(
+        [cx - bump_w / 2, body_top - (hi - lo) * 0.16, cx + bump_w / 2, body_top + stroke],
+        radius=(hi - lo) * 0.05,
+        outline=color,
+        width=max(2, stroke - 1),
+    )
+    lens_r = (hi - lo) * 0.22
+    cy = body_top + (hi - body_top) * 0.55
+    draw.ellipse([cx - lens_r, cy - lens_r, cx + lens_r, cy + lens_r], outline=color, width=stroke)
+    dot_r = lens_r * 0.32
+    draw.ellipse([cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r], fill=color)
+
+
+def _draw_target(draw: ImageDraw.ImageDraw, canvas: int, stroke: int, color: str) -> None:
+    cx = cy = canvas / 2
+    r_outer = canvas * 0.32
+    r_mid = canvas * 0.19
+    draw.ellipse([cx - r_outer, cy - r_outer, cx + r_outer, cy + r_outer], outline=color, width=stroke)
+    draw.ellipse([cx - r_mid, cy - r_mid, cx + r_mid, cy + r_mid], outline=color, width=max(2, stroke - 1))
+    dot_r = canvas * 0.07
+    draw.ellipse([cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r], fill=color)
+
+
 _ICON_DRAWERS = {
     "home": _draw_home,
     "manual": _draw_manual,
@@ -309,4 +338,6 @@ _ICON_DRAWERS = {
     "options": _draw_options,
     "dot": _draw_dot,
     "alert": _draw_alert,
+    "camera": _draw_camera,
+    "target": _draw_target,
 }
