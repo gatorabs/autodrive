@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
 
 from src.presentation.ui.dialogs.defaults_dialog import DefaultsDialog
@@ -64,6 +65,10 @@ class MainWindow(QMainWindow):
         status_row.addStretch(1)
         right_layout.addLayout(status_row)
 
+        self._status_clear_timer = QTimer(self)
+        self._status_clear_timer.setSingleShot(True)
+        self._status_clear_timer.timeout.connect(lambda: self.status.set("Ready", "muted"))
+
         self.home_view = HomeView(controller)
         self.manual_view = ManualView(controller)
         self.task_manager_view = TaskManagerView()
@@ -119,6 +124,8 @@ class MainWindow(QMainWindow):
     def show_status(self, message: str, tone: str = "info") -> None:
         tone_map = {"success": "success", "warning": "warning", "error": "danger"}.get(tone, "muted")
         self.status.set(message, tone_map)
+        if tone_map != "muted":
+            self._status_clear_timer.start(4000)
 
     def open_settings(self) -> None:
         SettingsDialog(self.controller, self).exec()

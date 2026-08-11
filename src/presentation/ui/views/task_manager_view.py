@@ -6,7 +6,6 @@ from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
-    QComboBox,
     QHBoxLayout,
     QLabel,
     QProgressBar,
@@ -22,6 +21,7 @@ from src.infrastructure.logging.logger import Logger
 from src.presentation.ui.charts.bar_chart import BarChartWidget
 from src.presentation.ui.theme.tokens import Color, Space
 from src.presentation.ui.widgets.card import Card
+from src.presentation.ui.widgets.combo_box import ComboBox
 
 logger = Logger("TaskManagerUI")
 
@@ -67,7 +67,7 @@ class TaskManagerView(QWidget):
         self.table.setAlternatingRowColors(True)
 
         chart_header = QHBoxLayout()
-        self.metric_combo = QComboBox()
+        self.metric_combo = ComboBox()
         self.metric_combo.addItems(["Memory", "CPU", "IO"])
         self.metric_combo.currentTextChanged.connect(lambda _text: self._draw_chart())
         chart_header.addWidget(self.metric_combo)

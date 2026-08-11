@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QComboBox, QGridLayout, QHBoxLayout, QPushButton, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QPushButton, QScrollArea, QVBoxLayout, QWidget
 
 from src.infrastructure.constants.path_constants import DEFAULT_UI_PATH
 from src.infrastructure.vision.camera_discovery import detect_camera_indices
 from src.infrastructure.vision.video_files import get_video_files_from_folder
 from src.presentation.ui.theme.tokens import Size, Space
 from src.presentation.ui.widgets.card import Card
+from src.presentation.ui.widgets.combo_box import ComboBox
 from src.presentation.ui.widgets.slider_card import SliderCard
 from src.presentation.ui.widgets.slider_control import SliderSpec
 from src.presentation.ui.widgets.steering_wheel import SteeringWheel
@@ -40,7 +41,7 @@ class ManualView(QWidget):
         source_card = Card("Manual Source", accent="secondary", icon_name="camera")
         sources = [f"Camera {c}" for c in controller.tk_controls.get("DETECTED_CAMERAS", [])] + get_video_files_from_folder()
         default = self._display_source(controller.init_data.get("LANE_SOURCE_TAB2", ""))
-        self.source_combo = QComboBox()
+        self.source_combo = ComboBox()
         self.source_combo.setEditable(True)
         self.source_combo.addItems(sources)
         self.source_combo.setCurrentText(default)

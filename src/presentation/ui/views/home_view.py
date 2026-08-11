@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QComboBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -18,9 +17,11 @@ from src.infrastructure.constants.path_constants import DEFAULT_UI_PATH
 from src.infrastructure.vision.camera_discovery import detect_camera_indices
 from src.infrastructure.vision.video_files import get_video_files_from_folder
 from src.presentation.ui.theme.tokens import Color, Size, Space
+from src.presentation.ui.widgets.combo_box import ComboBox
 from src.presentation.ui.widgets.slider_card import SettingsPanel
 from src.presentation.ui.widgets.slider_control import SliderSpec
 from src.presentation.ui.widgets.video_tile import VideoTile
+from src.presentation.ui.widgets.warp_preview import WarpPointsPreview
 
 
 class HomeView(QWidget):
@@ -75,6 +76,8 @@ class HomeView(QWidget):
         panel.add_section("Serial Ports")
         panel.add_content(self._build_serial_ports_content)
         panel.add_section("Warp Points")
+        warp_preview = WarpPointsPreview()
+        panel.add_content(lambda frame, w=warp_preview: frame.layout().addWidget(w))
         panel.add_sliders(
             [
                 SliderSpec("tl_x", "Top Left X", 0, 640),
@@ -90,7 +93,27 @@ class HomeView(QWidget):
             self.controller.calibration_data,
             self.controller.on_slider_value,
         )
+        self._wire_warp_preview(panel, warp_preview)
         return panel
+
+    @staticmethod
+    def _wire_warp_preview(panel: SettingsPanel, preview: WarpPointsPreview) -> None:
+        keys = ("tl_x", "tl_y", "tr_x", "tr_y", "bl_x", "bl_y", "br_x", "br_y")
+
+        def refresh() -> None:
+            c = panel.controls
+            preview.set_points(
+                (c["tl_x"].get(), c["tl_y"].get()),
+                (c["tr_x"].get(), c["tr_y"].get()),
+                (c["bl_x"].get(), c["bl_y"].get()),
+                (c["br_x"].get(), c["br_y"].get()),
+            )
+
+        for key in keys:
+            control = panel.controls[key]
+            original = control.on_change
+            control.on_change = lambda k, v, _orig=original: (_orig(k, v), refresh())
+        refresh()
 
     def _build_detection_panel(self) -> SettingsPanel:
         panel = SettingsPanel("Detection Tuning", icon_name="options", accent="secondary")
@@ -194,11 +217,11 @@ class HomeView(QWidget):
         layout.addLayout(row)
 
     @staticmethod
-    def _combo_row(layout, label: str, values: list[str], current: str) -> QComboBox:
+    def _combo_row(layout, label: str, values: list[str], current: str) -> ComboBox:
         row = QHBoxLayout()
         lbl = QLabel(label)
         lbl.setStyleSheet(f"color: {Color.MUTED};")
-        combo = QComboBox()
+        combo = ComboBox()
         combo.setEditable(True)
         combo.addItems(values)
         combo.setCurrentText(str(current))
@@ -241,7 +264,7 @@ class HomeView(QWidget):
             self.controller.show_status("No COM ports found", "warning")
 
     @staticmethod
-    def _set_combo_items(combo: QComboBox, values: list[str]) -> None:
+    def _set_combo_items(combo: ComboBox, values: list[str]) -> None:
         current = combo.currentText()
         combo.blockSignals(True)
         combo.clear()
