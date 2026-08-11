@@ -2,11 +2,27 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QCheckBox, QDialog, QGridLayout, QScrollArea, QVBoxLayout, QWidget
 
+from src.application.runtime.state import control_keys as keys
+from src.domain.constants.calibration_ranges import (
+    CONFIDENCE_RANGE,
+    DEVIATION_COUNTER_RANGE,
+    STOP_DECELERATION_STEP_RANGE,
+    STOP_RAMP_INTERVAL_RANGE,
+    TIMESTAMP_RANGE,
+)
+from src.domain.constants.detour_constants import DEVIATION_COUNTER_CONTROL
 from src.presentation.ui.theme.tokens import Space
 from src.presentation.ui.widgets.slider_card import SettingsPanel
 from src.presentation.ui.widgets.slider_control import SliderSpec
 
-_OPTION_LABELS = ["WEBVIEW", "SHOW_ROI", "SHOW_INFO", "SEND_LOGS", "NEW_PID", "SHOW_LINES"]
+_OPTION_LABELS = [
+    keys.WEBVIEW,
+    keys.SHOW_ROI,
+    keys.SHOW_INFO,
+    keys.SEND_LOGS,
+    keys.NEW_PID,
+    keys.SHOW_LINES,
+]
 
 
 class SettingsDialog(QDialog):
@@ -25,9 +41,9 @@ class SettingsDialog(QDialog):
         panel.add_section("Detection Confidence")
         panel.add_sliders(
             [
-                SliderSpec("BaseConf", "YOLO Confidence", 0, 10),
-                SliderSpec("CustomConf", "Custom YOLO Confidence", 0, 10),
-                SliderSpec("SemaforoConf", "Traffic Light YOLO Confidence", 0, 10),
+                SliderSpec(keys.BASE_CONFIDENCE, "YOLO Confidence", *CONFIDENCE_RANGE),
+                SliderSpec(keys.CUSTOM_CONFIDENCE, "Custom YOLO Confidence", *CONFIDENCE_RANGE),
+                SliderSpec(keys.SEMAFORO_CONFIDENCE, "Traffic Light YOLO Confidence", *CONFIDENCE_RANGE),
             ],
             controller.tk_controls,
             controller.calibration_data,
@@ -37,10 +53,18 @@ class SettingsDialog(QDialog):
         panel.add_section("Stop Ramp")
         panel.add_sliders(
             [
-                SliderSpec("StopDecelerationStep", "Stop Deceleration Step", 1, 100),
-                SliderSpec("StopRampInterval", "Stop Ramp Interval (s)", 0.0, 1.0, 0.05),
-                SliderSpec("SEMAFORO_StopDecelerationStep", "Traffic Light Stop Deceleration Step", 1, 100),
-                SliderSpec("SEMAFORO_StopRampInterval", "Traffic Light Stop Ramp Interval (s)", 0.0, 1.0, 0.05),
+                SliderSpec(keys.STOP_DECELERATION_STEP, "Stop Deceleration Step", *STOP_DECELERATION_STEP_RANGE),
+                SliderSpec(keys.STOP_RAMP_INTERVAL, "Stop Ramp Interval (s)", *STOP_RAMP_INTERVAL_RANGE),
+                SliderSpec(
+                    keys.SEMAFORO_STOP_DECELERATION_STEP,
+                    "Traffic Light Stop Deceleration Step",
+                    *STOP_DECELERATION_STEP_RANGE,
+                ),
+                SliderSpec(
+                    keys.SEMAFORO_STOP_RAMP_INTERVAL,
+                    "Traffic Light Stop Ramp Interval (s)",
+                    *STOP_RAMP_INTERVAL_RANGE,
+                ),
             ],
             controller.tk_controls,
             controller.calibration_data,
@@ -50,8 +74,8 @@ class SettingsDialog(QDialog):
         panel.add_section("General")
         panel.add_sliders(
             [
-                SliderSpec("Timestamp", "Timestamp", 0, 10),
-                SliderSpec("DeviationCounter", "Deviation Counter", 0, 5),
+                SliderSpec(keys.TIMESTAMP, "Timestamp", *TIMESTAMP_RANGE),
+                SliderSpec(DEVIATION_COUNTER_CONTROL, "Deviation Counter", *DEVIATION_COUNTER_RANGE),
             ],
             controller.tk_controls,
             controller.calibration_data,

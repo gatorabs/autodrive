@@ -4,13 +4,15 @@ from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QCursor, QPainter, QPen, QPolygonF
 from PySide6.QtWidgets import QWidget
 
+from src.domain.constants.calibration_ranges import CAMERA_FRAME_HEIGHT, CAMERA_FRAME_WIDTH
+from src.presentation.ui.runtime_constants import WARP_POINT_HIT_RADIUS_PX
 from src.presentation.ui.theme.tokens import Color, Radius, Type
 
-IMAGE_WIDTH = 640
-IMAGE_HEIGHT = 480
+IMAGE_WIDTH = CAMERA_FRAME_WIDTH
+IMAGE_HEIGHT = CAMERA_FRAME_HEIGHT
 _ORDER = ("tl", "tr", "br", "bl")
 _LABELS = {"tl": "TL", "tr": "TR", "br": "BR", "bl": "BL"}
-_HIT_RADIUS = 12.0
+_HIT_RADIUS = WARP_POINT_HIT_RADIUS_PX
 
 
 class WarpPointsPreview(QWidget):

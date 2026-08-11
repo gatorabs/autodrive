@@ -58,3 +58,47 @@ SHOW_LINES = "SHOW_LINES"
 SHOW_ROI = "SHOW_ROI"
 FIRST_CANNY = "F_Canny"
 SECOND_CANNY = "S_Canny"
+
+# PID control gains.
+PID_KP = "KP"
+PID_KI = "KI"
+PID_KD = "KD"
+
+# Camera & perspective warp points.
+WARP_TL_X = "tl_x"
+WARP_TL_Y = "tl_y"
+WARP_TR_X = "tr_x"
+WARP_TR_Y = "tr_y"
+WARP_BL_X = "bl_x"
+WARP_BL_Y = "bl_y"
+WARP_BR_X = "br_x"
+WARP_BR_Y = "br_y"
+
+# Object detection thresholds.
+PERSON_THRESHOLD = "Person"
+SEMAFORO_THRESHOLD = "SEMAFORO"
+PEOPLE_REGION = "PeopleRegion"
+SIGN_STOP = "PLACA_PARE"
+SIGN_DETOUR = "PLACA_DESVIO"
+SIGN_SPEED_BUMP = "PLACA_LOMBADA"
+
+# YOLO confidence thresholds.
+BASE_CONFIDENCE = "BaseConf"
+CUSTOM_CONFIDENCE = "CustomConf"
+SEMAFORO_CONFIDENCE = "SemaforoConf"
+TIMESTAMP = "Timestamp"
+
+# Stop-ramp behavior.
+STOP_DECELERATION_STEP = "StopDecelerationStep"
+STOP_RAMP_INTERVAL = "StopRampInterval"
+SEMAFORO_STOP_DECELERATION_STEP = "SEMAFORO_StopDecelerationStep"
+SEMAFORO_STOP_RAMP_INTERVAL = "SEMAFORO_StopRampInterval"
+
+# Manual driving controls.
+MANUAL_DIRECTION = "MANUAL_DIRECTION"
+MANUAL_SPEED = "MANUAL_SPEED"
+
+# CUDA/hardware status, populated at startup.
+CUDA_AVAILABLE = "CUDA_AVAILABLE"
+CUDA_DEVICE_NAME = "CUDA_DEVICE_NAME"
+CUDA_STATUS_MESSAGE = "CUDA_STATUS_MESSAGE"

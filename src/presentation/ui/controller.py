@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QObject, QThread, QTimer
 
+from src.application.runtime.state import control_keys as keys
 from src.bootstrap import (
     build_process_manager,
     create_initializer,
@@ -11,8 +12,15 @@ from src.bootstrap import (
 from src.infrastructure.constants.path_constants import CALIBRATION_FILE, DEFAULTS_FILE, DEFAULT_UI_PATH
 from src.infrastructure.data.repository.calibration_repository import default_settings_store
 from src.presentation.ui.boot import BootWindow, BootWorker
+from src.presentation.ui.runtime_constants import (
+    FRAME_TICK_INTERVAL_MS,
+    PROCESS_TICK_INTERVAL_MS,
+    SLIDER_PERSIST_DEBOUNCE_MS,
+    VIEW_HOME,
+    VIEW_MANUAL,
+)
 
-_NON_PERSISTED_KEYS = {"MANUAL_DIRECTION", "MANUAL_SPEED", "Side"}
+_NON_PERSISTED_KEYS = {keys.MANUAL_DIRECTION, keys.MANUAL_SPEED, keys.SIDE}
 
 
 class AppController(QObject):
@@ -68,9 +76,9 @@ class AppController(QObject):
         self._boot_thread.wait()
 
         self.boot_window.show_cuda_status(
-            bool(user_flags.get("CUDA_AVAILABLE", False)),
-            user_flags.get("CUDA_DEVICE_NAME", "CPU only"),
-            user_flags.get("CUDA_STATUS_MESSAGE", ""),
+            bool(user_flags.get(keys.CUDA_AVAILABLE, False)),
+            user_flags.get(keys.CUDA_DEVICE_NAME, "CPU only"),
+            user_flags.get(keys.CUDA_STATUS_MESSAGE, ""),
         )
         self.shared_controls, self.tk_controls, self.shared_frames, self.user_flags = create_runtime_state(
             self.manager, user_flags
@@ -90,14 +98,14 @@ class AppController(QObject):
         self.main_window = MainWindow(self)
         self.main_window.showMaximized()
         self.main_window.set_cuda_status(
-            bool(user_flags.get("CUDA_AVAILABLE", False)), user_flags.get("CUDA_DEVICE_NAME", "CPU only")
+            bool(user_flags.get(keys.CUDA_AVAILABLE, False)), user_flags.get(keys.CUDA_DEVICE_NAME, "CPU only")
         )
         self.boot_window.close()
-        if not user_flags.get("CUDA_AVAILABLE", False):
+        if not user_flags.get(keys.CUDA_AVAILABLE, False):
             self.show_status("CUDA unavailable — using CPU", "warning")
 
-        self.process_timer.start(250)
-        self.frame_timer.start(33)
+        self.process_timer.start(PROCESS_TICK_INTERVAL_MS)
+        self.frame_timer.start(FRAME_TICK_INTERVAL_MS)
 
     def _tick_processes(self) -> None:
         if not self.shared_controls or not self.shared_controls.is_running():
@@ -122,7 +130,7 @@ class AppController(QObject):
         if not self.main_window:
             return
         active = self.main_window.current_view_name
-        if active == "Home" and not self.tk_controls.manual_mode:
+        if active == VIEW_HOME and not self.tk_controls.manual_mode:
             view = self.main_window.home_view
             view.normal_video.update_state(
                 self.shared_frames.normal_frame,
@@ -139,7 +147,7 @@ class AppController(QObject):
                 webview=self.shared_controls.webview,
                 object_safe_stop=self.shared_controls.object_safe_stop,
             )
-        elif active == "Manual" and self.tk_controls.manual_mode:
+        elif active == VIEW_MANUAL and self.tk_controls.manual_mode:
             self.main_window.manual_view.video.update_state(self.shared_frames.tab2_frame)
 
     def on_slider_value(self, key: str, value: float) -> None:
@@ -153,7 +161,7 @@ class AppController(QObject):
             timer.setSingleShot(True)
             timer.timeout.connect(lambda k=key: self._persist_slider(k))
             self._persist_timers[key] = timer
-        timer.start(250)
+        timer.start(SLIDER_PERSIST_DEBOUNCE_MS)
 
     def _persist_slider(self, key: str) -> None:
         if key not in self._pending_values:
@@ -164,7 +172,7 @@ class AppController(QObject):
     def set_manual_mode(self, active: bool) -> None:
         self.tk_controls.manual_mode = active
         self.shared_controls.manual_mode = active
-        self.settings_store.update({"MANUAL_MD": active}, DEFAULT_UI_PATH)
+        self.settings_store.update({keys.MANUAL_MODE: active}, DEFAULT_UI_PATH)
 
     def restore_defaults(self) -> None:
         self.settings_store.load(DEFAULTS_FILE, update_target_if_exists=self.tk_controls)

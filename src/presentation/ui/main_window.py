@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QMainWindow, QStackedWidget, 
 
 from src.presentation.ui.dialogs.defaults_dialog import DefaultsDialog
 from src.presentation.ui.dialogs.settings_dialog import SettingsDialog
+from src.presentation.ui.runtime_constants import STATUS_MESSAGE_TIMEOUT_MS, VIEW_HOME, VIEW_MANUAL, VIEW_TASK_MANAGER
 from src.presentation.ui.theme.tokens import Color, Size, Space, Type
 from src.presentation.ui.views.home_view import HomeView
 from src.presentation.ui.views.manual_view import ManualView
@@ -12,6 +13,8 @@ from src.presentation.ui.views.task_manager_view import TaskManagerView
 from src.presentation.ui.widgets.confirm_dialog import ConfirmDialog
 from src.presentation.ui.widgets.nav_rail import NavRail
 from src.presentation.ui.widgets.status_badge import StatusBadge
+
+_IDLE_STATUS_TEXT = "No recent activity"
 
 
 class MainWindow(QMainWindow):
@@ -63,7 +66,7 @@ class MainWindow(QMainWindow):
         status_label = QLabel("Status", right)
         status_label.setStyleSheet(f"color: {Color.SUBTLE}; font-size: {Type.CAPTION}px; font-weight: 600;")
         status_row.addWidget(status_label)
-        self.status = StatusBadge("Ready", "muted")
+        self.status = StatusBadge(_IDLE_STATUS_TEXT, "muted")
         self.status.setToolTip("Feedback from your last action (applied sources, saved defaults, warnings...).")
         status_row.addWidget(self.status)
         status_row.addStretch(1)
@@ -71,26 +74,30 @@ class MainWindow(QMainWindow):
 
         self._status_clear_timer = QTimer(self)
         self._status_clear_timer.setSingleShot(True)
-        self._status_clear_timer.timeout.connect(lambda: self.status.set("Ready", "muted"))
+        self._status_clear_timer.timeout.connect(lambda: self.status.set(_IDLE_STATUS_TEXT, "muted"))
 
         self.home_view = HomeView(controller)
         self.manual_view = ManualView(controller)
         self.task_manager_view = TaskManagerView()
-        self.views = {"Home": self.home_view, "Manual": self.manual_view, "Task Manager": self.task_manager_view}
+        self.views = {
+            VIEW_HOME: self.home_view,
+            VIEW_MANUAL: self.manual_view,
+            VIEW_TASK_MANAGER: self.task_manager_view,
+        }
         for view in self.views.values():
             self.stack.addWidget(view)
 
         self.current_view_name: str | None = None
-        self._activate("Manual" if controller.shared_controls.manual_mode else "Home")
+        self._activate(VIEW_MANUAL if controller.shared_controls.manual_mode else VIEW_HOME)
 
     def select(self, name: str) -> None:
-        if name == "Manual" and not self.controller.shared_controls.manual_mode:
+        if name == VIEW_MANUAL and not self.controller.shared_controls.manual_mode:
             if not ConfirmDialog.ask(
                 self, "Enable manual mode", "The vehicle will switch to manual driving control.", "warning"
             ):
                 return
             self.controller.set_manual_mode(True)
-        elif name == "Home" and self.controller.shared_controls.manual_mode:
+        elif name == VIEW_HOME and self.controller.shared_controls.manual_mode:
             if not ConfirmDialog.ask(
                 self, "Disable manual mode", "The vehicle will return to autonomous control.", "primary"
             ):
@@ -101,12 +108,12 @@ class MainWindow(QMainWindow):
     def _activate(self, name: str) -> None:
         if self.current_view_name == name:
             return
-        if self.current_view_name == "Task Manager":
+        if self.current_view_name == VIEW_TASK_MANAGER:
             self.task_manager_view.set_active(False)
         self.current_view_name = name
         self.stack.setCurrentWidget(self.views[name])
         self.nav.set_active(name)
-        if name == "Task Manager":
+        if name == VIEW_TASK_MANAGER:
             self.task_manager_view.set_active(True)
 
     def sync_state(self, manual_mode: bool, safe_stop: bool, object_safe_stop: bool) -> None:
@@ -129,7 +136,7 @@ class MainWindow(QMainWindow):
         tone_map = {"success": "success", "warning": "warning", "error": "danger"}.get(tone, "muted")
         self.status.set(message, tone_map)
         if tone_map != "muted":
-            self._status_clear_timer.start(4000)
+            self._status_clear_timer.start(STATUS_MESSAGE_TIMEOUT_MS)
 
     def open_settings(self) -> None:
         SettingsDialog(self.controller, self).exec()

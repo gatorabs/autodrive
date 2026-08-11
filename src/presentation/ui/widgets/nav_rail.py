@@ -5,15 +5,16 @@ from typing import Callable
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QToolButton, QVBoxLayout, QWidget
 
+from src.presentation.ui.runtime_constants import VIEW_HOME, VIEW_MANUAL, VIEW_TASK_MANAGER
 from src.presentation.ui.theme.icons import get_icon
 from src.presentation.ui.theme.tokens import Color, Size
 
 
 class NavRail(QWidget):
     ITEMS = (
-        ("Home", "home", "Home"),
-        ("Manual", "manual", "Manual"),
-        ("Task Manager", "activity", "Tasks"),
+        (VIEW_HOME, "home", "Home"),
+        (VIEW_MANUAL, "manual", "Manual"),
+        (VIEW_TASK_MANAGER, "activity", "Tasks"),
     )
 
     def __init__(
@@ -73,7 +74,7 @@ class NavRail(QWidget):
             footer.addWidget(button)
         layout.addLayout(footer)
 
-        self.set_active("Home")
+        self.set_active(VIEW_HOME)
 
     def set_active(self, name: str) -> None:
         glyphs = {key: glyph for key, glyph, _ in self.ITEMS}

@@ -3,6 +3,8 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QPushButton, QScrollArea, QVBoxLayout, QWidget
 
+from src.application.runtime.state import control_keys as keys
+from src.domain.constants.calibration_ranges import MANUAL_DIRECTION_RANGE, MANUAL_SPEED_RANGE
 from src.infrastructure.constants.path_constants import DEFAULT_UI_PATH
 from src.infrastructure.vision.camera_discovery import detect_camera_indices
 from src.infrastructure.vision.video_files import get_video_files_from_folder
@@ -39,8 +41,8 @@ class ManualView(QWidget):
         grid.addWidget(self.video, 0, 0, 1, 2)
 
         source_card = Card("Manual Source", accent="secondary", icon_name="camera")
-        sources = [f"Camera {c}" for c in controller.tk_controls.get("DETECTED_CAMERAS", [])] + get_video_files_from_folder()
-        default = self._display_source(controller.init_data.get("LANE_SOURCE_TAB2", ""))
+        sources = [f"Camera {c}" for c in controller.tk_controls.get(keys.DETECTED_CAMERAS, [])] + get_video_files_from_folder()
+        default = self._display_source(controller.init_data.get(keys.LANE_SOURCE_TAB2, ""))
         self.source_combo = ComboBox()
         self.source_combo.setEditable(True)
         self.source_combo.addItems(sources)
@@ -60,7 +62,10 @@ class ManualView(QWidget):
 
         self.control_card = SliderCard(
             "Manual Control",
-            [SliderSpec("MANUAL_DIRECTION", "Direction", 0, 180), SliderSpec("MANUAL_SPEED", "Speed", 0, 255)],
+            [
+                SliderSpec(keys.MANUAL_DIRECTION, "Direction", *MANUAL_DIRECTION_RANGE),
+                SliderSpec(keys.MANUAL_SPEED, "Speed", *MANUAL_SPEED_RANGE),
+            ],
             controller.tk_controls,
             controller.calibration_data,
             self._manual_slider_changed,
@@ -70,7 +75,7 @@ class ManualView(QWidget):
         grid.addWidget(self.control_card, 1, 1, Qt.AlignmentFlag.AlignTop)
 
         self.wheel_card = Card("Steering Wheel", accent="secondary", icon_name="manual")
-        self.wheel = SteeringWheel(controller.tk_controls.get("MANUAL_DIRECTION", 90))
+        self.wheel = SteeringWheel(controller.tk_controls.get(keys.MANUAL_DIRECTION, 90))
         self.wheel.angleChanged.connect(self._wheel_drag)
         self.wheel_card.body_layout.addWidget(self.wheel, 0, Qt.AlignmentFlag.AlignHCenter)
         grid.addWidget(self.wheel_card, 2, 0, 1, 2, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
@@ -78,8 +83,8 @@ class ManualView(QWidget):
     def apply_source(self) -> None:
         selected = self._clean_source(self.source_combo.currentText())
         self.controller.tk_controls.lane_source_tab2 = selected
-        self.controller.shared_controls["LANE_SOURCE_TAB2"] = selected
-        self.controller.settings_store.update({"LANE_SOURCE_TAB2": selected}, DEFAULT_UI_PATH)
+        self.controller.shared_controls[keys.LANE_SOURCE_TAB2] = selected
+        self.controller.settings_store.update({keys.LANE_SOURCE_TAB2: selected}, DEFAULT_UI_PATH)
         self.controller.show_status("Manual source applied", "success")
 
     def refresh_sources(self) -> None:
@@ -102,26 +107,26 @@ class ManualView(QWidget):
 
     def sync_car_info(self) -> None:
         data = self.controller.shared_controls.car_info
-        direction = data.get("CAR_DIRECTION_DATA")
-        speed = data.get("CAR_SPEED_DATA")
+        direction = data.get(keys.CAR_DIRECTION_DATA)
+        speed = data.get(keys.CAR_SPEED_DATA)
         if direction is not None:
-            self.control_card.set_value("MANUAL_DIRECTION", direction)
+            self.control_card.set_value(keys.MANUAL_DIRECTION, direction)
             self.wheel.set_angle(direction)
         if speed is not None:
-            self.control_card.set_value("MANUAL_SPEED", speed)
+            self.control_card.set_value(keys.MANUAL_SPEED, speed)
 
     def _manual_slider_changed(self, key: str, value: float) -> None:
         self.controller.tk_controls[key] = value
         lane_data = {
-            "CAR_SPEED_DATA": self.controller.tk_controls.get("MANUAL_SPEED", 0),
-            "CAR_DIRECTION_DATA": self.controller.tk_controls.get("MANUAL_DIRECTION", 0),
+            keys.CAR_SPEED_DATA: self.controller.tk_controls.get(keys.MANUAL_SPEED, 0),
+            keys.CAR_DIRECTION_DATA: self.controller.tk_controls.get(keys.MANUAL_DIRECTION, 0),
         }
         self.controller.shared_controls.car_info = lane_data
-        if key == "MANUAL_DIRECTION":
+        if key == keys.MANUAL_DIRECTION:
             self.wheel.set_angle(value)
 
     def _wheel_drag(self, angle: int) -> None:
-        self.control_card.controls["MANUAL_DIRECTION"].set(angle)
+        self.control_card.controls[keys.MANUAL_DIRECTION].set(angle)
 
     @staticmethod
     def _clean_source(value: str) -> str:

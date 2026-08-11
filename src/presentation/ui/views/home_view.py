@@ -11,6 +11,23 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.application.runtime.state import control_keys as keys
+from src.domain.constants.calibration_ranges import (
+    CANNY_RANGE,
+    DISTANCE_RANGE,
+    KD_RANGE,
+    KI_RANGE,
+    KP_RANGE,
+    LINES_RANGE,
+    PEOPLE_REGION_RANGE,
+    PERSON_RANGE,
+    SIDE_RANGE,
+    SIGN_RANGE,
+    SPEED_RANGE,
+    TRAFFIC_LIGHT_RANGE,
+    WARP_X_RANGE,
+    WARP_Y_RANGE,
+)
 from src.infrastructure.adapters.serial.serial_communicator import SerialCommunicator
 from src.infrastructure.constants.path_constants import DEFAULT_UI_PATH
 from src.infrastructure.vision.camera_discovery import detect_camera_indices
@@ -80,14 +97,14 @@ class HomeView(QWidget):
         panel.add_content(lambda frame, w=warp_preview: frame.layout().addWidget(w))
         panel.add_sliders(
             [
-                SliderSpec("tl_x", "Top Left X", 0, 640),
-                SliderSpec("tl_y", "Top Left Y", 0, 480),
-                SliderSpec("tr_x", "Top Right X", 0, 640),
-                SliderSpec("tr_y", "Top Right Y", 0, 480),
-                SliderSpec("bl_x", "Bottom Left X", 0, 640),
-                SliderSpec("bl_y", "Bottom Left Y", 0, 480),
-                SliderSpec("br_x", "Bottom Right X", 0, 640),
-                SliderSpec("br_y", "Bottom Right Y", 0, 480),
+                SliderSpec(keys.WARP_TL_X, "Top Left X", *WARP_X_RANGE),
+                SliderSpec(keys.WARP_TL_Y, "Top Left Y", *WARP_Y_RANGE),
+                SliderSpec(keys.WARP_TR_X, "Top Right X", *WARP_X_RANGE),
+                SliderSpec(keys.WARP_TR_Y, "Top Right Y", *WARP_Y_RANGE),
+                SliderSpec(keys.WARP_BL_X, "Bottom Left X", *WARP_X_RANGE),
+                SliderSpec(keys.WARP_BL_Y, "Bottom Left Y", *WARP_Y_RANGE),
+                SliderSpec(keys.WARP_BR_X, "Bottom Right X", *WARP_X_RANGE),
+                SliderSpec(keys.WARP_BR_Y, "Bottom Right Y", *WARP_Y_RANGE),
             ],
             self.controller.tk_controls,
             self.controller.calibration_data,
@@ -98,25 +115,42 @@ class HomeView(QWidget):
 
     @staticmethod
     def _wire_warp_preview(panel: SettingsPanel, preview: WarpPointsPreview) -> None:
-        keys = ("tl_x", "tl_y", "tr_x", "tr_y", "bl_x", "bl_y", "br_x", "br_y")
+        warp_keys = (
+            keys.WARP_TL_X,
+            keys.WARP_TL_Y,
+            keys.WARP_TR_X,
+            keys.WARP_TR_Y,
+            keys.WARP_BL_X,
+            keys.WARP_BL_Y,
+            keys.WARP_BR_X,
+            keys.WARP_BR_Y,
+        )
 
         def refresh() -> None:
             c = panel.controls
             preview.set_points(
-                (c["tl_x"].get(), c["tl_y"].get()),
-                (c["tr_x"].get(), c["tr_y"].get()),
-                (c["bl_x"].get(), c["bl_y"].get()),
-                (c["br_x"].get(), c["br_y"].get()),
+                (c[keys.WARP_TL_X].get(), c[keys.WARP_TL_Y].get()),
+                (c[keys.WARP_TR_X].get(), c[keys.WARP_TR_Y].get()),
+                (c[keys.WARP_BL_X].get(), c[keys.WARP_BL_Y].get()),
+                (c[keys.WARP_BR_X].get(), c[keys.WARP_BR_Y].get()),
             )
 
-        for key in keys:
+        for key in warp_keys:
             control = panel.controls[key]
             original = control.on_change
             control.on_change = lambda k, v, _orig=original: (_orig(k, v), refresh())
 
+        _corner_keys = {
+            "tl": (keys.WARP_TL_X, keys.WARP_TL_Y),
+            "tr": (keys.WARP_TR_X, keys.WARP_TR_Y),
+            "bl": (keys.WARP_BL_X, keys.WARP_BL_Y),
+            "br": (keys.WARP_BR_X, keys.WARP_BR_Y),
+        }
+
         def on_corner_dragged(corner: str, x: float, y: float) -> None:
-            panel.controls[f"{corner}_x"].set(x, notify=True)
-            panel.controls[f"{corner}_y"].set(y, notify=True)
+            x_key, y_key = _corner_keys[corner]
+            panel.controls[x_key].set(x, notify=True)
+            panel.controls[y_key].set(y, notify=True)
 
         preview.cornerChanged.connect(on_corner_dragged)
         refresh()
@@ -125,7 +159,10 @@ class HomeView(QWidget):
         panel = SettingsPanel(None, accent="secondary")
         panel.add_section("Image Filters")
         panel.add_sliders(
-            [SliderSpec("F_Canny", "Canny Low", 0, 255), SliderSpec("S_Canny", "Canny High", 0, 255)],
+            [
+                SliderSpec(keys.FIRST_CANNY, "Canny Low", *CANNY_RANGE),
+                SliderSpec(keys.SECOND_CANNY, "Canny High", *CANNY_RANGE),
+            ],
             self.controller.tk_controls,
             self.controller.calibration_data,
             self.controller.on_slider_value,
@@ -133,9 +170,9 @@ class HomeView(QWidget):
         panel.add_section("PID Control")
         panel.add_sliders(
             [
-                SliderSpec("KP", "Proportional", 0.0, 5.0, 0.01),
-                SliderSpec("KI", "Integral", 0.0, 10.0, 0.001),
-                SliderSpec("KD", "Derivative", 0.0, 10.0, 0.001),
+                SliderSpec(keys.PID_KP, "Proportional", *KP_RANGE),
+                SliderSpec(keys.PID_KI, "Integral", *KI_RANGE),
+                SliderSpec(keys.PID_KD, "Derivative", *KD_RANGE),
             ],
             self.controller.tk_controls,
             self.controller.calibration_data,
@@ -144,10 +181,10 @@ class HomeView(QWidget):
         panel.add_section("Operation")
         panel.add_sliders(
             [
-                SliderSpec("Lines", "Lines", 0, 480),
-                SliderSpec("Distance", "Distance", 0, 270),
-                SliderSpec("Speed", "Speed", 0, 255),
-                SliderSpec("Side", "Side", 1, 2),
+                SliderSpec(keys.LINES, "Lines", *LINES_RANGE),
+                SliderSpec(keys.DISTANCE, "Distance", *DISTANCE_RANGE),
+                SliderSpec(keys.SPEED, "Speed", *SPEED_RANGE),
+                SliderSpec(keys.SIDE, "Side", *SIDE_RANGE),
             ],
             self.controller.tk_controls,
             self.controller.calibration_data,
@@ -160,9 +197,9 @@ class HomeView(QWidget):
         panel.add_section("Traffic")
         panel.add_sliders(
             [
-                SliderSpec("Person", "Person", 0, 240),
-                SliderSpec("SEMAFORO", "Traffic Light", 0, 240),
-                SliderSpec("PeopleRegion", "Person Region", 10, 100),
+                SliderSpec(keys.PERSON_THRESHOLD, "Person", *PERSON_RANGE),
+                SliderSpec(keys.SEMAFORO_THRESHOLD, "Traffic Light", *TRAFFIC_LIGHT_RANGE),
+                SliderSpec(keys.PEOPLE_REGION, "Person Region", *PEOPLE_REGION_RANGE),
             ],
             self.controller.tk_controls,
             self.controller.calibration_data,
@@ -171,9 +208,9 @@ class HomeView(QWidget):
         panel.add_section("Signs")
         panel.add_sliders(
             [
-                SliderSpec("PLACA_PARE", "Stop Sign", 0, 240),
-                SliderSpec("PLACA_DESVIO", "Detour Sign", 0, 240),
-                SliderSpec("PLACA_LOMBADA", "Speed Bump Sign", 0, 240),
+                SliderSpec(keys.SIGN_STOP, "Stop Sign", *SIGN_RANGE),
+                SliderSpec(keys.SIGN_DETOUR, "Detour Sign", *SIGN_RANGE),
+                SliderSpec(keys.SIGN_SPEED_BUMP, "Speed Bump Sign", *SIGN_RANGE),
             ],
             self.controller.tk_controls,
             self.controller.calibration_data,
@@ -184,8 +221,8 @@ class HomeView(QWidget):
     def _build_video_sources_content(self, frame: QWidget) -> None:
         self.refresh_source_options()
         init_data = self.controller.init_data
-        lane = self._display_source(init_data.get("LANE_SOURCE", ""))
-        obj = self._display_source(init_data.get("OBJECT_SOURCE", ""))
+        lane = self._display_source(init_data.get(keys.LANE_SOURCE, ""))
+        obj = self._display_source(init_data.get(keys.OBJECT_SOURCE, ""))
 
         layout = frame.layout()
         self.lane_combo = self._combo_row(layout, "Lane camera", self.sources, lane)
@@ -237,7 +274,7 @@ class HomeView(QWidget):
         return combo
 
     def refresh_source_options(self) -> None:
-        cameras = self.controller.tk_controls.get("DETECTED_CAMERAS", [])
+        cameras = self.controller.tk_controls.get(keys.DETECTED_CAMERAS, [])
         self.sources = [f"Camera {c}" for c in cameras] + get_video_files_from_folder()
 
     def refresh_com_options(self) -> None:
@@ -283,7 +320,9 @@ class HomeView(QWidget):
         obj = self._clean_source(self.object_combo.currentText())
         self.controller.tk_controls.lane_source = lane
         self.controller.tk_controls.object_source = obj
-        self.controller.settings_store.update({"LANE_SOURCE": lane, "OBJECT_SOURCE": obj}, DEFAULT_UI_PATH)
+        self.controller.settings_store.update(
+            {keys.LANE_SOURCE: lane, keys.OBJECT_SOURCE: obj}, DEFAULT_UI_PATH
+        )
         self.controller.show_status("Sources applied", "success")
 
     def apply_coms(self) -> None:
@@ -292,15 +331,17 @@ class HomeView(QWidget):
         self.controller.shared_controls.send_data = bool(sender) and sender in self.com_ports
         self.controller.shared_controls.sender_com = sender
         self.controller.shared_controls.security_com = security
-        self.controller.settings_store.update({"SENDER_COM": sender, "SECURITY_COM": security}, DEFAULT_UI_PATH)
+        self.controller.settings_store.update(
+            {keys.SENDER_COM: sender, keys.SECURITY_COM: security}, DEFAULT_UI_PATH
+        )
         self.controller.show_status("COM ports applied", "success")
 
     def sync_dynamic_ranges(self) -> None:
-        max_height = self.controller.shared_controls.get("MAX_HEIGHT")
+        max_height = self.controller.shared_controls.get(keys.MAX_HEIGHT)
         if isinstance(max_height, (int, float)) and max_height > 0:
-            control = self.detection_panel.controls.get("Lines")
+            control = self.detection_panel.controls.get(keys.LINES)
             if control and control.spec.max_value != max_height:
-                control.spec = SliderSpec("Lines", "Lines", 0, max_height)
+                control.spec = SliderSpec(keys.LINES, "Lines", 0, max_height)
                 control.set(control.get(), notify=False)
 
     @staticmethod

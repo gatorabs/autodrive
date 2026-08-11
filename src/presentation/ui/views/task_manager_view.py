@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 from src.infrastructure.hardware.process_monitor import get_active_python_processes
 from src.infrastructure.logging.logger import Logger
 from src.presentation.ui.charts.bar_chart import BarChartWidget
+from src.presentation.ui.runtime_constants import TASK_MANAGER_POLL_INTERVAL_MS
 from src.presentation.ui.theme.tokens import Color, Space
 from src.presentation.ui.widgets.card import Card
 from src.presentation.ui.widgets.combo_box import ComboBox
@@ -131,7 +132,7 @@ class TaskManagerView(QWidget):
         self.has_data = True
         if self.active:
             self._render_data(data)
-            self._poll_timer.start(2000)
+            self._poll_timer.start(TASK_MANAGER_POLL_INTERVAL_MS)
 
     def _render_data(self, data: dict) -> None:
         processes = data.get("processes", [])
