@@ -3,11 +3,12 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QScrollArea,
+    QSplitter,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -32,31 +33,40 @@ class HomeView(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
 
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        outer.addWidget(scroll)
+        splitter = QSplitter(Qt.Orientation.Vertical, self)
+        splitter.setChildrenCollapsible(False)
+        outer.addWidget(splitter)
 
-        content = QWidget()
-        scroll.setWidget(content)
-        grid = QGridLayout(content)
-        grid.setContentsMargins(Space.MD, Space.SM, Space.MD, Space.LG)
-        grid.setHorizontalSpacing(Size.ROW_GAP)
-        grid.setVerticalSpacing(Size.ROW_GAP)
-        for col in range(3):
-            grid.setColumnStretch(col, 1)
-
+        video_row = QWidget(splitter)
+        video_layout = QHBoxLayout(video_row)
+        video_layout.setContentsMargins(Space.MD, Space.SM, Space.MD, Space.SM)
+        video_layout.setSpacing(Size.ROW_GAP)
         self.normal_video = VideoTile("Normal Frame", "Waiting for normal frame", "lane")
         self.edges_video = VideoTile("Edges Frame", "Waiting for edges frame", "lane")
         self.object_video = VideoTile("Object Frame", "Waiting for object frame", "object")
-        for col, tile in enumerate((self.normal_video, self.edges_video, self.object_video)):
-            grid.addWidget(tile, 0, col)
+        for tile in (self.normal_video, self.edges_video, self.object_video):
+            video_layout.addWidget(tile, 1)
+        splitter.addWidget(video_row)
 
         self.camera_panel = self._build_camera_panel()
         self.detection_panel = self._build_detection_panel()
         self.object_panel = self._build_object_panel()
-        grid.addWidget(self.camera_panel, 1, 0, Qt.AlignmentFlag.AlignTop)
-        grid.addWidget(self.detection_panel, 1, 1, Qt.AlignmentFlag.AlignTop)
-        grid.addWidget(self.object_panel, 1, 2, Qt.AlignmentFlag.AlignTop)
+
+        tabs = QTabWidget(splitter)
+        for title, panel in (
+            ("Camera & Perspective", self.camera_panel),
+            ("Detection Tuning", self.detection_panel),
+            ("Object Detection", self.object_panel),
+        ):
+            tab_scroll = QScrollArea()
+            tab_scroll.setWidgetResizable(True)
+            tab_scroll.setWidget(panel)
+            tabs.addTab(tab_scroll, title)
+        splitter.addWidget(tabs)
+
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([420, 640])
 
     def _build_camera_panel(self) -> SettingsPanel:
         panel = SettingsPanel("Camera & Perspective", icon_name="camera", accent="primary")

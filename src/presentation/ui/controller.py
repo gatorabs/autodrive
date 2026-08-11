@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QObject, QThread, QTimer
-from PySide6.QtWidgets import QApplication
 
 from src.bootstrap import (
     build_process_manager,
@@ -51,10 +50,6 @@ class AppController(QObject):
         self._cleaned_up = False
 
     def start(self) -> None:
-        app = QApplication.instance()
-        if app is not None:
-            app.setQuitOnLastWindowClosed(False)
-
         self.boot_window = BootWindow()
         self.boot_window.show()
 
