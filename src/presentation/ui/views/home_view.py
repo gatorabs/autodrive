@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
-    QSplitter,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -18,6 +17,7 @@ from src.infrastructure.vision.camera_discovery import detect_camera_indices
 from src.infrastructure.vision.video_files import get_video_files_from_folder
 from src.presentation.ui.theme.tokens import Color, Size, Space
 from src.presentation.ui.widgets.combo_box import ComboBox
+from src.presentation.ui.widgets.elegant_splitter import ElegantSplitter
 from src.presentation.ui.widgets.slider_card import SettingsPanel
 from src.presentation.ui.widgets.slider_control import SliderSpec
 from src.presentation.ui.widgets.video_tile import VideoTile
@@ -34,7 +34,7 @@ class HomeView(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
 
-        splitter = QSplitter(Qt.Orientation.Vertical, self)
+        splitter = ElegantSplitter(Qt.Orientation.Vertical, self)
         splitter.setChildrenCollapsible(False)
         outer.addWidget(splitter)
 
@@ -113,6 +113,12 @@ class HomeView(QWidget):
             control = panel.controls[key]
             original = control.on_change
             control.on_change = lambda k, v, _orig=original: (_orig(k, v), refresh())
+
+        def on_corner_dragged(corner: str, x: float, y: float) -> None:
+            panel.controls[f"{corner}_x"].set(x, notify=True)
+            panel.controls[f"{corner}_y"].set(y, notify=True)
+
+        preview.cornerChanged.connect(on_corner_dragged)
         refresh()
 
     def _build_detection_panel(self) -> SettingsPanel:

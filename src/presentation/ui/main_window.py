@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QMainWindow, QStackedWidget, 
 from src.presentation.ui.dialogs.defaults_dialog import DefaultsDialog
 from src.presentation.ui.dialogs.options_dialog import OptionsDialog
 from src.presentation.ui.dialogs.settings_dialog import SettingsDialog
-from src.presentation.ui.theme.tokens import Size, Space
+from src.presentation.ui.theme.tokens import Color, Size, Space, Type
 from src.presentation.ui.views.home_view import HomeView
 from src.presentation.ui.views.manual_view import ManualView
 from src.presentation.ui.views.task_manager_view import TaskManagerView
@@ -60,7 +60,12 @@ class MainWindow(QMainWindow):
 
         status_row = QHBoxLayout()
         status_row.setContentsMargins(Space.LG, 4, Space.LG, Space.MD)
+        status_row.setSpacing(Space.SM)
+        status_label = QLabel("Status", right)
+        status_label.setStyleSheet(f"color: {Color.SUBTLE}; font-size: {Type.CAPTION}px; font-weight: 600;")
+        status_row.addWidget(status_label)
         self.status = StatusBadge("Ready", "muted")
+        self.status.setToolTip("Feedback from your last action (applied sources, saved defaults, warnings...).")
         status_row.addWidget(self.status)
         status_row.addStretch(1)
         right_layout.addLayout(status_row)

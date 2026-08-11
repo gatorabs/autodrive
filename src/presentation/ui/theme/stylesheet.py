@@ -220,17 +220,6 @@ def build_qss() -> str:
         font-size: {Type.CAPTION}px;
     }}
 
-    QSplitter::handle {{
-        background-color: {Color.BORDER};
-    }}
-    QSplitter::handle:vertical {{
-        height: 3px;
-        margin: 2px {Space.MD}px;
-    }}
-    QSplitter::handle:hover {{
-        background-color: {Color.PRIMARY};
-    }}
-
     QTabWidget::pane {{
         background-color: {Color.BG};
         border: 1px solid {Color.BORDER};
