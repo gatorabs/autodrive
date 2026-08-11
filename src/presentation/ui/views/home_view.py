@@ -70,7 +70,7 @@ class HomeView(QWidget):
         splitter.setSizes([420, 640])
 
     def _build_camera_panel(self) -> SettingsPanel:
-        panel = SettingsPanel("Camera & Perspective", icon_name="camera", accent="primary")
+        panel = SettingsPanel(None, accent="primary")
         panel.add_section("Video Sources")
         panel.add_content(self._build_video_sources_content)
         panel.add_section("Serial Ports")
@@ -122,7 +122,7 @@ class HomeView(QWidget):
         refresh()
 
     def _build_detection_panel(self) -> SettingsPanel:
-        panel = SettingsPanel("Detection Tuning", icon_name="options", accent="secondary")
+        panel = SettingsPanel(None, accent="secondary")
         panel.add_section("Image Filters")
         panel.add_sliders(
             [SliderSpec("F_Canny", "Canny Low", 0, 255), SliderSpec("S_Canny", "Canny High", 0, 255)],
@@ -156,7 +156,7 @@ class HomeView(QWidget):
         return panel
 
     def _build_object_panel(self) -> SettingsPanel:
-        panel = SettingsPanel("Object Detection", icon_name="target", accent="success")
+        panel = SettingsPanel(None, accent="success")
         panel.add_section("Traffic")
         panel.add_sliders(
             [

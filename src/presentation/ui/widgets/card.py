@@ -49,7 +49,8 @@ class Card(QFrame):
 
         self.body = QWidget(self)
         self.body_layout = QVBoxLayout(self.body)
-        self.body_layout.setContentsMargins(Space.MD + 2, 0, Space.MD + 2, Space.MD + 2)
+        top_margin = 0 if title else Space.MD + 2
+        self.body_layout.setContentsMargins(Space.MD + 2, top_margin, Space.MD + 2, Space.MD + 2)
         self.body_layout.setSpacing(Space.XS)
         self._layout.addWidget(self.body, 1)
 

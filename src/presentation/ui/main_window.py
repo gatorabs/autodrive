@@ -4,7 +4,6 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
 
 from src.presentation.ui.dialogs.defaults_dialog import DefaultsDialog
-from src.presentation.ui.dialogs.options_dialog import OptionsDialog
 from src.presentation.ui.dialogs.settings_dialog import SettingsDialog
 from src.presentation.ui.theme.tokens import Color, Size, Space, Type
 from src.presentation.ui.views.home_view import HomeView
@@ -19,7 +18,7 @@ class MainWindow(QMainWindow):
     def __init__(self, controller, parent: QWidget | None = None):
         super().__init__(parent)
         self.controller = controller
-        self.setWindowTitle("Autonomous Team")
+        self.setWindowTitle("Autodrive")
         self.setMinimumSize(Size.MIN_WIDTH, Size.MIN_HEIGHT)
 
         central = QWidget(self)
@@ -29,7 +28,7 @@ class MainWindow(QMainWindow):
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
 
-        self.nav = NavRail(self.select, self.open_settings, self.open_defaults, self.open_options)
+        self.nav = NavRail(self.select, self.open_settings, self.open_defaults)
         root_layout.addWidget(self.nav)
 
         right = QWidget(central)
@@ -44,7 +43,7 @@ class MainWindow(QMainWindow):
         topbar_layout = QHBoxLayout(topbar)
         topbar_layout.setContentsMargins(Space.LG, 0, Space.LG, 0)
         topbar_layout.setSpacing(Space.SM)
-        title_label = QLabel("Autonomous Team", topbar)
+        title_label = QLabel("Autodrive", topbar)
         title_label.setObjectName("AppTitle")
         topbar_layout.addWidget(title_label)
         topbar_layout.addStretch(1)
@@ -137,9 +136,6 @@ class MainWindow(QMainWindow):
 
     def open_defaults(self) -> None:
         DefaultsDialog(self.controller, self).exec()
-
-    def open_options(self) -> None:
-        OptionsDialog(self.controller, self).exec()
 
     def closeEvent(self, event) -> None:
         self.controller.cleanup()

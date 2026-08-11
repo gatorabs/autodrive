@@ -36,7 +36,14 @@ class SliderCard(Card):
 
 
 class SettingsPanel(Card):
-    def __init__(self, title: str, *, icon_name: str | None = None, accent: str = "primary", parent: QWidget | None = None):
+    def __init__(
+        self,
+        title: str | None,
+        *,
+        icon_name: str | None = None,
+        accent: str = "primary",
+        parent: QWidget | None = None,
+    ):
         super().__init__(title, accent=accent, icon_name=icon_name, bordered=False, parent=parent)
         self.accent = accent
         self.controls: dict[str, SliderControl] = {}

@@ -40,7 +40,7 @@ class BootWorker(QObject):
 class BootWindow(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setWindowTitle("Autonomous Team")
+        self.setWindowTitle("Autodrive")
         self.resize(560, 420)
         self.setMinimumSize(480, 340)
 
@@ -62,7 +62,7 @@ class BootWindow(QWidget):
         layout.addWidget(badge, 0, Qt.AlignmentFlag.AlignHCenter)
         layout.addSpacing(Space.SM)
 
-        title = QLabel("Autonomous Team", self)
+        title = QLabel("Autodrive", self)
         title.setStyleSheet(f"font-size: {Type.DISPLAY}px; font-weight: 700;")
         layout.addWidget(title, 0, Qt.AlignmentFlag.AlignHCenter)
 

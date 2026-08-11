@@ -21,7 +21,6 @@ class NavRail(QWidget):
         on_select: Callable[[str], None],
         on_settings: Callable[[], None],
         on_defaults: Callable[[], None],
-        on_options: Callable[[], None],
         parent: QWidget | None = None,
     ):
         super().__init__(parent)
@@ -64,7 +63,7 @@ class NavRail(QWidget):
         footer = QVBoxLayout()
         footer.setSpacing(4)
         footer.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        for glyph, command in (("settings", on_settings), ("defaults", on_defaults), ("options", on_options)):
+        for glyph, command in (("settings", on_settings), ("defaults", on_defaults)):
             button = QToolButton(self)
             button.setObjectName("IconButton")
             button.setIcon(get_icon(glyph, 18, Color.MUTED))
