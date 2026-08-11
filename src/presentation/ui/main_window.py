@@ -42,6 +42,7 @@ class MainWindow(QMainWindow):
         topbar.setFixedHeight(Size.TOPBAR_HEIGHT)
         topbar_layout = QHBoxLayout(topbar)
         topbar_layout.setContentsMargins(Space.LG, 0, Space.LG, 0)
+        topbar_layout.setSpacing(Space.SM)
         title_label = QLabel("Autonomous Team", topbar)
         title_label.setObjectName("AppTitle")
         topbar_layout.addWidget(title_label)

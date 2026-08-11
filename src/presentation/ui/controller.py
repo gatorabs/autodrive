@@ -94,7 +94,7 @@ class AppController(QObject):
         )
         self.boot_window.close()
         if not user_flags.get("CUDA_AVAILABLE", False):
-            self.show_status(user_flags.get("CUDA_STATUS_MESSAGE", "CUDA is recommended."), "warning")
+            self.show_status("CUDA unavailable — using CPU", "warning")
 
         self.process_timer.start(250)
         self.frame_timer.start(33)

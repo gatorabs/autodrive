@@ -72,18 +72,16 @@ def build_qss() -> str:
         border-radius: {Radius.SM}px;
     }}
 
-    QLabel#StatusBadge {{
-        border-radius: {Radius.SM}px;
-        padding: 3px 10px;
-        font-size: {Type.CAPTION}px;
-        font-weight: 600;
+    QFrame#StatusBadge {{
+        border-radius: {Radius.PILL}px;
+        border: none;
     }}
-    QLabel#StatusBadge[tone="primary"] {{ background-color: {Color.PRIMARY_SOFT}; color: {Color.PRIMARY}; }}
-    QLabel#StatusBadge[tone="secondary"] {{ background-color: {Color.SECONDARY_SOFT}; color: {Color.SECONDARY}; }}
-    QLabel#StatusBadge[tone="success"] {{ background-color: {Color.SUCCESS_SOFT}; color: {Color.SUCCESS}; }}
-    QLabel#StatusBadge[tone="warning"] {{ background-color: {Color.WARNING_SOFT}; color: {Color.WARNING}; }}
-    QLabel#StatusBadge[tone="danger"] {{ background-color: {Color.DANGER_SOFT}; color: {Color.DANGER}; }}
-    QLabel#StatusBadge[tone="muted"] {{ background-color: {Color.PANEL_SOFT}; color: {Color.MUTED}; }}
+    QFrame#StatusBadge[tone="primary"] {{ background-color: {Color.PRIMARY_SOFT}; }}
+    QFrame#StatusBadge[tone="secondary"] {{ background-color: {Color.SECONDARY_SOFT}; }}
+    QFrame#StatusBadge[tone="success"] {{ background-color: {Color.SUCCESS_SOFT}; }}
+    QFrame#StatusBadge[tone="warning"] {{ background-color: {Color.WARNING_SOFT}; }}
+    QFrame#StatusBadge[tone="danger"] {{ background-color: {Color.DANGER_SOFT}; }}
+    QFrame#StatusBadge[tone="muted"] {{ background-color: {Color.PANEL_SOFT}; }}
 
     QPushButton {{
         background-color: {Color.PANEL_SOFT};

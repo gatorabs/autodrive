@@ -70,8 +70,10 @@ class HomeView(QWidget):
 
     def _build_camera_panel(self) -> SettingsPanel:
         panel = SettingsPanel("Camera & Perspective", icon_name="camera", accent="primary")
-        panel.add_section("Sources")
-        panel.add_content(self._build_sources_content)
+        panel.add_section("Video Sources")
+        panel.add_content(self._build_video_sources_content)
+        panel.add_section("Serial Ports")
+        panel.add_content(self._build_serial_ports_content)
         panel.add_section("Warp Points")
         panel.add_sliders(
             [
@@ -150,9 +152,8 @@ class HomeView(QWidget):
         )
         return panel
 
-    def _build_sources_content(self, frame: QWidget) -> None:
+    def _build_video_sources_content(self, frame: QWidget) -> None:
         self.refresh_source_options()
-        self.refresh_com_options()
         init_data = self.controller.init_data
         lane = self._display_source(init_data.get("LANE_SOURCE", ""))
         obj = self._display_source(init_data.get("OBJECT_SOURCE", ""))
@@ -160,6 +161,21 @@ class HomeView(QWidget):
         layout = frame.layout()
         self.lane_combo = self._combo_row(layout, "Lane camera", self.sources, lane)
         self.object_combo = self._combo_row(layout, "Object camera", self.sources, obj)
+
+        row = QHBoxLayout()
+        apply_sources_btn = QPushButton("Apply sources")
+        apply_sources_btn.setProperty("variant", "primary")
+        apply_sources_btn.clicked.connect(self.apply_sources)
+        refresh_sources_btn = QPushButton("Refresh sources")
+        refresh_sources_btn.clicked.connect(self.update_sources)
+        row.addWidget(apply_sources_btn)
+        row.addWidget(refresh_sources_btn)
+        layout.addLayout(row)
+
+    def _build_serial_ports_content(self, frame: QWidget) -> None:
+        self.refresh_com_options()
+
+        layout = frame.layout()
         self.security_combo = self._combo_row(
             layout, "Safety COM", self.com_ports, self.controller.shared_controls.security_com or ""
         )
@@ -167,25 +183,15 @@ class HomeView(QWidget):
             layout, "Sender COM", self.com_ports, self.controller.shared_controls.sender_com or ""
         )
 
-        row1 = QHBoxLayout()
-        apply_sources_btn = QPushButton("Apply sources")
-        apply_sources_btn.setProperty("variant", "primary")
-        apply_sources_btn.clicked.connect(self.apply_sources)
-        refresh_sources_btn = QPushButton("Refresh sources")
-        refresh_sources_btn.clicked.connect(self.update_sources)
-        row1.addWidget(apply_sources_btn)
-        row1.addWidget(refresh_sources_btn)
-        layout.addLayout(row1)
-
-        row2 = QHBoxLayout()
+        row = QHBoxLayout()
         apply_coms_btn = QPushButton("Apply COMs")
         apply_coms_btn.setProperty("variant", "primary")
         apply_coms_btn.clicked.connect(self.apply_coms)
         refresh_ports_btn = QPushButton("Refresh ports")
         refresh_ports_btn.clicked.connect(self.update_coms)
-        row2.addWidget(apply_coms_btn)
-        row2.addWidget(refresh_ports_btn)
-        layout.addLayout(row2)
+        row.addWidget(apply_coms_btn)
+        row.addWidget(refresh_ports_btn)
+        layout.addLayout(row)
 
     @staticmethod
     def _combo_row(layout, label: str, values: list[str], current: str) -> QComboBox:
