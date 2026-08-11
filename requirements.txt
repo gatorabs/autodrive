@@ -2,9 +2,9 @@ oci-cli
 customtkinter
 CTkMessagebox
 Pillow
+PySide6
 flask
 flask-cors
-matplotlib
 numpy
 opencv-python
 psutil

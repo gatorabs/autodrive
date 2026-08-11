@@ -1,7 +1,7 @@
 # Autodrive
 
 Python application for controlling and monitoring an autonomous car, with a
-CustomTkinter desktop UI, OpenCV/YOLO video processing, serial communication
+PySide6 (Qt) desktop UI, OpenCV/YOLO video processing, serial communication
 with the microcontroller, and an optional Flask web panel.
 
 Autodrive is designed as a resilient real-time control dashboard: cameras,
@@ -164,7 +164,7 @@ YOLO image size, lower camera FPS, or use lighter test videos.
 
 ## Ports And Interfaces
 
-- Desktop UI: CustomTkinter, started by the main application process.
+- Desktop UI: PySide6 (Qt), started by the main application process.
 - Web server: Flask at `http://localhost:5000`, enabled when `WEBVIEW` is turned
   on in the UI/settings.
 - Shutdown Flask: `http://localhost:5000/shutdown`.
