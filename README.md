@@ -16,9 +16,18 @@ runtime alive and attempts to recover when the resource becomes available again.
 
 ![Autonomous car driving on a marked track](docs/assets/autonomous-car-demo.gif)
 
-### Desktop monitoring interface
+### Desktop dashboard
 
-![Autodrive desktop interface running with live video feeds](docs/assets/autodrive-ui.gif)
+The desktop UI is a native PySide6 (Qt) application: a left nav rail for
+Home/Manual/Task Manager, a top bar with live Auto/CUDA/Safety status, and a
+resizable split between the live video feeds and a tabbed tuning panel below
+them.
+
+![Autodrive dashboard with live video feeds and the Camera & Perspective tuning tab](docs/assets/desktop-home.png)
+
+The **Camera & Perspective** tab shown above also plots the four warp points
+on a small live preview — drag a point directly on the plot, or use its
+slider, and both stay in sync.
 
 ## Requirements
 
@@ -41,8 +50,11 @@ the interpreter, working directory, environment, logs, and debugger in one
 place, which is especially useful for this project because it starts multiple
 processes and interacts with cameras and serial ports.
 
-On startup, the application detects available cameras, lists serial ports, loads
-settings from `config/`, and opens the main UI.
+On startup, the application shows a boot screen while it detects available
+cameras, lists serial ports, loads settings from `config/`, and reports CUDA
+availability, then opens the main dashboard.
+
+![Autodrive boot screen with progress and CUDA status](docs/assets/desktop-boot.png)
 
 ## Optional WebView Frontend
 
@@ -52,11 +64,10 @@ dashboard in the browser.
 
 ### 1. Enable WebView in the desktop UI
 
-Open the desktop application, click **Options**, and enable **WEBVIEW**.
+Open the desktop application, click the **Settings** icon at the bottom of the
+left nav rail, scroll to **Runtime Options**, and enable **WEBVIEW**.
 
-![Options button in the desktop UI](docs/assets/webview-options-button.png)
-
-![WEBVIEW enabled in the Options modal](docs/assets/webview-options-modal.png)
+![Settings dialog with WEBVIEW enabled under Runtime Options](docs/assets/desktop-settings.png)
 
 ### 2. Copy the Flask address from PyCharm
 
@@ -94,20 +105,44 @@ to the Flask backend and render the live vehicle feeds and telemetry.
 
 ## Runtime Features
 
-- Live dashboard with lane, edge, and object-detection video feeds.
-- Runtime tuning for camera sources, serial ports, Canny filters, road
-  perspective, PID control, operation values, and object-detection thresholds.
-- Manual Mode for direct speed and steering control, including a visual steering
-  wheel and dedicated manual video source.
+- Live dashboard with lane, edge, and object-detection video feeds in a
+  resizable split above the tuning panel — drag the thin grip between them to
+  give more room to whichever one you're using.
+- Tuning is organized into three tabs — **Camera & Perspective**, **Detection
+  Tuning**, and **Object Detection** — instead of one long scroll. Within
+  Camera & Perspective, video sources and serial ports are kept in visually
+  separated sections so applying one never risks touching the other by
+  mistake.
+- The four perspective warp points can be dragged directly on a small live
+  plot instead of only through sliders — click a corner (TL/TR/BL/BR) and
+  drag; the matching sliders update as you move it, and vice versa.
+- Manual Mode for direct speed and steering control, including a visual
+  steering wheel and dedicated manual video source.
 - Task Manager view for monitoring Python process count, memory, CPU, IO, and
   per-process priority while the application is running.
+- A consolidated **Settings** screen (gear icon in the nav rail) groups
+  detection confidence, stop-ramp behavior, and general values into labeled
+  sections, plus a **Runtime Options** section with the toggles that used to
+  live in a separate Options modal (`WEBVIEW`, `SHOW_ROI`, `SHOW_INFO`,
+  `SEND_LOGS`, `NEW_PID`, `SHOW_LINES`).
 - Optional Flask web panel for remote/manual speed control when `WEBVIEW` is
   enabled.
+- Dropdowns (camera/video sources, COM ports, Task Manager's metric picker)
+  ignore mouse-wheel scrolling, so scrolling past one while tuning sliders
+  can't silently change its selection.
+- The status pill at the bottom of the window is a transient toast: it shows
+  feedback from your last action (sources applied, defaults saved, a warning)
+  for a few seconds, then reverts to an idle state on its own instead of
+  staying stuck on the last message.
 
 Most mutable values are stored in JSON files under `config/` and synchronized
 with the shared runtime state. Slider changes are debounced before being
 persisted, so the UI stays responsive while still keeping calibration values up
 to date.
+
+![Manual Mode with live video, controls, and the steering wheel](docs/assets/desktop-manual.png)
+
+![Task Manager view with per-process memory/CPU/IO](docs/assets/desktop-task-manager.png)
 
 ## Resilience
 
