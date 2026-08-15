@@ -4,44 +4,47 @@
 
 @layer base {
   :root {
-    --background: 222.9 24.1% 5.7%;
-    --foreground: 220.0 42.9% 97.3%;
+    --background: 20 10% 4%;
+    --foreground: 30 15% 96%;
 
-    --surface: 221.5 24.5% 10.4%;
-    --surface-alt: 222.4 24.6% 13.5%;
-    --surface-soft: 222.9 24.1% 17.1%;
-    --sidebar: 223.6 25.6% 8.4%;
+    --surface: 20 9% 8%;
+    --surface-alt: 20 8% 12%;
+    --surface-soft: 20 7% 16%;
+    --sidebar: 20 12% 3%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 220.0 42.9% 97.3%;
-    --primary-hover: 221.2 83.2% 53.3%;
-    --primary-soft: 218.4 51.0% 19.2%;
+    --primary: 8 100% 54%;
+    --primary-foreground: 20 10% 6%;
+    --primary-hover: 8 100% 47%;
+    --primary-soft: 8 55% 13%;
 
-    --secondary: 187.9 85.7% 53.3%;
-    --secondary-foreground: 222.9 24.1% 5.7%;
-    --secondary-soft: 192.0 57.1% 13.7%;
+    --secondary: 45 100% 51%;
+    --secondary-foreground: 20 10% 6%;
+    --secondary-hover: 45 100% 44%;
+    --secondary-soft: 45 65% 12%;
 
-    --muted: 222.4 24.6% 13.5%;
-    --muted-foreground: 220.0 19.5% 66.9%;
+    --muted: 20 8% 12%;
+    --muted-foreground: 25 10% 62%;
 
-    --accent: 222.9 24.1% 17.1%;
-    --accent-foreground: 220.0 42.9% 97.3%;
+    --accent: 20 8% 16%;
+    --accent-foreground: 30 15% 96%;
 
-    --success: 158.1 64.4% 51.6%;
-    --success-soft: 156.0 49.3% 13.9%;
+    --success: 142 65% 45%;
+    --success-foreground: 20 10% 6%;
+    --success-soft: 142 45% 12%;
 
-    --warning: 43.3 96.4% 56.3%;
-    --warning-soft: 40.5 58.9% 14.3%;
+    --warning: 38 100% 55%;
+    --warning-foreground: 20 10% 6%;
+    --warning-soft: 38 65% 13%;
 
-    --destructive: 0.0 90.6% 70.8%;
-    --destructive-foreground: 222.9 24.1% 5.7%;
-    --destructive-soft: 343.3 45.0% 15.7%;
+    --destructive: 350 100% 60%;
+    --destructive-foreground: 20 10% 6%;
+    --destructive-soft: 350 55% 14%;
 
-    --border: 221.7 23.2% 19.4%;
-    --input: 220.7 19.4% 28.2%;
-    --ring: 217.2 91.2% 59.8%;
+    --border: 22 10% 18%;
+    --input: 22 10% 22%;
+    --ring: 8 100% 54%;
 
-    --radius: 0.85rem;
+    --radius: 0.3rem;
   }
 }
 
@@ -52,5 +55,30 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .clip-corner {
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+
+  .bg-diagonal-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      hsl(var(--primary) / 0.5),
+      hsl(var(--primary) / 0.5) 6px,
+      transparent 6px,
+      transparent 14px
+    );
   }
 }

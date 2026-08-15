@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/layout/AppShell";
 import { Panel } from "@/components/common/Panel";
 import { StatusPill } from "@/components/common/StatusPill";
+import { HeroReadout } from "@/components/dashboard/HeroReadout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { TurnIndicator } from "@/components/dashboard/TurnIndicator";
 import { VideoFeedCard } from "@/components/dashboard/VideoFeedCard";
@@ -92,11 +93,11 @@ export default function Index() {
 
   return (
     <AppShell
-      title="Autonomous Team"
-      eyebrow="Real-time vehicle dashboard"
+      title="Autodrive"
+      eyebrow="Live vehicle telemetry"
       actions={
         <>
-          <StatusPill label={isConnected ? "API connected" : "API offline"} tone={isConnected ? "good" : "bad"} />
+          <StatusPill label={isConnected ? "Link OK" : "Link lost"} tone={isConnected ? "good" : "bad"} live={isConnected} />
           <SystemInspectorDialog logs={logs} onClearLogs={clearLogs} />
           <Button className="w-full border border-primary bg-primary text-primary-foreground hover:bg-primary-hover sm:w-auto" onClick={() => setManualDialogOpen(true)}>
             <Settings className="mr-2 h-4 w-4" />
@@ -105,11 +106,21 @@ export default function Index() {
         </>
       }
     >
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Vehicle State" value={running ? "Active" : "Inactive"} detail={isConnected ? "Telemetry online" : "Waiting for API"} icon={<Activity className="h-5 w-5" />} tone={running ? "good" : "warn"} />
-        <MetricCard label="Steering" value={`${direction} deg`} detail={direction > 90 ? "Turning right" : direction < 90 ? "Turning left" : "Centered"} icon={<Route className="h-5 w-5" />} />
-        <MetricCard label="Speed" value={`${speed} PWM`} detail="Microcontroller command" icon={<Gauge className="h-5 w-5" />} />
-        <MetricCard label="Performance" value={`${fps} FPS`} detail={`${frameTime} ms frame time`} icon={<Timer className="h-5 w-5" />} tone={fps > 0 ? "good" : "warn"} />
+      <section className="grid gap-3 sm:grid-cols-2">
+        <HeroReadout label="Speed" value={String(speed)} unit="PWM" icon={<Gauge className="h-4 w-4" />} accent="primary" sublabel="Microcontroller command" />
+        <HeroReadout
+          label="Steering"
+          value={String(direction)}
+          unit="DEG"
+          icon={<Route className="h-4 w-4" />}
+          accent="secondary"
+          sublabel={direction > 90 ? "Turning right" : direction < 90 ? "Turning left" : "Centered"}
+        />
+      </section>
+
+      <section className="mt-3 grid gap-3 sm:grid-cols-2">
+        <MetricCard label="Vehicle State" value={running ? "Active" : "Inactive"} detail={isConnected ? "Telemetry online" : "Waiting for API"} icon={<Activity className="h-4 w-4" />} tone={running ? "good" : "warn"} />
+        <MetricCard label="Performance" value={`${fps} FPS`} detail={`${frameTime} ms frame time`} icon={<Timer className="h-4 w-4" />} tone={fps > 0 ? "good" : "warn"} />
       </section>
 
       <section className="mt-4 grid gap-4 xl:grid-cols-3">
@@ -119,15 +130,15 @@ export default function Index() {
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <Panel title="Vehicle Signals" subtitle="Direction indicators and API heartbeat">
+        <Panel title="Turn Signals" subtitle="Direction indicators and API heartbeat">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <TurnIndicator direction="left" active={leftSignal} />
               <TurnIndicator direction="right" active={rightSignal} />
             </div>
-            <div className="grid gap-2 text-sm text-muted-foreground sm:text-right">
-              <span>Last update: {lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString() : "never"}</span>
-              <span>Webview: {telemetry.webview ? "enabled" : "disabled"}</span>
+            <div className="grid gap-2 font-mono text-xs text-muted-foreground sm:text-right">
+              <span>LAST UPDATE: {lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString() : "NEVER"}</span>
+              <span>WEBVIEW: {telemetry.webview ? "ENABLED" : "DISABLED"}</span>
             </div>
           </div>
         </Panel>

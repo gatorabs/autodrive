@@ -24,11 +24,11 @@ export function ManualModeDialog({ open, mode, onOpenChange, onConfirm }: Manual
       <DialogContent className="border-border bg-background text-foreground">
         <DialogHeader>
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-warning-soft p-3 text-warning">
+            <div className="border border-warning/30 bg-warning-soft p-3 text-warning">
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div>
-              <DialogTitle className="text-xl">
+              <DialogTitle className="font-display text-xl font-bold uppercase tracking-wide">
                 {enabling ? "Enable Manual Mode" : "Disable Manual Mode"}
               </DialogTitle>
               <DialogDescription className="mt-2 text-muted-foreground">

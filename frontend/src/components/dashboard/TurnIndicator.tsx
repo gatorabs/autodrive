@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface TurnIndicatorProps {
   direction: "left" | "right";
@@ -6,17 +6,23 @@ interface TurnIndicatorProps {
 }
 
 export function TurnIndicator({ direction, active }: TurnIndicatorProps) {
-  const Icon = direction === "left" ? ArrowLeft : ArrowRight;
+  const Icon = direction === "left" ? ChevronLeft : ChevronRight;
+  const order = direction === "left" ? [2, 1, 0] : [0, 1, 2];
+
   return (
     <div
-      className={`flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
-        active
-          ? "border-warning/40 bg-warning text-background shadow-lg shadow-warning/20"
-          : "border-border bg-surface-alt text-muted-foreground"
+      className={`flex items-center gap-0.5 border px-3 py-2.5 transition-colors ${
+        active ? "border-warning/50 bg-warning-soft" : "border-border bg-surface-alt"
       }`}
       aria-label={`${direction} turn signal ${active ? "active" : "inactive"}`}
     >
-      <Icon className="h-5 w-5" />
+      {order.map((delayIndex, i) => (
+        <Icon
+          key={i}
+          className={`h-4 w-4 ${active ? "animate-pulse-dot text-warning" : "text-muted-foreground/40"}`}
+          style={active ? { animationDelay: `${delayIndex * 150}ms` } : undefined}
+        />
+      ))}
     </div>
   );
 }

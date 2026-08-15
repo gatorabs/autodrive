@@ -7,6 +7,28 @@ interface ManualDriveControlsProps {
   onChange: (data: ManualControlData) => void;
 }
 
+const THROTTLE_SEGMENTS = 24;
+
+function ThrottleBar({ value }: { value: number }) {
+  const litCount = Math.round((value / 100) * THROTTLE_SEGMENTS);
+  return (
+    <div className="flex gap-0.5">
+      {Array.from({ length: THROTTLE_SEGMENTS }).map((_, i) => {
+        const lit = i < litCount;
+        const redline = i >= THROTTLE_SEGMENTS - 4;
+        return (
+          <span
+            key={i}
+            className={`h-7 flex-1 transition-colors ${
+              lit ? (redline ? "bg-destructive" : "bg-secondary") : "bg-surface-soft"
+            }`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export function ManualDriveControls({ onChange }: ManualDriveControlsProps) {
   const [steering, setSteering] = useState(0);
   const [throttle, setThrottle] = useState(0);
@@ -22,38 +44,40 @@ export function ManualDriveControls({ onChange }: ManualDriveControlsProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-border bg-background/40 p-4">
+      <div className="border border-border bg-background/40 p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Gauge className="h-4 w-4 text-secondary" />
-            <span className="font-semibold text-foreground">Throttle</span>
+            <span className="font-display text-sm font-bold uppercase tracking-wider text-foreground">Throttle</span>
           </div>
-          <button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setThrottle(0)} type="button">
+          <button className="text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground" onClick={() => setThrottle(0)} type="button">
             Reset
           </button>
         </div>
+
+        <ThrottleBar value={throttle} />
         <input
           type="range"
           min={0}
           max={100}
           value={throttle}
           onChange={(event) => setThrottle(Number(event.target.value))}
-          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-soft accent-secondary"
+          className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-none bg-surface-soft accent-secondary"
         />
-        <div className="mt-3 flex justify-between text-xs text-muted-foreground">
-          <span>Stopped</span>
-          <span className="font-mono text-foreground">{throttle}%</span>
-          <span>Forward</span>
+        <div className="mt-3 flex justify-between font-mono text-xs text-muted-foreground">
+          <span>STOPPED</span>
+          <span className="text-base font-bold text-foreground">{throttle}%</span>
+          <span>FULL</span>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-background/40 p-4">
+      <div className="border border-border bg-background/40 p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ArrowDownToLine className="h-4 w-4 text-secondary" />
-            <span className="font-semibold text-foreground">Steering</span>
+            <span className="font-display text-sm font-bold uppercase tracking-wider text-foreground">Steering</span>
           </div>
-          <button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setSteering(0)} type="button">
+          <button className="text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground" onClick={() => setSteering(0)} type="button">
             Center
           </button>
         </div>

@@ -4,6 +4,7 @@ import { ArrowLeft, Gauge, Route, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/layout/AppShell";
 import { Panel } from "@/components/common/Panel";
+import { HeroReadout } from "@/components/dashboard/HeroReadout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { VideoFeedCard } from "@/components/dashboard/VideoFeedCard";
 import { ManualDriveControls } from "@/components/manual/ManualDriveControls";
@@ -58,8 +59,8 @@ export default function ManualMode() {
 
   return (
     <AppShell
-      title="Manual Mode"
-      eyebrow="Direct vehicle control"
+      title="Manual Override"
+      eyebrow="Direct input control"
       actions={
         <Button className="w-full border border-primary bg-primary text-primary-foreground hover:bg-primary-hover sm:w-auto" onClick={() => setExitDialogOpen(true)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -67,10 +68,13 @@ export default function ManualMode() {
         </Button>
       }
     >
-      <section className="grid gap-3 sm:grid-cols-3">
-        <MetricCard label="Throttle" value={`${Math.round(controlData.y * 100)}%`} detail={throttleLabel} icon={<Gauge className="h-5 w-5" />} />
-        <MetricCard label="Steering" value={steeringLabel} detail={`${Math.round(controlData.x * 45)} deg`} icon={<Route className="h-5 w-5" />} />
-        <MetricCard label="Performance" value={`${fps} FPS`} detail={`${frameTime} ms frame time`} icon={<Timer className="h-5 w-5" />} tone={fps > 0 ? "good" : "warn"} />
+      <section className="grid gap-3 sm:grid-cols-2">
+        <HeroReadout label="Throttle" value={String(Math.round(controlData.y * 100))} unit="%" icon={<Gauge className="h-4 w-4" />} accent="primary" sublabel={throttleLabel} />
+        <HeroReadout label="Steering" value={String(Math.round(controlData.x * 45))} unit="DEG" icon={<Route className="h-4 w-4" />} accent="secondary" sublabel={steeringLabel} />
+      </section>
+
+      <section className="mt-3">
+        <MetricCard label="Performance" value={`${fps} FPS`} detail={`${frameTime} ms frame time`} icon={<Timer className="h-4 w-4" />} tone={fps > 0 ? "good" : "warn"} />
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
@@ -103,9 +107,9 @@ export default function ManualMode() {
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-background/50 p-4">
+    <div className="border border-border bg-background/50 p-4">
       <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-foreground">{value}</p>
+      <p className="mt-2 font-mono text-lg font-semibold text-foreground">{value}</p>
     </div>
   );
 }

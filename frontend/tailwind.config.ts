@@ -28,6 +28,7 @@ export default {
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))',
+					hover: 'hsl(var(--secondary-hover))',
 					soft: 'hsl(var(--secondary-soft))'
 				},
 				destructive: {
@@ -37,10 +38,12 @@ export default {
 				},
 				success: {
 					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))',
 					soft: 'hsl(var(--success-soft))'
 				},
 				warning: {
 					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))',
 					soft: 'hsl(var(--warning-soft))'
 				},
 				muted: {
@@ -52,10 +55,23 @@ export default {
 					foreground: 'hsl(var(--accent-foreground))'
 				}
 			},
+			fontFamily: {
+				display: ['Rajdhani', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+				mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace']
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 4px)',
-				sm: 'calc(var(--radius) - 6px)'
+				md: 'calc(var(--radius) - 2px)',
+				sm: 'calc(var(--radius) - 4px)'
+			},
+			keyframes: {
+				'pulse-dot': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.35' }
+				}
+			},
+			animation: {
+				'pulse-dot': 'pulse-dot 1.6s ease-in-out infinite'
 			}
 		}
 	},
