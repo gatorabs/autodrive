@@ -147,6 +147,11 @@ class AppController(QObject):
                 webview=self.shared_controls.webview,
                 object_safe_stop=self.shared_controls.object_safe_stop,
             )
+            view.warped_roi_tile.update_state(
+                self.shared_frames.warped_roi_frame,
+                webview=self.shared_controls.webview,
+                safe_stop=self.shared_controls.safe_stop,
+            )
         elif active == VIEW_MANUAL and self.tk_controls.manual_mode:
             self.main_window.manual_view.video.update_state(self.shared_frames.tab2_frame)
 

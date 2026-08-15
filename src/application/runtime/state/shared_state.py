@@ -259,6 +259,14 @@ class SharedFrames(SharedMapping):
     def tab2_frame(self, frame) -> None:
         self[keys.TAB2_FRAME] = frame
 
+    @property
+    def warped_roi_frame(self):
+        return self.get(keys.WARPED_ROI_FRAME)
+
+    @warped_roi_frame.setter
+    def warped_roi_frame(self, frame) -> None:
+        self[keys.WARPED_ROI_FRAME] = frame
+
     def publish_lane_frames(self, normal_frame, edges_frame) -> None:
         self.normal_frame = normal_frame
         self.edges_frame = edges_frame

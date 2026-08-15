@@ -141,6 +141,7 @@ def lane_detection_process(lane_queue,
             publish(
                 frame_display=frame_display,
                 edges=edges,
+                warped_roi=warped_roi,
                 lane_queue=lane_queue,
                 shared_frames=shared_frames,
                 shared_controls=shared_controls,

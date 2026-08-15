@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QWidget
 
 from src.domain.constants.calibration_ranges import CAMERA_FRAME_HEIGHT, CAMERA_FRAME_WIDTH
 from src.presentation.ui.runtime_constants import WARP_POINT_HIT_RADIUS_PX
-from src.presentation.ui.theme.tokens import Color, Radius, Type
+from src.presentation.ui.theme.tokens import Color, Radius, Size, Type
 
 IMAGE_WIDTH = CAMERA_FRAME_WIDTH
 IMAGE_HEIGHT = CAMERA_FRAME_HEIGHT
@@ -23,7 +23,7 @@ class WarpPointsPreview(QWidget):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setMinimumHeight(170)
+        self.setMinimumHeight(Size.VIDEO_MIN_HEIGHT)
         self.setMouseTracking(True)
         self._points: dict[str, tuple[float, float]] = {
             "tl": (0.0, 0.0),

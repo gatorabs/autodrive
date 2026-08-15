@@ -40,6 +40,7 @@ def preprocess(frame, tk_controls, morph_kernel):
 
 def publish(frame_display,
             edges,
+            warped_roi,
             lane_queue,
             shared_frames,
             shared_controls,
@@ -56,11 +57,13 @@ def publish(frame_display,
     try:
         future_display = _encoder_pool.submit(encode_frame, frame_display)
         future_edges   = _encoder_pool.submit(encode_frame, edges)
+        future_roi     = _encoder_pool.submit(encode_frame, warped_roi)
 
         shared_frames.publish_lane_frames(
             future_display.result(),
             future_edges.result(),
         )
+        shared_frames.warped_roi_frame = future_roi.result()
     except Exception as e:
         logger.error(f"Erro ao codificar frames: {e}")
 

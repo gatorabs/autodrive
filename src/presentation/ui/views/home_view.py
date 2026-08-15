@@ -33,6 +33,7 @@ from src.infrastructure.constants.path_constants import DEFAULT_UI_PATH
 from src.infrastructure.vision.camera_discovery import detect_camera_indices
 from src.infrastructure.vision.video_files import get_video_files_from_folder
 from src.presentation.ui.theme.tokens import Color, Size, Space
+from src.presentation.ui.widgets.card import Card
 from src.presentation.ui.widgets.combo_box import ComboBox
 from src.presentation.ui.widgets.elegant_splitter import ElegantSplitter
 from src.presentation.ui.widgets.slider_card import SettingsPanel
@@ -94,7 +95,8 @@ class HomeView(QWidget):
         panel.add_content(self._build_serial_ports_content)
         panel.add_section("Warp Points")
         warp_preview = WarpPointsPreview()
-        panel.add_content(lambda frame, w=warp_preview: frame.layout().addWidget(w))
+        self.warped_roi_tile = VideoTile("Warped ROI", "Waiting for warped ROI", "lane")
+        panel.add_content(lambda frame: self._build_warp_previews_content(frame, warp_preview, self.warped_roi_tile))
         panel.add_sliders(
             [
                 SliderSpec(keys.WARP_TL_X, "Top Left X", *WARP_X_RANGE),
@@ -112,6 +114,18 @@ class HomeView(QWidget):
         )
         self._wire_warp_preview(panel, warp_preview)
         return panel
+
+    @staticmethod
+    def _build_warp_previews_content(frame: QWidget, points_preview: WarpPointsPreview, roi_tile: VideoTile) -> None:
+        row = QHBoxLayout()
+        row.setSpacing(Space.SM)
+
+        points_card = Card("Points")
+        points_card.body_layout.addWidget(points_preview)
+
+        row.addWidget(points_card, 1)
+        row.addWidget(roi_tile, 1)
+        frame.layout().addLayout(row)
 
     @staticmethod
     def _wire_warp_preview(panel: SettingsPanel, preview: WarpPointsPreview) -> None:
